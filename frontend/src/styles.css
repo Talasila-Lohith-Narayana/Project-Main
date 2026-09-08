@@ -135,6 +135,17 @@
   color: #cbd5e1;
 }
 
+[data-theme="dark"] .btn.danger {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .btn.danger:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
 [data-theme="dark"] .signals>div,
 [data-theme="dark"] .cat,
 [data-theme="dark"] .ratingPill {
@@ -1442,6 +1453,17 @@ button {
 .ghost {
   background: #f0f3f7;
   color: #27364a;
+}
+
+.danger {
+  background: #dc2626;
+  color: #ffffff;
+  border: 1px solid #dc2626;
+}
+
+.danger:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #b91c1c;
 }
 
 .full {

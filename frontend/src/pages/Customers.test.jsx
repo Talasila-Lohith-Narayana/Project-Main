@@ -370,8 +370,10 @@ describe("Customers Directory Page", () => {
     fireEvent.click(screen.getByText("uid_222222"));
     expect(screen.getByText("1 customer selected")).toBeInTheDocument();
 
-    vi.spyOn(window, "confirm").mockReturnValueOnce(true);
     fireEvent.click(screen.getByRole("button", { name: /Bulk Delete/i }));
+    expect(screen.getByRole("heading", { name: /Delete Selected Customers\?/i })).toBeInTheDocument();
+    const confirmModal = screen.getByRole("dialog");
+    fireEvent.click(within(confirmModal).getByRole("button", { name: /Bulk Delete/i }));
 
     await waitFor(() => {
       expect(bulkDeleteSpy).toHaveBeenCalledWith({

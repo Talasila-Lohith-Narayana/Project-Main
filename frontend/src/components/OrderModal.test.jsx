@@ -64,9 +64,11 @@ describe("OrderModal Component", () => {
     expect(deleteBtn).toBeInTheDocument();
 
     // Trigger delete with rejection
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     mockDelete.mockRejectedValueOnce(new Error("Cannot delete completed order"));
     fireEvent.click(deleteBtn);
+    expect(screen.getByText("Delete Order?")).toBeInTheDocument();
+    const modalConfirmBtns = screen.getAllByRole("button", { name: "Delete Order" });
+    fireEvent.click(modalConfirmBtns[modalConfirmBtns.length - 1]);
 
     await waitFor(() => {
       expect(screen.getByText("Cannot delete completed order")).toBeInTheDocument();
@@ -75,6 +77,8 @@ describe("OrderModal Component", () => {
     // Successful delete
     mockDelete.mockResolvedValueOnce({});
     fireEvent.click(deleteBtn);
+    const modalConfirmBtns2 = screen.getAllByRole("button", { name: "Delete Order" });
+    fireEvent.click(modalConfirmBtns2[modalConfirmBtns2.length - 1]);
     await waitFor(() => {
       expect(mockDelete).toHaveBeenCalledWith("ord_edit_123");
     });

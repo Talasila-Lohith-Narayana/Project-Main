@@ -225,22 +225,27 @@ describe("Customer Page Orchestrator", () => {
     const deleteBtn = screen.getByRole("button", { name: /delete/i });
 
     // Scenario 1: User cancels confirm
-    vi.spyOn(window, "confirm").mockReturnValueOnce(false);
     fireEvent.click(deleteBtn);
+    expect(screen.getByRole("heading", { name: /delete customer profile\?/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
+    expect(screen.queryByRole("heading", { name: /delete customer profile\?/i })).not.toBeInTheDocument();
     expect(removeSpy).not.toHaveBeenCalled();
 
     // Scenario 2: User confirms but API fails
-    vi.spyOn(window, "confirm").mockReturnValueOnce(true);
     removeSpy.mockRejectedValueOnce(new Error("Cannot delete customer with active records"));
     fireEvent.click(deleteBtn);
+    expect(screen.getByRole("heading", { name: /delete customer profile\?/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Delete Customer" }));
     await waitFor(() => {
       expect(mockToast.error).toHaveBeenCalledWith("Cannot delete customer with active records");
     });
+    expect(screen.queryByRole("heading", { name: /delete customer profile\?/i })).not.toBeInTheDocument();
 
     // Scenario 3: User confirms and API succeeds
-    vi.spyOn(window, "confirm").mockReturnValueOnce(true);
     removeSpy.mockResolvedValueOnce({ ok: true });
     fireEvent.click(deleteBtn);
+    expect(screen.getByRole("heading", { name: /delete customer profile\?/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Delete Customer" }));
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith("/customers");
     });
@@ -396,8 +401,10 @@ describe("Customer Page Orchestrator", () => {
     fireEvent.click(screen.getByTitle("Edit order details"));
     expect(screen.getByRole("heading", { name: /edit order/i })).toBeInTheDocument();
 
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     fireEvent.click(screen.getByRole("button", { name: /delete order/i }));
+    expect(screen.getByRole("heading", { name: /delete order\?/i })).toBeInTheDocument();
+    const confirmModal = screen.getByRole("dialog");
+    fireEvent.click(within(confirmModal).getByRole("button", { name: /delete order/i }));
     await waitFor(() => {
       expect(removeOrderSpy).toHaveBeenCalledWith("c_123", "ord_100");
     });

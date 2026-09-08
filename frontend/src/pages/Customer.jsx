@@ -48,6 +48,7 @@ import InteractionModal from "../components/InteractionModal";
 import OrderModal from "../components/OrderModal";
 import ReviewModal from "../components/ReviewModal";
 import CustomerModal from "../components/CustomerModal";
+import ConfirmModal from "../components/ConfirmModal";
 import { ErrorState, LoadingState, Page } from "../components/States";
 import { useAuth } from "../context/AuthContext";
 
@@ -72,6 +73,8 @@ export default function Customer() {
   const [editingOrder, setEditingOrder] = useState(null);
   const [showAddReview, setShowAddReview] = useState(false);
   const [editingReview, setEditingReview] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [editingInteraction, setEditingInteraction] = useState(null);
   const [error, setError] = useState("");
 
@@ -100,15 +103,19 @@ export default function Customer() {
     }
   };
 
-  const remove = async () => {
-    if (!window.confirm("Delete this customer? This cannot be undone.")) return;
+  const handleConfirmDelete = async () => {
+    setDeleteLoading(true);
     setError("");
     try {
       await customerService.remove(id);
+      setShowDeleteConfirm(false);
       toast.success("Customer deleted successfully.");
       navigate("/customers");
     } catch (requestError) {
       toast.error(requestError.message);
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -193,7 +200,7 @@ export default function Customer() {
             <button className="btn secondary" onClick={() => setShowEdit(true)}>
               Edit customer
             </button>
-            <button className="btn secondary" onClick={remove}>
+            <button className="btn secondary" onClick={() => setShowDeleteConfirm(true)}>
               <Trash2 size={16} /> Delete
             </button>
             <button className="btn primary" onClick={() => setShowForm(true)}>
@@ -363,6 +370,18 @@ export default function Customer() {
             await load();
             setTab("reviews");
           }}
+        />
+      )}
+
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title="Delete Customer Profile?"
+          message={`Are you sure you want to delete customer ${customer.customer_unique_id}? Customers with active order history cannot be deleted.`}
+          confirmLabel="Delete Customer"
+          isDanger={true}
+          loading={deleteLoading}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
         />
       )}
     </Page>

@@ -78,12 +78,14 @@ describe("CustomerModal Component", () => {
     const submitBtn = screen.getByRole("button", { name: /save changes/i });
     fireEvent.click(submitBtn);
 
-    expect(mockSave).toHaveBeenCalledWith({
-      customer_unique_id: "uid_abcdef12345",
-      customer_zip_code_prefix: 13010,
-      customer_city: "Campinas",
-      customer_state: "SP",
-      segment: "Engaged",
+    await waitFor(() => {
+      expect(mockSave).toHaveBeenCalledWith({
+        customer_unique_id: "uid_abcdef12345",
+        customer_zip_code_prefix: 13010,
+        customer_city: "Campinas",
+        customer_state: "SP",
+        segment: "Engaged",
+      });
     });
   });
 

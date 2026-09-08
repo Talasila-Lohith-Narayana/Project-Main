@@ -26,6 +26,7 @@ WHAT PART OF THE UI USES THIS:
 ================================================================================
 """
 
+from datetime import datetime, date
 from pydantic import BaseModel, Field, field_validator
 
 # ------------------------------------------------------------------------------
@@ -117,9 +118,16 @@ class OrderIn(BaseModel):
     def validate_purchase_date(cls, v):
         if v:
             clean = v.strip()
-            # Ensures order purchase dates stay within the historical dataset timeline
-            if clean < "2016-09-01" or clean > "2018-10-31T23:59:59":
-                raise ValueError("Purchase date must be within database timeline (Sep 2016 to Oct 2018)")
+            try:
+                dt = datetime.fromisoformat(clean.replace("Z", "+00:00"))
+                d = dt.date()
+                if d < date(2016, 9, 1) or d > date(2018, 10, 31):
+                    raise ValueError("Purchase date must be within database timeline (Sep 2016 to Oct 2018)")
+            except ValueError as e:
+                if "within database timeline" in str(e):
+                    raise
+                if clean[:10] < "2016-09-01" or clean[:10] > "2018-10-31":
+                    raise ValueError("Purchase date must be within database timeline (Sep 2016 to Oct 2018)")
             return clean
         return v
 
@@ -128,8 +136,16 @@ class OrderIn(BaseModel):
     def validate_delivered_date(cls, v):
         if v:
             clean = v.strip()
-            if clean < "2016-09-01" or clean > "2018-10-31T23:59:59":
-                raise ValueError("Delivery date must be within database timeline (Sep 2016 to Oct 2018)")
+            try:
+                dt = datetime.fromisoformat(clean.replace("Z", "+00:00"))
+                d = dt.date()
+                if d < date(2016, 9, 1) or d > date(2018, 10, 31):
+                    raise ValueError("Delivery date must be within database timeline (Sep 2016 to Oct 2018)")
+            except ValueError as e:
+                if "within database timeline" in str(e):
+                    raise
+                if clean[:10] < "2016-09-01" or clean[:10] > "2018-10-31":
+                    raise ValueError("Delivery date must be within database timeline (Sep 2016 to Oct 2018)")
             return clean
         return v
 
@@ -156,7 +172,15 @@ class ReviewIn(BaseModel):
     def validate_review_date(cls, v):
         if v:
             clean = v.strip()
-            if clean < "2016-09-01" or clean > "2018-10-31T23:59:59":
-                raise ValueError("Review date must be within database timeline (Sep 2016 to Oct 2018)")
+            try:
+                dt = datetime.fromisoformat(clean.replace("Z", "+00:00"))
+                d = dt.date()
+                if d < date(2016, 9, 1) or d > date(2018, 10, 31):
+                    raise ValueError("Review date must be within database timeline (Sep 2016 to Oct 2018)")
+            except ValueError as e:
+                if "within database timeline" in str(e):
+                    raise
+                if clean[:10] < "2016-09-01" or clean[:10] > "2018-10-31":
+                    raise ValueError("Review date must be within database timeline (Sep 2016 to Oct 2018)")
             return clean
         return v

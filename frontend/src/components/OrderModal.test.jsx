@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import OrderModal from "./OrderModal";
 import * as ApiModule from "../services/api";
 
@@ -15,6 +15,21 @@ describe("OrderModal Component", () => {
     });
   });
 
+  const renderOrderModal = async (props = {}) => {
+    let result;
+    await act(async () => {
+      result = render(
+        <OrderModal
+          order={null}
+          close={vi.fn()}
+          save={vi.fn()}
+          {...props}
+        />
+      );
+    });
+    return result;
+  };
+
   const mockOrder = {
     order_id: "ord_edit_123",
     order_status: "delivered",
@@ -26,14 +41,8 @@ describe("OrderModal Component", () => {
     order_delivered_customer_date: "2018-05-06T12:00:00Z",
   };
 
-  it("renders Add Order modal title and form controls in create mode", () => {
-    render(
-      <OrderModal
-        order={null}
-        close={vi.fn()}
-        save={vi.fn()}
-      />
-    );
+  it("renders Add Order modal title and form controls in create mode", async () => {
+    await renderOrderModal();
 
     expect(screen.getByRole("heading", { name: /place new order/i })).toBeInTheDocument();
     expect(screen.getByText(/Order Items & Categories/i)).toBeInTheDocument();
@@ -42,14 +51,10 @@ describe("OrderModal Component", () => {
   it("pre-fills order details in edit mode and handles delete with error case", async () => {
     const mockDelete = vi.fn();
 
-    render(
-      <OrderModal
-        order={mockOrder}
-        close={vi.fn()}
-        save={vi.fn()}
-        onDelete={mockDelete}
-      />
-    );
+    await renderOrderModal({
+      order: mockOrder,
+      onDelete: mockDelete,
+    });
 
     expect(screen.getByRole("heading", { name: /edit order/i })).toBeInTheDocument();
     expect(screen.getByDisplayValue("120")).toBeInTheDocument();
@@ -75,14 +80,8 @@ describe("OrderModal Component", () => {
     });
   });
 
-  it("adds and removes item rows", () => {
-    render(
-      <OrderModal
-        order={null}
-        close={vi.fn()}
-        save={vi.fn()}
-      />
-    );
+  it("adds and removes item rows", async () => {
+    await renderOrderModal();
 
     const addRowBtn = screen.getByRole("button", { name: /add another category/i });
     fireEvent.click(addRowBtn);
@@ -97,17 +96,14 @@ describe("OrderModal Component", () => {
   });
 
   it("updates category, product id, price, and freight in item rows", async () => {
-    render(
-      <OrderModal
-        order={null}
-        close={vi.fn()}
-        save={vi.fn()}
-      />
-    );
+    await renderOrderModal();
 
     // Change category
     const categoryInput = screen.getByPlaceholderText(/e\.g\. beleza_saude/i);
     fireEvent.change(categoryInput, { target: { value: "relogios_presentes" } });
+    await waitFor(() => {
+      expect(ApiModule.productsService.byCategory).toHaveBeenCalledWith("relogios_presentes", 60);
+    });
 
     // Change price and freight
     const priceInput = screen.getByPlaceholderText("99.90");
@@ -120,14 +116,8 @@ describe("OrderModal Component", () => {
     expect(freightInput.value).toBe("25.00");
   });
 
-  it("changes payment method and disables installments for debit and boleto", () => {
-    render(
-      <OrderModal
-        order={null}
-        close={vi.fn()}
-        save={vi.fn()}
-      />
-    );
+  it("changes payment method and disables installments for debit and boleto", async () => {
+    await renderOrderModal();
 
     const paymentSelect = screen.getByDisplayValue(/Credit Card/i);
     const installmentsSelect = screen.getByDisplayValue(/1x \(Single\)/i);
@@ -151,14 +141,8 @@ describe("OrderModal Component", () => {
     expect(installmentsSelect.value).toBe("5");
   });
 
-  it("changes order status, purchase date, and delivery date", () => {
-    render(
-      <OrderModal
-        order={null}
-        close={vi.fn()}
-        save={vi.fn()}
-      />
-    );
+  it("changes order status, purchase date, and delivery date", async () => {
+    await renderOrderModal();
 
     const statusSelect = screen.getByDisplayValue(/Delivered/i);
     fireEvent.change(statusSelect, { target: { value: "shipped" } });
@@ -176,13 +160,7 @@ describe("OrderModal Component", () => {
   });
 
   it("validates empty category, invalid price, invalid freight, and dates", async () => {
-    render(
-      <OrderModal
-        order={null}
-        close={vi.fn()}
-        save={vi.fn()}
-      />
-    );
+    await renderOrderModal();
 
     const form = document.querySelector("form.modal");
 
@@ -204,6 +182,9 @@ describe("OrderModal Component", () => {
 
     // Fix category, set out-of-range purchase date (e.g. 2020)
     fireEvent.change(screen.getByPlaceholderText(/e\.g\. beleza_saude/i), { target: { value: "informatica_acessorios" } });
+    await waitFor(() => {
+      expect(ApiModule.productsService.byCategory).toHaveBeenCalledWith("informatica_acessorios", 60);
+    });
     const dateInputs = document.querySelectorAll('input[type="date"]');
     fireEvent.change(dateInputs[0], { target: { value: "2020-01-01" } });
     fireEvent.submit(form);
@@ -219,13 +200,10 @@ describe("OrderModal Component", () => {
   it("handles save rejection and shows API error", async () => {
     const mockSave = vi.fn().mockRejectedValue(new Error("Server failed to record order"));
 
-    render(
-      <OrderModal
-        order={mockOrder}
-        close={vi.fn()}
-        save={mockSave}
-      />
-    );
+    await renderOrderModal({
+      order: mockOrder,
+      save: mockSave,
+    });
 
     const submitBtn = screen.getByRole("button", { name: /save changes/i });
     fireEvent.click(submitBtn);
@@ -235,16 +213,12 @@ describe("OrderModal Component", () => {
     });
   });
 
-  it("triggers close when clicking cancel button or close icon", () => {
+  it("triggers close when clicking cancel button or close icon", async () => {
     const mockClose = vi.fn();
 
-    const { rerender } = render(
-      <OrderModal
-        order={null}
-        close={mockClose}
-        save={vi.fn()}
-      />
-    );
+    const { rerender } = await renderOrderModal({
+      close: mockClose,
+    });
 
     const cancelBtn = screen.getByRole("button", { name: "Cancel" });
     fireEvent.click(cancelBtn);

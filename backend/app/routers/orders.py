@@ -126,11 +126,11 @@ def create_order(
     seller_row = db.execute(text("SELECT seller_id FROM sellers LIMIT 1")).fetchone()
     seller_id = seller_row[0] if seller_row else os.urandom(16).hex()
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
-    purchase_time = now
+    default_dataset_date = datetime(2018, 6, 15, 12, 0, 0)
+    purchase_time = default_dataset_date
     if x.order_purchase_timestamp:
         try:
-            purchase_time = datetime.fromisoformat(x.order_purchase_timestamp.replace("Z", "+00:00"))
+            purchase_time = datetime.fromisoformat(x.order_purchase_timestamp.replace("Z", "+00:00")).replace(tzinfo=None)
         except ValueError:
             pass
 

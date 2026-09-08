@@ -109,6 +109,7 @@ export default function OrderModal({ order, close, save, onDelete }) {
 
   // Fetch product IDs for distinct categories whenever items category changes
   useEffect(() => {
+    let isMounted = true;
     const categoriesToFetch = Array.from(
       new Set(items.map((it) => it.product_category?.trim().toLowerCase()).filter(Boolean))
     );
@@ -118,14 +119,20 @@ export default function OrderModal({ order, close, save, onDelete }) {
         productsService
           .byCategory(cat, 60)
           .then((res) => {
-            setCategoryProducts((prev) => ({
-              ...prev,
-              [cat]: res.items || [],
-            }));
+            if (isMounted) {
+              setCategoryProducts((prev) => ({
+                ...prev,
+                [cat]: res.items || [],
+              }));
+            }
           })
           .catch(() => {});
       }
     });
+
+    return () => {
+      isMounted = false;
+    };
   }, [items]);
 
   const update = (field, value) => {

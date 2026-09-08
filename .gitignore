@@ -12,6 +12,9 @@ venv/
 *.egg-info/
 dist/
 build/
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Node / Frontend
 node_modules/

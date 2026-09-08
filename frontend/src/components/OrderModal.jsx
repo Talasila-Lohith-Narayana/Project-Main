@@ -19,6 +19,7 @@
 import React, { useEffect, useState } from "react";
 import { Package, PackagePlus, Plus, Trash2, X } from "lucide-react";
 import { productsService } from "../services/api";
+import ConfirmModal from "./ConfirmModal";
 
 const TOP_CATEGORIES = [
   "cama_mesa_banho",
@@ -104,6 +105,7 @@ export default function OrderModal({ order, close, save, onDelete }) {
   );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isEdit = Boolean(order);
 
@@ -546,17 +548,7 @@ export default function OrderModal({ order, close, save, onDelete }) {
             <button
               type="button"
               className="btn secondary"
-              onClick={async () => {
-                if (window.confirm("Are you sure you want to delete this order? Any associated review and payment records will also be permanently removed.")) {
-                  setBusy(true);
-                  try {
-                    await onDelete(order.order_id);
-                  } catch (e) {
-                    setError(e.message);
-                    setBusy(false);
-                  }
-                }
-              }}
+              onClick={() => setShowDeleteConfirm(true)}
               style={{ color: "#ef4444", borderColor: "#fecaca", display: "inline-flex", alignItems: "center", gap: 5 }}
               disabled={busy}
             >
@@ -576,6 +568,27 @@ export default function OrderModal({ order, close, save, onDelete }) {
           </div>
         </div>
       </form>
+
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title="Delete Order?"
+          message="Are you sure you want to delete this order? Any associated review and payment records will also be permanently removed."
+          confirmLabel="Delete Order"
+          isDanger={true}
+          loading={busy}
+          onConfirm={async () => {
+            setShowDeleteConfirm(false);
+            setBusy(true);
+            try {
+              await onDelete(order.order_id);
+            } catch (e) {
+              setError(e.message);
+              setBusy(false);
+            }
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   );
 }

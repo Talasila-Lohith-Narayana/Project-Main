@@ -30,6 +30,7 @@ import { customerService } from "../services/api";
 import { ErrorState, Header, LoadingState, Page } from "../components/States";
 import CustomerModal from "../components/CustomerModal";
 import FilterModal from "../components/FilterModal";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 
@@ -108,9 +109,10 @@ export default function Customers() {
   const [showForm, setShowForm] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
-  const [bulkSegment, setBulkSegment] = useState("Engaged");
-  const [bulkBusy, setBulkBusy] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkSegment, setBulkSegment] = useState("Champions");
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const sortMenuRef = useRef(null);
 
   // Sync state if URL search parameters change while staying on page, resetting other filters cleanly
@@ -229,15 +231,9 @@ export default function Customers() {
   };
 
   // Execute Bulk Customer Delete
-  const executeBulkDelete = async () => {
+  const handleConfirmBulkDelete = async () => {
+    setShowBulkDeleteConfirm(false);
     if (selectedIds.length === 0) return;
-    if (
-      !window.confirm(
-        `Are you sure you want to delete ${selectedIds.length} selected customer(s)? Only customers without order history will be deleted.`
-      )
-    )
-      return;
-
     setBulkBusy(true);
     try {
       const res = await customerService.bulkDelete({
@@ -532,7 +528,7 @@ export default function Customers() {
               <button
                 type="button"
                 className="btn secondary"
-                onClick={executeBulkDelete}
+                onClick={() => setShowBulkDeleteConfirm(true)}
                 disabled={bulkBusy}
                 style={{ fontSize: 12, padding: "6px 12px", background: "#450a0a", color: "#f87171", borderColor: "#7f1d1d" }}
               >
@@ -767,6 +763,18 @@ export default function Customers() {
             </div>
           </form>
         </div>
+      )}
+
+      {showBulkDeleteConfirm && (
+        <ConfirmModal
+          title="Delete Selected Customers?"
+          message={`Are you sure you want to delete ${selectedIds.length} selected customer${selectedIds.length > 1 ? "s" : ""}? Only customers without order history will be deleted. This cannot be undone.`}
+          confirmLabel="Bulk Delete"
+          isDanger={true}
+          loading={bulkBusy}
+          onConfirm={handleConfirmBulkDelete}
+          onCancel={() => setShowBulkDeleteConfirm(false)}
+        />
       )}
     </Page>
   );

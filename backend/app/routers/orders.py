@@ -286,6 +286,7 @@ def create_order(
         )
 
     # Log audit entry
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     cats_str = ", ".join(list(set(category_names)))
     db.add(
         AuditLog(

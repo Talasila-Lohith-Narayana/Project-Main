@@ -1,0 +1,150 @@
+"""
+================================================================================
+CRM INTERACTIONS & TIMELINE ROUTER (routers/interactions.py)
+================================================================================
+
+WHAT THIS FILE DOES (Plain English):
+------------------------------------
+This file acts as the "CRM interaction logbook" for internal teams:
+1. Viewing customer contact history (phone calls, emails, support tickets, meetings, notes).
+2. Logging new touchpoints with details and timestamps.
+3. Editing past interaction notes if details need clarification.
+
+WHAT PART OF THE UI HANDLES THIS:
+---------------------------------
+1. CRM Activity Timeline (`Customer.jsx`):
+   - Displays vertical timeline of communications with icons for Phone, Email, Note,
+     Meeting, and Support Ticket.
+2. "Log Interaction" Button & Modal (`InteractionModal.jsx`):
+   - Dropdown to choose interaction type (Call, Email, Meeting, Note, Support).
+   - Subject / title text field and detailed notes body.
+3. "Edit Interaction" Modal (`InteractionModal.jsx`):
+   - Pre-fills previous notes so staff can make corrections or add updates.
+================================================================================
+"""
+
+from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+from ..auth import auth, admin_auth
+from ..database import get_db
+from ..models import ConsumerInteraction, AuditLog
+from ..schemas import InteractionIn
+
+router = APIRouter(tags=["interactions"])
+
+# ------------------------------------------------------------------------------
+# 1. Fetch Customer Interaction History
+# ------------------------------------------------------------------------------
+@router.get("/api/customers/{cid}/interactions")
+def interactions(cid: str, db: Session = Depends(get_db), _: str = Depends(auth)):
+    """
+    Retrieves the CRM communications timeline for a specific customer.
+    UI Component: Activity timeline on `Customer.jsx`.
+    """
+    cust = db.execute(
+        text("SELECT customer_id, customer_unique_id FROM customers WHERE customer_unique_id=:id OR customer_id=:id LIMIT 1"),
+        {"id": cid}
+    ).fetchone()
+    ids = [cid]
+    if cust:
+        ids.extend([cust._mapping.get("customer_id"), cust._mapping.get("customer_unique_id")])
+    ids = list(set([i for i in ids if i]))
+
+    return (
+        db.query(ConsumerInteraction)
+        .filter(ConsumerInteraction.customer_id.in_(ids))
+        .order_by(ConsumerInteraction.created_at.desc())
+        .limit(50)
+        .all()
+    )
+
+
+# ------------------------------------------------------------------------------
+# 2. Log New CRM Interaction (Admin Only)
+# ------------------------------------------------------------------------------
+@router.post("/api/customers/{cid}/interactions")
+def add_interaction(
+    cid: str,
+    x: InteractionIn,
+    db: Session = Depends(get_db),
+    u: dict = Depends(admin_auth),
+):
+    """
+    Records a new touchpoint (Call, Email, Note, Support) and creates an audit trail.
+    UI Component: 'Log interaction' modal (`InteractionModal.jsx`).
+    """
+    cust = db.execute(
+        text("SELECT customer_id, customer_unique_id FROM customers WHERE customer_unique_id=:id OR customer_id=:id LIMIT 1"),
+        {"id": cid}
+    ).fetchone()
+    if not cust:
+        raise HTTPException(404, "Customer not found")
+    target_id = cust._mapping.get("customer_unique_id") or cid
+
+    obj = ConsumerInteraction(
+        customer_id=target_id,
+        interaction_type=x.interaction_type,
+        title=x.title,
+        description=x.description,
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+    )
+    db.add(obj)
+    db.add(
+        AuditLog(
+            customer_id=target_id,
+            action=f"Logged interaction ({x.interaction_type})",
+            performed_by=u.get("sub", "admin"),
+            details=f"Title: {x.title}",
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        )
+    )
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+
+# ------------------------------------------------------------------------------
+# 3. Edit Interaction Note (Admin Only)
+# ------------------------------------------------------------------------------
+@router.patch("/api/customers/{cid}/interactions/{interaction_id}")
+def update_interaction(
+    cid: str,
+    interaction_id: int,
+    x: InteractionIn,
+    db: Session = Depends(get_db),
+    u: dict = Depends(admin_auth),
+):
+    """
+    Updates an interaction note and logs the edit.
+    UI Component: 'Edit' button on interaction cards in `Customer.jsx`.
+    """
+    cust = db.execute(
+        text("SELECT customer_id, customer_unique_id FROM customers WHERE customer_unique_id=:id OR customer_id=:id LIMIT 1"),
+        {"id": cid}
+    ).fetchone()
+    if not cust:
+        raise HTTPException(404, "Customer not found")
+    target_id = cust._mapping.get("customer_unique_id") or cid
+
+    obj = db.query(ConsumerInteraction).filter(ConsumerInteraction.id == interaction_id).first()
+    if not obj:
+        raise HTTPException(404, "Interaction not found")
+
+    obj.interaction_type = x.interaction_type
+    obj.title = x.title
+    obj.description = x.description
+
+    db.add(
+        AuditLog(
+            customer_id=target_id,
+            action=f"Updated interaction ({x.interaction_type})",
+            performed_by=u.get("sub", "admin"),
+            details=f"Updated title: {x.title}",
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        )
+    )
+    db.commit()
+    db.refresh(obj)
+    return obj

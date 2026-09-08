@@ -1,0 +1,30 @@
+# Environment and secret credentials
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/coverage/
+
+# OS and IDE files
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3

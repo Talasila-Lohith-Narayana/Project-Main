@@ -1,0 +1,162 @@
+"""
+================================================================================
+DATA VALIDATION SCHEMAS MODULE (schemas.py)
+================================================================================
+
+WHAT THIS FILE DOES (Plain English):
+------------------------------------
+This file defines the "rules and blueprints" for what kind of information users 
+are allowed to type into forms and popups. If someone leaves a required field blank,
+enters a negative price, or types an impossible date, this file catches the error
+and displays a friendly error message before bad data ever touches the database.
+
+WHAT PART OF THE UI USES THIS:
+------------------------------
+1. Login Modal / Screen:
+   - Rules for username and password fields (`Login`).
+2. Add / Edit Customer Modal:
+   - Validates Customer Unique ID, City, State code, and Zip Code (`CustomerIn`).
+3. Add / Edit Order Modal:
+   - Validates multi-item categories, price (> 0), freight value, payment type, 
+     installments (1-24), and order dates within the database timeline (`OrderIn`, `OrderItemIn`).
+4. Add / Edit Review Modal:
+   - Validates 1 to 5 star rating, comment title, and text message (`ReviewIn`).
+5. Log / Edit Interaction Note Modal:
+   - Validates interaction type (Call, Email, Meeting), title, and note body (`InteractionIn`).
+================================================================================
+"""
+
+from pydantic import BaseModel, Field, field_validator
+
+# ------------------------------------------------------------------------------
+# 1. User Login Form Blueprint
+# ------------------------------------------------------------------------------
+class Login(BaseModel):
+    username: str = Field(min_length=3, max_length=80, description="Login username")
+    password: str = Field(min_length=6, max_length=128, description="Login password")
+
+
+# ------------------------------------------------------------------------------
+# 2. Add / Edit Customer Form Blueprint
+# ------------------------------------------------------------------------------
+class CustomerIn(BaseModel):
+    customer_unique_id: str = Field(min_length=1, max_length=32, description="Unique 32-character customer hash")
+    customer_zip_code_prefix: int = Field(ge=0, le=999999, description="Up to 6-digit postal code prefix")
+    customer_city: str = Field(min_length=1, max_length=100, description="City name")
+    customer_state: str = Field(min_length=2, max_length=2, description="2-letter Brazilian state code (e.g. SP, RJ)")
+    segment: str | None = Field(default=None, description="Optional RFM customer segment")
+
+    @field_validator("customer_unique_id", "customer_city", "customer_state")
+    @classmethod
+    def clean(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError("Field cannot be left blank")
+        return v
+
+    @field_validator("segment")
+    @classmethod
+    def clean_segment(cls, v):
+        if v is not None:
+            v = v.strip()
+            allowed = ["Champions", "Engaged", "At Risk", "New / Developing"]
+            if v and v not in allowed:
+                raise ValueError(f"Segment must be one of: {', '.join(allowed)}")
+        return v
+
+
+# ------------------------------------------------------------------------------
+# 3. Log / Edit Interaction Note Blueprint (CRM Timeline)
+# ------------------------------------------------------------------------------
+class InteractionIn(BaseModel):
+    interaction_type: str = Field(min_length=2, max_length=50, description="Type: Call, Email, Meeting, Note, Support")
+    title: str = Field(min_length=3, max_length=120, description="Subject of the interaction note")
+    description: str = Field(min_length=5, max_length=1000, description="Detailed notes of what happened")
+
+    @field_validator("interaction_type", "title", "description")
+    @classmethod
+    def clean(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError("Field cannot be left blank")
+        return v
+
+
+# ------------------------------------------------------------------------------
+# 4. Multi-Item Order Blueprint (Order Modal)
+# ------------------------------------------------------------------------------
+class OrderItemIn(BaseModel):
+    product_category: str = Field(min_length=2, max_length=64, description="Product category name (e.g. beleza_saude)")
+    product_id: str | None = Field(default=None, max_length=32, description="Specific product hash ID")
+    price: float = Field(gt=0, le=100000, description="Item price in Brazilian Reais (R$)")
+    freight_value: float = Field(ge=0, le=10000, default=0.0, description="Shipping cost in R$")
+
+
+class OrderIn(BaseModel):
+    product_category: str | None = Field(default=None, max_length=64)
+    product_id: str | None = Field(default=None, max_length=32)
+    price: float | None = Field(default=None, gt=0, le=100000)
+    freight_value: float | None = Field(default=None, ge=0, le=10000)
+    items: list[OrderItemIn] | None = None
+    payment_type: str = Field(min_length=3, max_length=16, description="Credit card, Boleto, Voucher, Debit card")
+    payment_installments: int = Field(ge=1, le=24, default=1, description="Number of installments (1 to 24)")
+    order_status: str = Field(min_length=3, max_length=16, default="delivered")
+    order_purchase_timestamp: str | None = None
+    order_delivered_customer_date: str | None = None
+
+    @field_validator("payment_type", "order_status")
+    @classmethod
+    def clean_str(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError("Field cannot be blank")
+        return v
+
+    @field_validator("order_purchase_timestamp")
+    @classmethod
+    def validate_purchase_date(cls, v):
+        if v:
+            clean = v.strip()
+            # Ensures order purchase dates stay within the historical dataset timeline
+            if clean < "2016-09-01" or clean > "2018-10-31T23:59:59":
+                raise ValueError("Purchase date must be within database timeline (Sep 2016 to Oct 2018)")
+            return clean
+        return v
+
+    @field_validator("order_delivered_customer_date")
+    @classmethod
+    def validate_delivered_date(cls, v):
+        if v:
+            clean = v.strip()
+            if clean < "2016-09-01" or clean > "2018-10-31T23:59:59":
+                raise ValueError("Delivery date must be within database timeline (Sep 2016 to Oct 2018)")
+            return clean
+        return v
+
+
+# ------------------------------------------------------------------------------
+# 5. Order Review Blueprint (Review Modal)
+# ------------------------------------------------------------------------------
+class ReviewIn(BaseModel):
+    review_score: int = Field(ge=1, le=5, description="Star rating between 1 and 5")
+    review_comment_title: str | None = Field(default="", max_length=128, description="Review headline")
+    review_comment_message: str | None = Field(default="", max_length=2000, description="Full customer feedback")
+    order_id: str | None = None
+    review_creation_date: str | None = None
+
+    @field_validator("review_score")
+    @classmethod
+    def validate_score(cls, v):
+        if v < 1 or v > 5:
+            raise ValueError("Review score must be between 1 and 5 stars")
+        return v
+
+    @field_validator("review_creation_date")
+    @classmethod
+    def validate_review_date(cls, v):
+        if v:
+            clean = v.strip()
+            if clean < "2016-09-01" or clean > "2018-10-31T23:59:59":
+                raise ValueError("Review date must be within database timeline (Sep 2016 to Oct 2018)")
+            return clean
+        return v

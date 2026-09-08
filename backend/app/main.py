@@ -20,6 +20,7 @@ WHAT PART OF THE UI HANDLES THIS:
 ================================================================================
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -45,37 +46,12 @@ from .routers.reviews import router as reviews_router
 from .routers.interactions import router as interactions_router
 from .routers.audit_logs import router as audit_logs_router
 
-app = FastAPI(title="Customer Sphere API", version="2.0")
-
-# Enable CORS for frontend web client
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Register all modular routers
-app.include_router(auth_router)
-app.include_router(dashboard_router)
-app.include_router(customers_router)
-app.include_router(orders_router)
-app.include_router(products_router)
-app.include_router(reviews_router)
-app.include_router(interactions_router)
-app.include_router(audit_logs_router)
-
 
 # ------------------------------------------------------------------------------
-# Database Startup Event (Table Checks, Admin/Analyst Users & Cache Setup)
+# Application Lifespan Event (Table Checks, Admin/Analyst Users & Cache Setup)
 # ------------------------------------------------------------------------------
-@app.on_event("startup")
-def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     Base.metadata.create_all(engine)
     db = next(get_db())
     
@@ -185,3 +161,30 @@ def startup():
         viewer.role = "viewer"
         db.commit()
     db.close()
+    yield
+
+
+app = FastAPI(title="Customer Sphere API", version="2.0", lifespan=lifespan)
+
+# Enable CORS for frontend web client
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Register all modular routers
+app.include_router(auth_router)
+app.include_router(dashboard_router)
+app.include_router(customers_router)
+app.include_router(orders_router)
+app.include_router(products_router)
+app.include_router(reviews_router)
+app.include_router(interactions_router)
+app.include_router(audit_logs_router)

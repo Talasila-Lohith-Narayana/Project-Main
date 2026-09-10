@@ -30,6 +30,7 @@ export default function FilterModal({
   const [draft, setDraft] = useState({
     ...values,
     ratings: values.ratings || [],
+    churnRisk: values.churnRisk || [],
   });
 
   // Helper to update a single draft filter field
@@ -51,6 +52,20 @@ export default function FilterModal({
   };
 
   /**
+   * Toggles a churn risk level in the multi-select array
+   */
+  const toggleChurnRisk = (level) => {
+    setDraft((current) => {
+      const activeList = current.churnRisk || [];
+      const exists = activeList.includes(level);
+      const nextList = exists
+        ? activeList.filter((l) => l !== level)
+        : [...activeList, level];
+      return { ...current, churnRisk: nextList };
+    });
+  };
+
+  /**
    * Resets all filter fields in the modal back to their empty default values
    */
   const clear = () =>
@@ -59,6 +74,7 @@ export default function FilterModal({
       segment: "",
       activity: "",
       ratings: [],
+      churnRisk: [],
       maxRecency: "",
       minSpend: "",
       minOrders: "",
@@ -191,6 +207,33 @@ export default function FilterModal({
                     onClick={() => toggleRating(score)}
                   >
                     <span className="ratingStarIcon">★</span>
+                    <span>{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="filterField fullWidth">
+            <label>Churn Risk (Select multiple)</label>
+            <div className="ratingPills">
+              {[
+                { level: "high", label: "🔴 High Risk", cls: "high" },
+                { level: "medium", label: "🟡 Medium Risk", cls: "medium" },
+                { level: "low", label: "🟢 Low Risk", cls: "low" },
+              ].map(({ level, label, cls }) => {
+                const isSelected = (draft.churnRisk || []).includes(level);
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    className={`ratingPill ${isSelected ? "active" : ""}`}
+                    onClick={() => toggleChurnRisk(level)}
+                    style={{
+                      borderColor: isSelected
+                        ? (cls === "high" ? "#f43f5e" : cls === "medium" ? "#f59e0b" : "#10b981")
+                        : undefined,
+                    }}
+                  >
                     <span>{label}</span>
                   </button>
                 );

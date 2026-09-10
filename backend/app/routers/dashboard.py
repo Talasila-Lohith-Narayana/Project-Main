@@ -32,47 +32,43 @@ from ..utils import rows, ser
 
 router = APIRouter(tags=["dashboard"])
 
-@router.get("/api/dashboard/summary")
-def dashboard(
-    timeframe: str = "all",
-    start_date: str = None,
-    end_date: str = None,
-    db: Session = Depends(get_db),
-    _: str = Depends(auth),
-):
-    """
-    Computes all aggregated executive metrics for the primary Dashboard view,
-    with optional timeframe horizon filtering ('all', '2018', '2017', '2016', 'l6m', 'l30d', 'custom')
-    and custom start_date / end_date range.
-    UI Component: `Dashboard.jsx`.
-    """
-    # Build timeframe WHERE filter clause safely using parameterized bindings
-    params = {}
-    time_filter_orders = ""
-    conds = []
 
-    if timeframe == "custom" and (start_date or end_date):
-        if start_date:
-            conds.append("o.order_purchase_timestamp >= :start_ts")
-            params["start_ts"] = f"{start_date.strip()} 00:00:00"
-        if end_date:
-            conds.append("o.order_purchase_timestamp <= :end_ts")
-            params["end_ts"] = f"{end_date.strip()} 23:59:59"
-    elif timeframe == "2018":
+# ------------------------------------------------------------------------------
+# Helper: Build timeframe WHERE clause from a timeframe key
+# ------------------------------------------------------------------------------
+def _build_time_filter(tf, sd=None, ed=None, param_prefix=""):
+    """Returns (where_clause_str, params_dict) for a given timeframe."""
+    params = {}
+    conds = []
+    p = param_prefix  # prefix avoids param name collisions in comparison queries
+
+    if tf == "custom" and (sd or ed):
+        if sd:
+            conds.append(f"o.order_purchase_timestamp >= :{p}start_ts")
+            params[f"{p}start_ts"] = f"{sd.strip()} 00:00:00"
+        if ed:
+            conds.append(f"o.order_purchase_timestamp <= :{p}end_ts")
+            params[f"{p}end_ts"] = f"{ed.strip()} 23:59:59"
+    elif tf == "2018":
         conds.append("o.order_purchase_timestamp >= '2018-01-01 00:00:00' AND o.order_purchase_timestamp <= '2018-12-31 23:59:59'")
-    elif timeframe == "2017":
+    elif tf == "2017":
         conds.append("o.order_purchase_timestamp >= '2017-01-01 00:00:00' AND o.order_purchase_timestamp <= '2017-12-31 23:59:59'")
-    elif timeframe == "2016":
+    elif tf == "2016":
         conds.append("o.order_purchase_timestamp >= '2016-01-01 00:00:00' AND o.order_purchase_timestamp <= '2016-12-31 23:59:59'")
-    elif timeframe == "l6m":
+    elif tf == "l6m":
         conds.append("o.order_purchase_timestamp >= '2018-03-01 00:00:00'")
-    elif timeframe == "l30d":
+    elif tf == "l30d":
         conds.append("o.order_purchase_timestamp >= '2018-08-01 00:00:00'")
 
-    if conds:
-        time_filter_orders = f"WHERE {' AND '.join(conds)}"
+    where = f"WHERE {' AND '.join(conds)}" if conds else ""
+    return where, params
 
-    # 1. Calculate Average Order Value and Delivery Days
+
+# ------------------------------------------------------------------------------
+# Helper: Compute core KPI numbers for a given time filter
+# ------------------------------------------------------------------------------
+def _compute_kpis(db, time_filter_orders, params):
+    """Runs the aggregation queries and returns a KPI dict."""
     delivery_filter = "WHERE o.order_delivered_customer_date IS NOT NULL"
     if time_filter_orders:
         delivery_filter += f" AND {time_filter_orders.replace('WHERE ', '')}"
@@ -89,7 +85,6 @@ def dashboard(
         params,
     ).fetchone()
 
-    # 2. Compute Top KPI Cards Summary
     if time_filter_orders:
         total_customers = db.execute(
             text(f"SELECT COUNT(DISTINCT c.customer_unique_id) FROM customers c JOIN orders o ON o.customer_id = c.customer_id {time_filter_orders}"),
@@ -129,7 +124,7 @@ def dashboard(
             text("SELECT COUNT(DISTINCT customer_unique_id) FROM customer_metrics_cache WHERE frequency > 1")
         ).scalar() or 0
 
-    k = {
+    return {
         "customers": total_customers,
         "orders": total_orders,
         "revenue": total_rev,
@@ -139,6 +134,51 @@ def dashboard(
         "avg_order_value": float(health_metrics[0]) if health_metrics and health_metrics[0] is not None else 0.0,
         "avg_delivery_days": float(health_metrics[1]) if health_metrics and health_metrics[1] is not None else 0.0,
     }
+
+
+# ------------------------------------------------------------------------------
+# Helper: Compute comparison deltas between two KPI dicts
+# ------------------------------------------------------------------------------
+def _compute_comparison(current_kpis, previous_kpis):
+    """Returns a dict with absolute and percentage deltas for each KPI."""
+    comparison = {}
+    for key in current_kpis:
+        cur = float(ser(current_kpis[key]) or 0)
+        prev = float(ser(previous_kpis[key]) or 0)
+        delta = cur - prev
+        pct = ((delta / prev) * 100) if prev != 0 else (100.0 if delta > 0 else 0.0)
+        comparison[key] = {
+            "current": cur,
+            "previous": prev,
+            "delta": round(delta, 2),
+            "pct_change": round(pct, 1),
+        }
+    return comparison
+
+
+@router.get("/api/dashboard/summary")
+def dashboard(
+    timeframe: str = "all",
+    start_date: str = None,
+    end_date: str = None,
+    compare_to: str = None,
+    compare_start_date: str = None,
+    compare_end_date: str = None,
+    db: Session = Depends(get_db),
+    _: str = Depends(auth),
+):
+    """
+    Computes all aggregated executive metrics for the primary Dashboard view,
+    with optional timeframe horizon filtering ('all', '2018', '2017', '2016', 'l6m', 'l30d', 'custom')
+    and custom start_date / end_date range.
+    Supports period-over-period comparison via the 'compare_to' parameter.
+    UI Component: `Dashboard.jsx`.
+    """
+    # Build primary timeframe filter
+    time_filter_orders, params = _build_time_filter(timeframe, start_date, end_date)
+
+    # 1-2. Compute primary KPIs
+    k = _compute_kpis(db, time_filter_orders, params)
 
     # 3. Customer Segments Breakdown (Filtered by selected timeframe / date range)
     if time_filter_orders:
@@ -254,7 +294,43 @@ def dashboard(
         params,
     ).fetchall()
 
-    return {
+    # 9. Churn Risk Summary (computed from customer_metrics_cache)
+    churn_risk_rows = db.execute(
+        text(
+            """SELECT
+                SUM(CASE WHEN churn_score >= 51 THEN 1 ELSE 0 END) as high,
+                SUM(CASE WHEN churn_score BETWEEN 21 AND 50 THEN 1 ELSE 0 END) as medium,
+                SUM(CASE WHEN churn_score <= 20 THEN 1 ELSE 0 END) as low
+            FROM (
+                SELECT customer_unique_id,
+                    (CASE WHEN recency_days > 180 THEN 30 WHEN recency_days > 120 THEN 15 ELSE 0 END)
+                    + (CASE WHEN frequency = 1 THEN 25 ELSE 0 END)
+                    + (CASE WHEN avg_review_score > 0 AND avg_review_score < 3.0 THEN 20 ELSE 0 END)
+                    + (CASE WHEN monetary_total < 50 THEN 10 ELSE 0 END)
+                    + (CASE WHEN segment = 'At Risk' THEN 20 ELSE 0 END)
+                    AS churn_score
+                FROM customer_metrics_cache
+                GROUP BY customer_unique_id, recency_days, frequency, avg_review_score, monetary_total, segment
+            ) scored"""
+        )
+    ).fetchone()
+    churn_risk_summary = {
+        "high": int(churn_risk_rows[0] or 0) if churn_risk_rows else 0,
+        "medium": int(churn_risk_rows[1] or 0) if churn_risk_rows else 0,
+        "low": int(churn_risk_rows[2] or 0) if churn_risk_rows else 0,
+    }
+
+    # 10. Period-over-Period Comparison (optional)
+    comparison = None
+    if compare_to:
+        comp_filter, comp_params = _build_time_filter(
+            compare_to, compare_start_date, compare_end_date, param_prefix="cmp_"
+        )
+        comp_kpis = _compute_kpis(db, comp_filter, comp_params)
+        comparison = _compute_comparison(k, comp_kpis)
+        comparison["compare_to"] = compare_to
+
+    result = {
         "kpis": {**{k_name: ser(v_val) for k_name, v_val in k.items()}},
         "segments": rows(seg),
         "monthly": monthly_series,
@@ -262,5 +338,10 @@ def dashboard(
         "top_states": rows(top_states),
         "payments": rows(payments),
         "ratings_dist": rows(ratings_dist),
+        "churn_risk_summary": churn_risk_summary,
         "timeframe": timeframe,
     }
+    if comparison is not None:
+        result["comparison"] = comparison
+
+    return result

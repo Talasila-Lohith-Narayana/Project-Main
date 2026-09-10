@@ -38,6 +38,7 @@ import DashboardRegionalDistribution from "../components/dashboard/DashboardRegi
 import DashboardPaymentMethods from "../components/dashboard/DashboardPaymentMethods";
 import DashboardReviewSatisfaction from "../components/dashboard/DashboardReviewSatisfaction";
 import DashboardTopCategories from "../components/dashboard/DashboardTopCategories";
+import { COMPARISON_PERIODS } from "../components/dashboard/dashboardConstants";
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
@@ -46,15 +47,22 @@ export default function Dashboard() {
     startDate: "2017-01-01",
     endDate: "2018-08-31",
   });
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareTo, setCompareTo] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const load = (selectedTime = timeframe, range = customRange) => {
+  const load = (selectedTime = timeframe, range = customRange, compare = compareMode, compPeriod = compareTo) => {
     setError("");
     const params =
       selectedTime === "custom"
         ? { timeframe: "custom", start_date: range.startDate, end_date: range.endDate }
         : { timeframe: selectedTime };
+
+    // Add comparison period if compare mode is active
+    if (compare && compPeriod) {
+      params.compare_to = compPeriod;
+    }
 
     return dashboardService
       .summary(params)
@@ -64,20 +72,38 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (timeframe !== "custom") {
-      load(timeframe);
+      // Auto-set comparison period when timeframe changes
+      const defaultComp = COMPARISON_PERIODS[timeframe];
+      if (defaultComp && !compareTo) {
+        setCompareTo(defaultComp.key);
+      }
+      load(timeframe, customRange, compareMode, compareTo || defaultComp?.key);
     }
-  }, [timeframe]);
+  }, [timeframe, compareMode, compareTo]);
 
   const handleApplyCustom = (e) => {
     e?.preventDefault();
     setTimeframe("custom");
-    load("custom", customRange);
+    load("custom", customRange, compareMode, compareTo);
+  };
+
+  const handleToggleCompare = () => {
+    const next = !compareMode;
+    setCompareMode(next);
+    if (next) {
+      const defaultComp = COMPARISON_PERIODS[timeframe];
+      const cp = compareTo || defaultComp?.key || "2017";
+      setCompareTo(cp);
+      load(timeframe, customRange, true, cp);
+    } else {
+      load(timeframe, customRange, false, "");
+    }
   };
 
   if (error)
     return (
       <Page>
-        <ErrorState message={error} retry={() => load(timeframe, customRange)} />
+        <ErrorState message={error} retry={() => load(timeframe, customRange, compareMode, compareTo)} />
       </Page>
     );
 
@@ -105,10 +131,19 @@ export default function Dashboard() {
         setCustomRange={setCustomRange}
         handleApplyCustom={handleApplyCustom}
         load={load}
+        compareMode={compareMode}
+        compareTo={compareTo}
+        setCompareTo={setCompareTo}
+        onToggleCompare={handleToggleCompare}
       />
 
       {/* KPI Cards Grid with Interactive Shortcuts */}
-      <DashboardKpiCards kpis={kpis} repeatRate={repeatRate} navigate={navigate} />
+      <DashboardKpiCards
+        kpis={kpis}
+        repeatRate={repeatRate}
+        navigate={navigate}
+        comparison={data?.comparison || null}
+      />
 
       {/* Primary Visualizations */}
       <div className="grid2">
@@ -136,3 +171,4 @@ export default function Dashboard() {
     </Page>
   );
 }
+

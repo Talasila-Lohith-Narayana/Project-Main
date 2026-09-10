@@ -117,6 +117,7 @@ describe("FilterModal Component", () => {
       segment: "Engaged",
       activity: "inactive",
       ratings: [],
+      churnRisk: [],
       maxRecency: "60",
       minSpend: "250",
       minOrders: "3",

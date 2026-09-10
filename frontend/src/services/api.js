@@ -94,10 +94,14 @@ export const authService = {
 
 /** Executive dashboard analytics endpoints */
 export const dashboardService = {
-  /** Fetch KPIs, revenue trend, customer segmentation, and regional distributions */
+  /** Fetch KPIs, revenue trend, customer segmentation, regional distributions, and geo heatmap */
   summary: (params = {}) => {
     const queryParams = typeof params === "string" ? { timeframe: params } : params;
     return data(api.get("/dashboard/summary", { params: queryParams }));
+  },
+  /** Fetch deep-dive geographic analytics for a specific Brazilian state */
+  stateDetail: (stateCode, params = {}) => {
+    return data(api.get(`/dashboard/geo/state/${stateCode}`, { params }));
   },
 };
 

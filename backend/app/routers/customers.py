@@ -70,6 +70,7 @@ def customers(
     min_rating: float | None = None,
     rating: str = "",
     ratings: list[str] | None = None,
+    churn_risk: str = "",
     sort_by: str | None = None,
     sort_dir: str | None = None,
     page: int = 1,
@@ -142,6 +143,27 @@ def customers(
     elif min_rating is not None:
         f.append("m.avg_review_score>=:min_rating")
         p["min_rating"] = min_rating
+
+    # Churn risk filter (low / medium / high)
+    churn_risk_expr = """(
+        (CASE WHEN m.recency_days > 180 THEN 30 WHEN m.recency_days > 120 THEN 15 ELSE 0 END)
+        + (CASE WHEN m.frequency = 1 THEN 25 ELSE 0 END)
+        + (CASE WHEN m.avg_review_score > 0 AND m.avg_review_score < 3.0 THEN 20 ELSE 0 END)
+        + (CASE WHEN m.monetary_total < 50 THEN 10 ELSE 0 END)
+        + (CASE WHEN m.segment = 'At Risk' THEN 20 ELSE 0 END)
+    )"""
+    if churn_risk:
+        risk_levels = [r.strip().lower() for r in churn_risk.split(",") if r.strip()]
+        risk_conds = []
+        if "high" in risk_levels:
+            risk_conds.append(f"{churn_risk_expr} >= 51")
+        if "medium" in risk_levels:
+            risk_conds.append(f"({churn_risk_expr} BETWEEN 21 AND 50)")
+        if "low" in risk_levels:
+            risk_conds.append(f"{churn_risk_expr} <= 20")
+        if risk_conds:
+            f.append(f"({' OR '.join(risk_conds)})")
+
     where = " AND ".join(f)
     join_clause = "JOIN customer_metrics_cache m ON m.customer_id = c.customer_id"
 
@@ -152,6 +174,7 @@ def customers(
         "recency": "m.recency_days",
         "orders": "m.frequency",
         "city": "MIN(c.customer_city)",
+        "churn_risk": "churn_risk_score",
     }
     col = sort_map.get(sort_by) if sort_by in sort_map else "c.customer_unique_id"
     direction = "ASC" if str(sort_dir).lower() == "asc" else "DESC"
@@ -175,7 +198,13 @@ def customers(
                 m.monetary_total,
                 m.avg_review_score,
                 CASE WHEN m.frequency>1 THEN 1 ELSE 0 END as is_repeat_customer,
-                m.segment 
+                m.segment,
+                {churn_risk_expr} AS churn_risk_score,
+                CASE
+                    WHEN {churn_risk_expr} >= 51 THEN 'high'
+                    WHEN {churn_risk_expr} >= 21 THEN 'medium'
+                    ELSE 'low'
+                END AS churn_risk_level
             FROM customers c 
             JOIN customer_metrics_cache m ON m.customer_id = c.customer_id 
             WHERE {where} 
@@ -666,6 +695,28 @@ def customer_detail(cid: str, db: Session = Depends(get_db), _: str = Depends(au
     customer_spend = float(data.get("monetary_total") or 0.0)
     customer_segment = data.get("segment") or "New / Developing"
     data["customer_lifetime_value"] = round(customer_spend * seg_mults.get(customer_segment, 1.10), 2)
+
+    # Compute churn risk score and level
+    recency = float(data.get("recency_days") or 0)
+    frequency = float(data.get("frequency") or 0)
+    avg_review = float(data.get("avg_review_score") or 0)
+    monetary = float(data.get("monetary_total") or 0)
+    segment_val = data.get("segment") or "New / Developing"
+
+    churn_score = 0
+    churn_score += 30 if recency > 180 else (15 if recency > 120 else 0)
+    churn_score += 25 if frequency == 1 else 0
+    churn_score += 20 if 0 < avg_review < 3.0 else 0
+    churn_score += 10 if monetary < 50 else 0
+    churn_score += 20 if segment_val == "At Risk" else 0
+
+    data["churn_risk_score"] = churn_score
+    if churn_score >= 51:
+        data["churn_risk_level"] = "high"
+    elif churn_score >= 21:
+        data["churn_risk_level"] = "medium"
+    else:
+        data["churn_risk_level"] = "low"
 
     return data
 

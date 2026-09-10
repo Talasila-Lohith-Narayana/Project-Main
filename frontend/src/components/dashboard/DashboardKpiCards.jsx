@@ -8,7 +8,56 @@ import {
   WalletCards,
 } from "lucide-react";
 
-export default function DashboardKpiCards({ kpis = {}, repeatRate, navigate }) {
+/**
+ * Renders a small delta badge showing percentage change vs a comparison period.
+ * Green ↑ for positive, red ↓ for negative, gray — for zero.
+ */
+function DeltaBadge({ pctChange }) {
+  if (pctChange == null) return null;
+  const isPositive = pctChange > 0;
+  const isNegative = pctChange < 0;
+  const color = isPositive ? "#10b981" : isNegative ? "#f43f5e" : "#94a3b8";
+  const bg = isPositive
+    ? "rgba(16, 185, 129, 0.12)"
+    : isNegative
+    ? "rgba(244, 63, 94, 0.12)"
+    : "rgba(148, 163, 184, 0.1)";
+  const arrow = isPositive ? "↑" : isNegative ? "↓" : "—";
+
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 2,
+        background: bg,
+        color,
+        fontSize: 10,
+        fontWeight: 700,
+        padding: "2px 7px",
+        borderRadius: 999,
+        marginLeft: 6,
+        animation: "fadeSlideIn 0.4s ease-out",
+        border: `1px solid ${color}22`,
+      }}
+      title={`${pctChange > 0 ? "+" : ""}${pctChange}% vs comparison period`}
+    >
+      {arrow} {Math.abs(pctChange)}%
+    </span>
+  );
+}
+
+export default function DashboardKpiCards({ kpis = {}, repeatRate, navigate, comparison }) {
+  // Map KPI keys to the comparison data keys
+  const compMap = {
+    "Total Customers": "customers",
+    "Gross Revenue": "revenue",
+    "Total Orders": "orders",
+    "Avg Order Value": "avg_order_value",
+    "Avg Fulfillment": "avg_delivery_days",
+    "Repeat Rate": "repeat_customers",
+  };
+
   const metrics = [
     {
       label: "Total Customers",
@@ -76,6 +125,11 @@ export default function DashboardKpiCards({ kpis = {}, repeatRate, navigate }) {
     <div className="kpis">
       {metrics.map((m) => {
         const Icon = m.icon;
+        const compKey = compMap[m.label];
+        const delta = comparison && compKey && comparison[compKey]
+          ? comparison[compKey].pct_change
+          : null;
+
         return (
           <div
             className="kpi"
@@ -88,7 +142,10 @@ export default function DashboardKpiCards({ kpis = {}, repeatRate, navigate }) {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span className="kpiLabel">{m.label}</span>
               </div>
-              <b className="kpiValue">{m.value}</b>
+              <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
+                <b className="kpiValue">{m.value}</b>
+                {delta != null && <DeltaBadge pctChange={delta} />}
+              </div>
               <div className="kpiSub">
                 <span className={`metricBadge ${m.badgeColor}`}>{m.badgeText}</span>
               </div>
@@ -102,3 +159,4 @@ export default function DashboardKpiCards({ kpis = {}, repeatRate, navigate }) {
     </div>
   );
 }
+

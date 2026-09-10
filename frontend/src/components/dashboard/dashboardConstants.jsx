@@ -8,6 +8,26 @@ export const TIMEFRAME_OPTIONS = [
   { key: "custom", label: "Custom Range" },
 ];
 
+// Maps a primary timeframe to its default comparison period
+export const COMPARISON_PERIODS = {
+  "2018": { key: "2017", label: "vs 2017" },
+  "2017": { key: "2016", label: "vs 2016" },
+  "all": { key: "2017", label: "vs 2017" },
+  "2016": null,
+  "l6m": { key: "2017", label: "vs H2 2017" },
+  "l30d": { key: "l6m", label: "vs Last 6 Months" },
+  "custom": null,
+};
+
+// Labels for comparison period selection
+export const COMPARE_OPTIONS = [
+  { key: "2017", label: "2017" },
+  { key: "2016", label: "2016" },
+  { key: "2018", label: "2018" },
+  { key: "all", label: "All-Time" },
+];
+
+
 export const SEGMENT_COLORS = {
   Champions: "#10b981",       // Vibrant Emerald Green (Top tier)
   Engaged: "#0ea5e9",         // Sky Blue (Loyal/Engaged)

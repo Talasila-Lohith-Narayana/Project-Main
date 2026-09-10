@@ -70,6 +70,18 @@ export default function CustomerOverview({ customer }) {
                 <b>{value}</b>
               </div>
             ))}
+            {/* Churn Risk Badge */}
+            {customer.churn_risk_level && (
+              <div>
+                <span>Churn Risk</span>
+                <b>
+                  <span className={`churnBadge ${customer.churn_risk_level}`}>
+                    {customer.churn_risk_level === "high" ? "🔴" : customer.churn_risk_level === "medium" ? "🟡" : "🟢"}{" "}
+                    {customer.churn_risk_level} ({customer.churn_risk_score}pts)
+                  </span>
+                </b>
+              </div>
+            )}
           </div>
         </Panel>
         <Panel title="Category preferences" sub="Share of purchase behavior">

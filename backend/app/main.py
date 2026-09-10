@@ -20,9 +20,13 @@ WHAT PART OF THE UI HANDLES THIS:
 ================================================================================
 """
 
+import os
+import time
+import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from jose import jwt, JWTError
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -31,6 +35,8 @@ from .config import (
     ADMIN_PASSWORD,
     VIEWER_USERNAME,
     VIEWER_PASSWORD,
+    SECRET,
+    ALGO,
     pwd,
 )
 from .database import engine, get_db
@@ -166,14 +172,61 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Customer Sphere API", version="2.0", lifespan=lifespan)
 
-# Enable CORS for frontend web client
+# Configure structured request logger
+logger = logging.getLogger("customer_sphere")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+
+# ------------------------------------------------------------------------------
+# Request Logging Middleware — logs method, path, status, duration, user
+# ------------------------------------------------------------------------------
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = round((time.perf_counter() - start) * 1000, 1)
+
+    # Extract username from JWT if present (best-effort, no auth enforcement)
+    user = "anonymous"
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        try:
+            payload = jwt.decode(auth_header[7:], SECRET, algorithms=[ALGO])
+            user = payload.get("sub", "unknown")
+        except (JWTError, Exception):
+            user = "invalid-token"
+
+    logger.info(
+        "%s %s | %s | %sms | user=%s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+        user,
+    )
+    return response
+
+
+# Enable CORS for frontend web client (configurable via CORS_ORIGINS env var)
+_default_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+]
+_cors_origins_env = os.getenv("CORS_ORIGINS", "")
+cors_origins = (
+    [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
+    if _cors_origins_env
+    else _default_origins
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -66,6 +66,7 @@ const initialFilterState = {
   segment: "",
   activity: "",
   ratings: [],
+  churnRisk: [],
   maxRecency: "",
   minSpend: "",
   minOrders: "",
@@ -99,6 +100,7 @@ export default function Customers() {
   const [maxRecency, setMaxRecency] = useState(paramState || paramSegment || paramActivity || paramRating.length || paramSort ? "" : customersNavigationCache.maxRecency);
   const [minSpend, setMinSpend] = useState(paramState || paramSegment || paramActivity || paramRating.length || paramSort ? "" : customersNavigationCache.minSpend);
   const [minOrders, setMinOrders] = useState(paramState || paramSegment || paramActivity || paramRating.length || paramSort ? "" : customersNavigationCache.minOrders);
+  const [churnRisk, setChurnRisk] = useState(paramState || paramSegment || paramActivity || paramRating.length || paramSort ? [] : (customersNavigationCache.churnRisk || []));
   const [sortBy, setSortBy] = useState(paramSortBy || (paramState || paramSegment || paramActivity || paramRating.length ? "" : customersNavigationCache.sortBy));
   const [sortDir, setSortDir] = useState(paramSortDir || (paramState || paramSegment || paramActivity || paramRating.length ? "" : customersNavigationCache.sortDir));
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -260,6 +262,7 @@ export default function Customers() {
       segment,
       activity,
       ratings,
+      churnRisk,
       maxRecency,
       minSpend,
       minOrders,
@@ -267,7 +270,7 @@ export default function Customers() {
       sortDir,
       page,
     };
-  }, [query, state, segment, activity, ratings, maxRecency, minSpend, minOrders, sortBy, sortDir, page]);
+  }, [query, state, segment, activity, ratings, churnRisk, maxRecency, minSpend, minOrders, sortBy, sortDir, page]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -287,6 +290,7 @@ export default function Customers() {
         segment,
         activity,
         rating: ratings.length ? ratings.join(",") : undefined,
+        churn_risk: churnRisk.length ? churnRisk.join(",") : undefined,
         max_recency: maxRecency || undefined,
         min_spend: minSpend || undefined,
         min_orders: minOrders || undefined,
@@ -300,7 +304,7 @@ export default function Customers() {
   };
   useEffect(() => {
     load();
-  }, [page, state, segment, activity, ratings, maxRecency, minSpend, minOrders, sortBy, sortDir]);
+  }, [page, state, segment, activity, ratings, churnRisk, maxRecency, minSpend, minOrders, sortBy, sortDir]);
   const search = (event) => {
     event.preventDefault();
     setPage(1);
@@ -311,6 +315,7 @@ export default function Customers() {
     setSegment("");
     setActivity("");
     setRatings([]);
+    setChurnRisk([]);
     setMaxRecency("");
     setMinSpend("");
     setMinOrders("");
@@ -321,6 +326,7 @@ export default function Customers() {
     setSegment(filters.segment);
     setActivity(filters.activity);
     setRatings(filters.ratings || []);
+    setChurnRisk(filters.churnRisk || []);
     setMaxRecency(filters.maxRecency);
     setMinSpend(filters.minSpend);
     setMinOrders(filters.minOrders);
@@ -332,6 +338,7 @@ export default function Customers() {
     segment,
     activity,
     ratings.length > 0,
+    churnRisk.length > 0,
     maxRecency,
     minSpend,
     minOrders,
@@ -645,7 +652,15 @@ export default function Customers() {
                       {customer.customer_city}, {customer.customer_state}
                     </td>
                     <td>
-                      <em>{customer.segment}</em>
+                      <em>
+                        {customer.churn_risk_level && (
+                          <span
+                            className={`churnDot ${customer.churn_risk_level}`}
+                            title={`Churn risk: ${customer.churn_risk_level} (${customer.churn_risk_score}pts)`}
+                          />
+                        )}
+                        {customer.segment}
+                      </em>
                     </td>
                     <td>{customer.frequency}</td>
                     <td>R$ {Number(customer.monetary_total).toLocaleString()}</td>
@@ -700,6 +715,7 @@ export default function Customers() {
             segment,
             activity,
             ratings,
+            churnRisk,
             maxRecency,
             minSpend,
             minOrders,

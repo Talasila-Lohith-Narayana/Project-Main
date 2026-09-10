@@ -1,6 +1,6 @@
 import React from "react";
-import { Calendar } from "lucide-react";
-import { TIMEFRAME_OPTIONS } from "./dashboardConstants";
+import { Calendar, BarChart3 } from "lucide-react";
+import { TIMEFRAME_OPTIONS, COMPARE_OPTIONS } from "./dashboardConstants";
 
 export default function DashboardHeroBanner({
   data,
@@ -10,6 +10,10 @@ export default function DashboardHeroBanner({
   setCustomRange,
   handleApplyCustom,
   load,
+  compareMode,
+  compareTo,
+  setCompareTo,
+  onToggleCompare,
 }) {
   return (
     <div className="dashHeroBanner">
@@ -77,6 +81,60 @@ export default function DashboardHeroBanner({
               </button>
             );
           })}
+
+          {/* Compare Toggle */}
+          <button
+            type="button"
+            onClick={onToggleCompare}
+            style={{
+              background: compareMode
+                ? "linear-gradient(135deg, #f59e0b, #f97316)"
+                : "rgba(255, 255, 255, 0.06)",
+              color: compareMode ? "#0f172a" : "#94a3b8",
+              border: compareMode
+                ? "1px solid #f59e0b"
+                : "1px solid rgba(255, 255, 255, 0.12)",
+              borderRadius: 6,
+              padding: "4px 10px",
+              fontSize: 11,
+              fontWeight: compareMode ? 700 : 500,
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              marginLeft: 4,
+            }}
+            title={compareMode ? "Disable comparison" : "Compare periods"}
+          >
+            <BarChart3 size={12} />
+            {compareMode ? "Comparing" : "Compare"}
+          </button>
+
+          {/* Comparison Period Selector */}
+          {compareMode && (
+            <select
+              value={compareTo}
+              onChange={(e) => setCompareTo(e.target.value)}
+              style={{
+                background: "#1e293b",
+                color: "#f8fafc",
+                border: "1px solid #f59e0b",
+                borderRadius: 6,
+                padding: "3px 8px",
+                fontSize: 11,
+                fontWeight: 600,
+                outline: "none",
+                cursor: "pointer",
+              }}
+            >
+              {COMPARE_OPTIONS.filter((o) => o.key !== timeframe).map((o) => (
+                <option key={o.key} value={o.key}>
+                  vs {o.label}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Manual Date Input Controls - Active when 'Custom Range' tab is selected */}
@@ -162,3 +220,4 @@ export default function DashboardHeroBanner({
     </div>
   );
 }
+

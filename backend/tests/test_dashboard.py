@@ -61,3 +61,55 @@ def test_dashboard_summary_custom_range(client, admin_headers):
     data = response.json()
     assert data["timeframe"] == "custom"
     assert "kpis" in data
+
+
+def test_dashboard_geo_distribution_and_cities(client, admin_headers):
+    """Verifies that dashboard summary returns geo_distribution and top_cities."""
+    response = client.get("/api/dashboard/summary", headers=admin_headers)
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "geo_distribution" in data
+    assert "top_cities" in data
+
+    # Must contain Brazilian states
+    geo = data["geo_distribution"]
+    assert len(geo) == 27
+    first = geo[0]
+    for key in ["state", "name", "region", "capital", "customers", "orders", "revenue", "aov", "pct_revenue"]:
+        assert key in first
+
+    # Top cities check
+    cities = data["top_cities"]
+    assert len(cities) > 0
+    first_city = cities[0]
+    for key in ["city", "state", "customers", "orders", "revenue"]:
+        assert key in first_city
+
+
+def test_dashboard_state_detail(client, admin_headers):
+    """Verifies state drilldown endpoint for a valid state (SP) and invalid state."""
+    # Valid state
+    response = client.get("/api/dashboard/geo/state/SP", headers=admin_headers)
+    assert response.status_code == 200
+    sp_data = response.json()
+    assert sp_data["state"] == "SP"
+    assert sp_data["name"] == "São Paulo"
+    assert sp_data["region"] == "Southeast"
+    assert sp_data["capital"] == "São Paulo"
+    assert sp_data["customers"] > 0
+    assert sp_data["orders"] > 0
+    assert sp_data["revenue"] > 0
+    assert "top_cities" in sp_data
+    assert "top_categories" in sp_data
+    assert len(sp_data["top_cities"]) > 0
+
+    # Case insensitivity
+    response_lower = client.get("/api/dashboard/geo/state/rj", headers=admin_headers)
+    assert response_lower.status_code == 200
+    assert response_lower.json()["state"] == "RJ"
+
+    # Nonexistent state
+    response_invalid = client.get("/api/dashboard/geo/state/ZZ", headers=admin_headers)
+    assert response_invalid.status_code == 404
+

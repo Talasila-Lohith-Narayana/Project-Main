@@ -23,7 +23,7 @@ WHAT PART OF THE UI HANDLES THIS:
 ================================================================================
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from ..auth import auth
@@ -31,6 +31,36 @@ from ..database import get_db
 from ..utils import rows, ser
 
 router = APIRouter(tags=["dashboard"])
+
+BRAZILIAN_STATES_META = {
+    "AC": {"name": "Acre", "region": "North", "capital": "Rio Branco"},
+    "AL": {"name": "Alagoas", "region": "Northeast", "capital": "Maceió"},
+    "AP": {"name": "Amapá", "region": "North", "capital": "Macapá"},
+    "AM": {"name": "Amazonas", "region": "North", "capital": "Manaus"},
+    "BA": {"name": "Bahia", "region": "Northeast", "capital": "Salvador"},
+    "CE": {"name": "Ceará", "region": "Northeast", "capital": "Fortaleza"},
+    "DF": {"name": "Distrito Federal", "region": "Central-West", "capital": "Brasília"},
+    "ES": {"name": "Espírito Santo", "region": "Southeast", "capital": "Vitória"},
+    "GO": {"name": "Goiás", "region": "Central-West", "capital": "Goiânia"},
+    "MA": {"name": "Maranhão", "region": "Northeast", "capital": "São Luís"},
+    "MT": {"name": "Mato Grosso", "region": "Central-West", "capital": "Cuiabá"},
+    "MS": {"name": "Mato Grosso do Sul", "region": "Central-West", "capital": "Campo Grande"},
+    "MG": {"name": "Minas Gerais", "region": "Southeast", "capital": "Belo Horizonte"},
+    "PA": {"name": "Pará", "region": "North", "capital": "Belém"},
+    "PB": {"name": "Paraíba", "region": "Northeast", "capital": "João Pessoa"},
+    "PR": {"name": "Paraná", "region": "South", "capital": "Curitiba"},
+    "PE": {"name": "Pernambuco", "region": "Northeast", "capital": "Recife"},
+    "PI": {"name": "Piauí", "region": "Northeast", "capital": "Teresina"},
+    "RJ": {"name": "Rio de Janeiro", "region": "Southeast", "capital": "Rio de Janeiro"},
+    "RN": {"name": "Rio Grande do Norte", "region": "Northeast", "capital": "Natal"},
+    "RS": {"name": "Rio Grande do Sul", "region": "South", "capital": "Porto Alegre"},
+    "RO": {"name": "Rondônia", "region": "North", "capital": "Porto Velho"},
+    "RR": {"name": "Roraima", "region": "North", "capital": "Boa Vista"},
+    "SC": {"name": "Santa Catarina", "region": "South", "capital": "Florianópolis"},
+    "SP": {"name": "São Paulo", "region": "Southeast", "capital": "São Paulo"},
+    "SE": {"name": "Sergipe", "region": "Northeast", "capital": "Aracaju"},
+    "TO": {"name": "Tocantins", "region": "North", "capital": "Palmas"},
+}
 
 
 # ------------------------------------------------------------------------------
@@ -251,17 +281,76 @@ def dashboard(
         params,
     ).fetchall()
 
-    # 6. Top Brazilian States by Revenue
-    top_states = db.execute(
+    # 6. Geolocation Heatmap: Brazilian States Distribution (all 27 federative units)
+    geo_where = f"{time_filter_orders} AND c.customer_state IN ('AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO')" if time_filter_orders else "WHERE c.customer_state IN ('AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO')"
+    all_states_raw = db.execute(
         text(
-            f"""SELECT c.customer_state as state, COUNT(DISTINCT c.customer_unique_id) as customers, COALESCE(SUM(p.payment_value), 0) as revenue
+            f"""SELECT 
+                c.customer_state as state, 
+                COUNT(DISTINCT c.customer_unique_id) as customers, 
+                COUNT(DISTINCT o.order_id) as orders,
+                COALESCE(SUM(p.payment_value), 0) as revenue
+            FROM customers c
+            JOIN orders o ON o.customer_id = c.customer_id
+            JOIN order_payments p ON p.order_id = o.order_id
+            {geo_where}
+            GROUP BY c.customer_state
+            ORDER BY revenue DESC"""
+        ),
+        params,
+    ).fetchall()
+
+    total_geo_rev = sum(float(r[3]) for r in all_states_raw) or 1.0
+    total_geo_cust = sum(int(r[1]) for r in all_states_raw) or 1
+    total_geo_orders = sum(int(r[2]) for r in all_states_raw) or 1
+
+    geo_distribution = []
+    for r in all_states_raw:
+        st_code = r[0]
+        cust_cnt = int(r[1])
+        ord_cnt = int(r[2])
+        rev_val = round(float(r[3]), 2)
+        aov_val = round(rev_val / ord_cnt, 2) if ord_cnt > 0 else 0.0
+        pct_rev = round((rev_val / total_geo_rev) * 100, 2)
+        pct_cust = round((cust_cnt / total_geo_cust) * 100, 2)
+        pct_orders = round((ord_cnt / total_geo_orders) * 100, 2)
+        meta = BRAZILIAN_STATES_META.get(st_code, {})
+        geo_distribution.append({
+            "state": st_code,
+            "name": meta.get("name", st_code),
+            "region": meta.get("region", "Other"),
+            "capital": meta.get("capital", ""),
+            "customers": cust_cnt,
+            "orders": ord_cnt,
+            "revenue": rev_val,
+            "aov": aov_val,
+            "pct_revenue": pct_rev,
+            "pct_customers": pct_cust,
+            "pct_orders": pct_orders,
+        })
+
+    # Top 6 states kept for backward compatibility with regional distribution donut
+    top_states = [
+        {"state": g["state"], "customers": g["customers"], "revenue": g["revenue"]}
+        for g in geo_distribution[:6]
+    ]
+
+    # Top 10 Cities nationwide
+    top_cities_raw = db.execute(
+        text(
+            f"""SELECT 
+                c.customer_city as city,
+                c.customer_state as state,
+                COUNT(DISTINCT c.customer_unique_id) as customers,
+                COUNT(DISTINCT o.order_id) as orders,
+                ROUND(COALESCE(SUM(p.payment_value), 0), 2) as revenue
             FROM customers c
             JOIN orders o ON o.customer_id = c.customer_id
             JOIN order_payments p ON p.order_id = o.order_id
             {time_filter_orders}
-            GROUP BY c.customer_state
+            GROUP BY c.customer_city, c.customer_state
             ORDER BY revenue DESC
-            LIMIT 6"""
+            LIMIT 10"""
         ),
         params,
     ).fetchall()
@@ -335,7 +424,9 @@ def dashboard(
         "segments": rows(seg),
         "monthly": monthly_series,
         "categories": rows(cats),
-        "top_states": rows(top_states),
+        "top_states": top_states,
+        "geo_distribution": geo_distribution,
+        "top_cities": rows(top_cities_raw),
         "payments": rows(payments),
         "ratings_dist": rows(ratings_dist),
         "churn_risk_summary": churn_risk_summary,
@@ -345,3 +436,126 @@ def dashboard(
         result["comparison"] = comparison
 
     return result
+
+
+@router.get("/api/dashboard/geo/state/{state_code}")
+def state_detail(
+    state_code: str,
+    timeframe: str = "all",
+    start_date: str = None,
+    end_date: str = None,
+    db: Session = Depends(get_db),
+    _: str = Depends(auth),
+):
+    """
+    Returns deep-dive geographic analytics for a specific Brazilian state,
+    including top cities, top product categories, delivery speed, and CSAT rating.
+    UI Component: `DashboardGeoHeatmap.jsx`.
+    """
+    code = state_code.upper().strip()
+    if code not in BRAZILIAN_STATES_META:
+        raise HTTPException(
+            status_code=404,
+            detail=f"State '{state_code}' not found in Brazilian territory.",
+        )
+
+    meta = BRAZILIAN_STATES_META[code]
+    time_filter_orders, params = _build_time_filter(timeframe, start_date, end_date)
+    params["st"] = code
+
+    # State-scoped filter
+    st_filter = (
+        f"{time_filter_orders} AND c.customer_state = :st"
+        if time_filter_orders
+        else "WHERE c.customer_state = :st"
+    )
+
+    # 1. State aggregated metrics
+    st_kpis = db.execute(
+        text(
+            f"""SELECT 
+                COUNT(DISTINCT c.customer_unique_id) as customers,
+                COUNT(DISTINCT o.order_id) as orders,
+                COALESCE(SUM(p.payment_value), 0) as revenue
+            FROM customers c
+            JOIN orders o ON o.customer_id = c.customer_id
+            LEFT JOIN order_payments p ON p.order_id = o.order_id
+            {st_filter}"""
+        ),
+        params,
+    ).fetchone()
+
+    cust_cnt = int(st_kpis[0] or 0)
+    ord_cnt = int(st_kpis[1] or 0)
+    rev_val = round(float(st_kpis[2] or 0.0), 2)
+    aov_val = round(rev_val / ord_cnt, 2) if ord_cnt > 0 else 0.0
+
+    # 2. Avg delivery days and CSAT review score
+    delivery_filter = f"{st_filter} AND o.order_delivered_customer_date IS NOT NULL"
+    perf = db.execute(
+        text(
+            f"""SELECT 
+                AVG(DATEDIFF(o.order_delivered_customer_date, o.order_purchase_timestamp)) as avg_delivery_days,
+                AVG(r.review_score) as avg_rating
+            FROM customers c
+            JOIN orders o ON o.customer_id = c.customer_id
+            LEFT JOIN order_reviews r ON r.order_id = o.order_id
+            {delivery_filter}"""
+        ),
+        params,
+    ).fetchone()
+
+    avg_del = round(float(perf[0]), 1) if perf and perf[0] is not None else 0.0
+    avg_csat = round(float(perf[1]), 2) if perf and perf[1] is not None else 0.0
+
+    # 3. Top 5 Cities in this state
+    cities = db.execute(
+        text(
+            f"""SELECT 
+                c.customer_city as city,
+                COUNT(DISTINCT c.customer_unique_id) as customers,
+                COUNT(DISTINCT o.order_id) as orders,
+                ROUND(COALESCE(SUM(p.payment_value), 0), 2) as revenue
+            FROM customers c
+            JOIN orders o ON o.customer_id = c.customer_id
+            LEFT JOIN order_payments p ON p.order_id = o.order_id
+            {st_filter}
+            GROUP BY c.customer_city
+            ORDER BY revenue DESC
+            LIMIT 5"""
+        ),
+        params,
+    ).fetchall()
+
+    # 4. Top 5 Product Categories in this state
+    categories = db.execute(
+        text(
+            f"""SELECT 
+                COALESCE(pr.product_category_name, 'Unknown') as category,
+                COUNT(*) as purchases
+            FROM customers c
+            JOIN orders o ON o.customer_id = c.customer_id
+            JOIN order_items oi ON oi.order_id = o.order_id
+            LEFT JOIN products pr ON pr.product_id = oi.product_id
+            {st_filter}
+            GROUP BY category
+            ORDER BY purchases DESC
+            LIMIT 5"""
+        ),
+        params,
+    ).fetchall()
+
+    return {
+        "state": code,
+        "name": meta["name"],
+        "region": meta["region"],
+        "capital": meta["capital"],
+        "customers": cust_cnt,
+        "orders": ord_cnt,
+        "revenue": rev_val,
+        "aov": aov_val,
+        "avg_delivery_days": avg_del,
+        "avg_rating": avg_csat,
+        "top_cities": rows(cities),
+        "top_categories": rows(categories),
+    }

@@ -35,6 +35,7 @@ import DashboardKpiCards from "../components/dashboard/DashboardKpiCards";
 import DashboardRevenueTrend from "../components/dashboard/DashboardRevenueTrend";
 import DashboardCustomerSegments from "../components/dashboard/DashboardCustomerSegments";
 import DashboardRegionalDistribution from "../components/dashboard/DashboardRegionalDistribution";
+import DashboardGeoHeatmap from "../components/dashboard/DashboardGeoHeatmap";
 import DashboardPaymentMethods from "../components/dashboard/DashboardPaymentMethods";
 import DashboardReviewSatisfaction from "../components/dashboard/DashboardReviewSatisfaction";
 import DashboardTopCategories from "../components/dashboard/DashboardTopCategories";
@@ -48,7 +49,7 @@ export default function Dashboard() {
     endDate: "2018-08-31",
   });
   const [compareMode, setCompareMode] = useState(false);
-  const [compareTo, setCompareTo] = useState("");
+  const [compareTo, setCompareTo] = useState(COMPARISON_PERIODS.all?.key || "");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -150,6 +151,15 @@ export default function Dashboard() {
         <DashboardRevenueTrend monthly={data.monthly} />
         <DashboardCustomerSegments segments={data.segments} navigate={navigate} />
       </div>
+
+      {/* Brazilian Territorial Geolocation Heatmap */}
+      <DashboardGeoHeatmap
+        geoDistribution={data.geo_distribution || data.top_states || []}
+        topCities={data.top_cities || []}
+        kpis={kpis}
+        navigate={navigate}
+        timeframe={timeframe}
+      />
 
       {/* Secondary 3-Column Analytics Grid */}
       <div className="grid3">

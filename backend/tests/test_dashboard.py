@@ -27,6 +27,7 @@ def test_dashboard_summary_default(client, admin_headers):
         "reviews",
         "avg_rating",
         "repeat_customers",
+        "repeat_rate",
         "avg_order_value",
         "avg_delivery_days",
     ]:
@@ -113,3 +114,17 @@ def test_dashboard_state_detail(client, admin_headers):
     response_invalid = client.get("/api/dashboard/geo/state/ZZ", headers=admin_headers)
     assert response_invalid.status_code == 404
 
+
+
+def test_dashboard_summary_comparison_repeat_rate(client, admin_headers):
+    """Verifies that period comparison computes repeat_rate delta and percentage change correctly."""
+    response = client.get("/api/dashboard/summary?timeframe=2018&compare_to=2017", headers=admin_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "comparison" in data
+    comp = data["comparison"]
+    assert "repeat_rate" in comp
+    assert "current" in comp["repeat_rate"]
+    assert "previous" in comp["repeat_rate"]
+    assert "delta" in comp["repeat_rate"]
+    assert "pct_change" in comp["repeat_rate"]

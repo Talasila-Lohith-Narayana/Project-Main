@@ -117,7 +117,9 @@ export default function Dashboard() {
 
   const kpis = data?.kpis || {};
   const repeatRate =
-    kpis.customers > 0
+    kpis.repeat_rate != null
+      ? Number(kpis.repeat_rate).toFixed(1)
+      : kpis.customers > 0
       ? ((Number(kpis.repeat_customers || 0) / Number(kpis.customers)) * 100).toFixed(1)
       : "0.0";
 

@@ -113,4 +113,44 @@ describe("DashboardKpiCards Component", () => {
     expect(screen.getAllByText("0").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("0.0%")).toBeInTheDocument();
   });
+
+  it("displays correct repeat_rate delta badge from comparison rather than raw repeat_customers", () => {
+    const mockComparison = {
+      customers: { current: 74000, previous: 34000, pct_change: 117.6 },
+      repeat_customers: { current: 2300, previous: 1000, pct_change: 130.0 },
+      repeat_rate: { current: 3.1, previous: 2.9, delta: 0.2, pct_change: 6.9 },
+    };
+
+    render(
+      <DashboardKpiCards
+        kpis={mockKpis}
+        repeatRate="3.1"
+        navigate={mockNavigate}
+        comparison={mockComparison}
+      />
+    );
+
+    // Repeat rate should display 6.9%, NOT the 130% from raw repeat customer headcount
+    expect(screen.getByText(/6\.9%/)).toBeInTheDocument();
+    expect(screen.queryByText(/130%/)).not.toBeInTheDocument();
+    expect(screen.getByTitle(/\+6\.9% \(\+0\.2 pp\) vs comparison period/)).toBeInTheDocument();
+  });
+
+  it("derives repeat rate percentage change when comparison only provides customers and repeat_customers", () => {
+    const fallbackComparison = {
+      customers: { current: 1000, previous: 1000, pct_change: 0.0 },
+      repeat_customers: { current: 31, previous: 29, pct_change: 6.9 },
+    };
+
+    render(
+      <DashboardKpiCards
+        kpis={{ customers: 1000, repeat_customers: 31 }}
+        repeatRate="3.1"
+        navigate={mockNavigate}
+        comparison={fallbackComparison}
+      />
+    );
+
+    expect(screen.getByText(/6\.9%/)).toBeInTheDocument();
+  });
 });

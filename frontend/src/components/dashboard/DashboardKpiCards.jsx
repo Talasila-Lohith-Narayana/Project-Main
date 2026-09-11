@@ -12,7 +12,7 @@ import {
  * Renders a small delta badge showing percentage change vs a comparison period.
  * Green ↑ for positive, red ↓ for negative, gray — for zero.
  */
-function DeltaBadge({ pctChange }) {
+function DeltaBadge({ pctChange, tooltip }) {
   if (pctChange == null) return null;
   const isPositive = pctChange > 0;
   const isNegative = pctChange < 0;
@@ -40,7 +40,7 @@ function DeltaBadge({ pctChange }) {
         animation: "fadeSlideIn 0.4s ease-out",
         border: `1px solid ${color}22`,
       }}
-      title={`${pctChange > 0 ? "+" : ""}${pctChange}% vs comparison period`}
+      title={tooltip || `${pctChange > 0 ? "+" : ""}${pctChange}% vs comparison period`}
     >
       {arrow} {Math.abs(pctChange)}%
     </span>
@@ -55,7 +55,7 @@ export default function DashboardKpiCards({ kpis = {}, repeatRate, navigate, com
     "Total Orders": "orders",
     "Avg Order Value": "avg_order_value",
     "Avg Fulfillment": "avg_delivery_days",
-    "Repeat Rate": "repeat_customers",
+    "Repeat Rate": "repeat_rate",
   };
 
   const metrics = [
@@ -126,9 +126,35 @@ export default function DashboardKpiCards({ kpis = {}, repeatRate, navigate, com
       {metrics.map((m) => {
         const Icon = m.icon;
         const compKey = compMap[m.label];
-        const delta = comparison && compKey && comparison[compKey]
-          ? comparison[compKey].pct_change
-          : null;
+
+        let delta = null;
+        let deltaTooltip = null;
+
+        if (comparison) {
+          if (m.label === "Repeat Rate") {
+            if (comparison.repeat_rate?.pct_change != null) {
+              delta = comparison.repeat_rate.pct_change;
+              const ppDelta = comparison.repeat_rate.delta;
+              if (ppDelta != null) {
+                deltaTooltip = `${delta > 0 ? "+" : ""}${delta}% (${ppDelta > 0 ? "+" : ""}${ppDelta} pp) vs comparison period`;
+              }
+            } else if (comparison.repeat_customers && comparison.customers) {
+              const curCust = Number(comparison.customers.current || kpis.customers || 0);
+              const prevCust = Number(comparison.customers.previous || 0);
+              const curRep = Number(comparison.repeat_customers.current || kpis.repeat_customers || 0);
+              const prevRep = Number(comparison.repeat_customers.previous || 0);
+              const curRate = curCust > 0 ? (curRep / curCust) * 100 : 0;
+              const prevRate = prevCust > 0 ? (prevRep / prevCust) * 100 : 0;
+              if (prevRate > 0) {
+                delta = Number((((curRate - prevRate) / prevRate) * 100).toFixed(1));
+                const ppDelta = Number((curRate - prevRate).toFixed(1));
+                deltaTooltip = `${delta > 0 ? "+" : ""}${delta}% (${ppDelta > 0 ? "+" : ""}${ppDelta} pp) vs comparison period`;
+              }
+            }
+          } else if (compKey && comparison[compKey]) {
+            delta = comparison[compKey].pct_change;
+          }
+        }
 
         return (
           <div
@@ -144,7 +170,7 @@ export default function DashboardKpiCards({ kpis = {}, repeatRate, navigate, com
               </div>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
                 <b className="kpiValue">{m.value}</b>
-                {delta != null && <DeltaBadge pctChange={delta} />}
+                {delta != null && <DeltaBadge pctChange={delta} tooltip={deltaTooltip} />}
               </div>
               <div className="kpiSub">
                 <span className={`metricBadge ${m.badgeColor}`}>{m.badgeText}</span>

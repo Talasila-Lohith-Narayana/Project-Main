@@ -154,6 +154,8 @@ def _compute_kpis(db, time_filter_orders, params):
             text("SELECT COUNT(DISTINCT customer_unique_id) FROM customer_metrics_cache WHERE frequency > 1")
         ).scalar() or 0
 
+    repeat_rate = round((repeat_custs / total_customers * 100), 2) if total_customers > 0 else 0.0
+
     return {
         "customers": total_customers,
         "orders": total_orders,
@@ -161,6 +163,7 @@ def _compute_kpis(db, time_filter_orders, params):
         "reviews": total_revs,
         "avg_rating": avg_score,
         "repeat_customers": repeat_custs,
+        "repeat_rate": repeat_rate,
         "avg_order_value": float(health_metrics[0]) if health_metrics and health_metrics[0] is not None else 0.0,
         "avg_delivery_days": float(health_metrics[1]) if health_metrics and health_metrics[1] is not None else 0.0,
     }

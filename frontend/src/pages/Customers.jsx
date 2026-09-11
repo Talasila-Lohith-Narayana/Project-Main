@@ -403,7 +403,7 @@ export default function Customers() {
             style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
           >
             <Download size={15} className={isExporting ? "spin" : ""} />
-            {isExporting ? "Exporting all..." : `Export CSV (${data?.total ? Number(data.total).toLocaleString() : ""})`}
+            {isExporting ? "Exporting all..." : `Export CSV (${data?.total ? Number(data.total).toLocaleString("en-US") : ""})`}
           </button>
           {isAdmin && (
             <button className="btn primary" onClick={() => setShowForm(true)}>
@@ -663,7 +663,7 @@ export default function Customers() {
                       </em>
                     </td>
                     <td>{customer.frequency}</td>
-                    <td>R$ {Number(customer.monetary_total).toLocaleString()}</td>
+                    <td>R$ {Number(customer.monetary_total).toLocaleString("en-US")}</td>
                     <td>★ {Number(customer.avg_review_score).toFixed(1)}</td>
                     <td>{customer.recency_days}d ago</td>
                   </tr>
@@ -678,7 +678,7 @@ export default function Customers() {
               </span>
               <span className="pagerDivider">•</span>
               <span className="pagerTotal">
-                <strong>{Number(data.total).toLocaleString()}</strong> {data.total === 1 ? "unique customer" : "unique customers"}
+                <strong>{Number(data.total).toLocaleString("en-US")}</strong> {data.total === 1 ? "unique customer" : "unique customers"}
               </span>
             </div>
             <div className="pagerControls">

@@ -21,7 +21,7 @@ export default function DashboardTopCategories({ categories = [], navigate }) {
               <strong style={{ textTransform: "capitalize" }}>
                 {item.category.replace(/_/g, " ")}
               </strong>
-              <span>{Number(item.purchases).toLocaleString()} items sold</span>
+              <span>{Number(item.purchases).toLocaleString("en-US")} items sold</span>
             </div>
           </div>
         ))}

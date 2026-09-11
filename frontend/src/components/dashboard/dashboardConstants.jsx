@@ -87,7 +87,7 @@ export const SegmentBarTooltip = ({ active, payload }) => {
         </div>
         <div style={{ marginTop: 4, display: "flex", justifyContent: "space-between", color: "#94a3b8", fontSize: "12px" }}>
           <span>Customer count:</span>
-          <b style={{ color: "#38bdf8", fontFamily: "Space Grotesk" }}>{count.toLocaleString()}</b>
+          <b style={{ color: "#38bdf8", fontFamily: "Space Grotesk" }}>{count.toLocaleString("en-US")}</b>
         </div>
       </div>
     );
@@ -115,11 +115,11 @@ export const RevenueTooltip = ({ active, payload, label }) => {
           {label}
         </strong>
         <div style={{ color: "#38bdf8", fontWeight: 700, fontSize: "14px", fontFamily: "Space Grotesk" }}>
-          R$ {Number(dataPoint.revenue || 0).toLocaleString()}
+          R$ {Number(dataPoint.revenue || 0).toLocaleString("en-US")}
         </div>
         <div style={{ marginTop: 4, display: "flex", justifyContent: "space-between", color: "#94a3b8", fontSize: "11px" }}>
           <span>Order volume:</span>
-          <b style={{ color: "#e2e8f0" }}>{Number(dataPoint.orders || 0).toLocaleString()}</b>
+          <b style={{ color: "#e2e8f0" }}>{Number(dataPoint.orders || 0).toLocaleString("en-US")}</b>
         </div>
       </div>
     );
@@ -150,7 +150,7 @@ export const RegionalPieTooltip = ({ active, payload, totalRevenue }) => {
           {dataPoint.name}
         </strong>
         <div style={{ color: "#38bdf8", fontWeight: 700, fontSize: "14px", fontFamily: "Space Grotesk" }}>
-          R$ {rev.toLocaleString()}
+          R$ {rev.toLocaleString("en-US")}
         </div>
         <div style={{ marginTop: 4, display: "flex", justifyContent: "space-between", color: "#94a3b8", fontSize: "11px" }}>
           <span>Revenue share:</span>
@@ -158,7 +158,7 @@ export const RegionalPieTooltip = ({ active, payload, totalRevenue }) => {
         </div>
         <div style={{ marginTop: 2, display: "flex", justifyContent: "space-between", color: "#94a3b8", fontSize: "11px" }}>
           <span>Total shoppers:</span>
-          <b style={{ color: "#e2e8f0" }}>{Number(dataPoint.customers || 0).toLocaleString()}</b>
+          <b style={{ color: "#e2e8f0" }}>{Number(dataPoint.customers || 0).toLocaleString("en-US")}</b>
         </div>
       </div>
     );
@@ -194,7 +194,7 @@ export const PaymentPieTooltip = ({ active, payload, totalPaymentsValue }) => {
           </strong>
         </div>
         <div style={{ color: "#34d399", fontWeight: 700, fontSize: "14px", fontFamily: "Space Grotesk" }}>
-          R$ {val.toLocaleString()}
+          R$ {val.toLocaleString("en-US")}
         </div>
         <div style={{ marginTop: 4, display: "flex", justifyContent: "space-between", color: "#94a3b8", fontSize: "11px" }}>
           <span>Volume share:</span>
@@ -202,7 +202,7 @@ export const PaymentPieTooltip = ({ active, payload, totalPaymentsValue }) => {
         </div>
         <div style={{ marginTop: 2, display: "flex", justifyContent: "space-between", color: "#94a3b8", fontSize: "11px" }}>
           <span>Total transactions:</span>
-          <b style={{ color: "#e2e8f0" }}>{Number(dataPoint.count || 0).toLocaleString()}</b>
+          <b style={{ color: "#e2e8f0" }}>{Number(dataPoint.count || 0).toLocaleString("en-US")}</b>
         </div>
       </div>
     );

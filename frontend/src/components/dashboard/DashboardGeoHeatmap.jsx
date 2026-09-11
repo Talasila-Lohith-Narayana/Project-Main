@@ -46,11 +46,9 @@ import { useTheme } from "../../context/ThemeContext";
 // Formatters
 const fmtNum = (v) => Number(v || 0).toLocaleString("en-US");
 const fmtBRL = (v) =>
-  Number(v || 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
+  `R$ ${Number(v || 0).toLocaleString("en-US", {
     maximumFractionDigits: 0,
-  });
+  })}`;
 
 // Dark Mode Color Ramp (Subtle deep navy -> Electric cyan)
 const DARK_COLOR_STOPS = [

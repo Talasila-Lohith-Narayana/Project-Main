@@ -30,7 +30,7 @@ export default function CustomerOverview({ customer }) {
 
   const monetaryAvgDisplay =
     customer.monetary_avg != null && hasHistory
-      ? `R$ ${Number(customer.monetary_avg).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      ? `R$ ${Number(customer.monetary_avg).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       : "N/A";
 
   const tenureDisplay =
@@ -50,7 +50,7 @@ export default function CustomerOverview({ customer }) {
 
   const clvDisplay =
     hasHistory && customer.monetary_total != null
-      ? `R$ ${(Number(customer.monetary_total) * (customer.segment === "Champions" ? 1.4 : customer.segment === "Engaged" ? 1.25 : 1.1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      ? `R$ ${(Number(customer.monetary_total) * (customer.segment === "Champions" ? 1.4 : customer.segment === "Engaged" ? 1.25 : 1.1)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       : "N/A";
 
   return (

@@ -463,7 +463,7 @@ export default function OrderModal({ order, close, save, onDelete }) {
             </small>
           </div>
           <b style={{ fontSize: 16, color: "#15803d", fontFamily: "Space Grotesk" }}>
-            R$ {totalOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            R$ {totalOrderValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </b>
         </div>
 

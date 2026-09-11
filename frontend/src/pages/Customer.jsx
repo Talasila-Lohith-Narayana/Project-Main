@@ -156,13 +156,13 @@ export default function Customer() {
   const features = [
     [
       "CLV (Lifetime Value)",
-      `R$ ${estimatedClv.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      `R$ ${estimatedClv.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       WalletCards,
       "emerald",
     ],
     [
       "Total spend",
-      `R$ ${Number(customer.monetary_total || 0).toLocaleString()}`,
+      `R$ ${Number(customer.monetary_total || 0).toLocaleString("en-US")}`,
       WalletCards,
     ],
     ["Frequency", `${customer.frequency || 0} orders`, Repeat2],

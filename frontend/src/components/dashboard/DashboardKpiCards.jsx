@@ -61,9 +61,9 @@ export default function DashboardKpiCards({ kpis = {}, repeatRate, navigate, com
   const metrics = [
     {
       label: "Total Customers",
-      value: Number(kpis.customers || 0).toLocaleString(),
+      value: Number(kpis.customers || 0).toLocaleString("en-US"),
       icon: Users,
-      badgeText: `${Number(kpis.repeat_customers || 0).toLocaleString()} repeat customers`,
+      badgeText: `${Number(kpis.repeat_customers || 0).toLocaleString("en-US")} repeat customers`,
       badgeColor: "blue",
       theme: "blue",
       onClick: () => navigate("/customers"),
@@ -71,7 +71,7 @@ export default function DashboardKpiCards({ kpis = {}, repeatRate, navigate, com
     },
     {
       label: "Gross Revenue",
-      value: `R$ ${Number(kpis.revenue || 0).toLocaleString()}`,
+      value: `R$ ${Number(kpis.revenue || 0).toLocaleString("en-US")}`,
       icon: WalletCards,
       badgeText: "Historical marketplace GMV",
       badgeColor: "emerald",
@@ -81,7 +81,7 @@ export default function DashboardKpiCards({ kpis = {}, repeatRate, navigate, com
     },
     {
       label: "Total Orders",
-      value: Number(kpis.orders || 0).toLocaleString(),
+      value: Number(kpis.orders || 0).toLocaleString("en-US"),
       icon: ShoppingBag,
       badgeText: `${(Number(kpis.orders || 0) / (Number(kpis.customers) || 1)).toFixed(2)} orders / customer`,
       badgeColor: "indigo",

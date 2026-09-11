@@ -226,7 +226,7 @@ export default function Products() {
             <span>
               {isExporting
                 ? "Exporting all..."
-                : `Export CSV (${data?.total ? Number(data.total).toLocaleString() : ""})`}
+                : `Export CSV (${data?.total ? Number(data.total).toLocaleString("en-US") : ""})`}
             </span>
           </button>
         </div>
@@ -477,12 +477,12 @@ export default function Products() {
                       </td>
                       <td>
                         <b style={{ fontFamily: "Space Grotesk" }}>
-                          {prod.total_units_sold.toLocaleString()}
+                          {prod.total_units_sold.toLocaleString("en-US")}
                         </b>
                       </td>
                       <td>
                         <span style={{ fontWeight: 600, color: "#059669" }}>
-                          R$ {prod.total_revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          R$ {prod.total_revenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </td>
                       <td>R$ {prod.avg_price.toFixed(2)}</td>
@@ -517,8 +517,8 @@ export default function Products() {
           {/* Pagination Footer */}
           <div className="pagination" style={{ marginTop: 16 }}>
             <span style={{ fontSize: 13, color: "var(--muted)" }}>
-              Showing <strong>{data.items.length.toLocaleString()}</strong> of{" "}
-              <strong>{data.total.toLocaleString()}</strong> available products
+              Showing <strong>{data.items.length.toLocaleString("en-US")}</strong> of{" "}
+              <strong>{data.total.toLocaleString("en-US")}</strong> available products
             </span>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button

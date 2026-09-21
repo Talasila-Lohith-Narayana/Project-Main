@@ -332,10 +332,11 @@ def dashboard(
             "pct_orders": pct_orders,
         })
 
-    # Top 6 states kept for backward compatibility with regional distribution donut
+    # Include every state with recorded activity so dashboard reach reflects the
+    # complete market; the UI can still limit the compact legend independently.
     top_states = [
         {"state": g["state"], "customers": g["customers"], "revenue": g["revenue"]}
-        for g in geo_distribution[:6]
+        for g in geo_distribution
     ]
 
     # Top 10 Cities nationwide

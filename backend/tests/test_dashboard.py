@@ -76,6 +76,7 @@ def test_dashboard_geo_distribution_and_cities(client, admin_headers):
     # Must contain Brazilian states
     geo = data["geo_distribution"]
     assert len(geo) == 27
+    assert len(data["top_states"]) == len(geo)
     first = geo[0]
     for key in ["state", "name", "region", "capital", "customers", "orders", "revenue", "aov", "pct_revenue"]:
         assert key in first

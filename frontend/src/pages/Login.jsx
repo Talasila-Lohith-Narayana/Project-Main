@@ -86,7 +86,7 @@ export default function Login() {
         <h2>Sign in</h2>
         <span className="muted">Access your intelligence workspace.</span>
 
-        
+
         <label>
           Username
           <input
@@ -110,9 +110,7 @@ export default function Login() {
         <button className="btn primary full" disabled={busy}>
           {busy ? "Signing in..." : "Continue"}
         </button>
-        <small>
-          Admin: admin / admin123@qwe# · Viewer: analyst / analyst123
-        </small>
+
       </form>
     </div>
   );

@@ -51,6 +51,7 @@ def test_get_customer_detail_and_not_found(client, admin_headers):
     assert detail["customer_id"] == cid
     assert "customer_city" in detail
     assert "customer_state" in detail
+    assert "avg_delivery_days" in detail
 
     # 3. 404 for invalid customer
     missing_res = client.get("/api/customers/invalid_customer_id_99999", headers=admin_headers)

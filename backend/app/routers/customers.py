@@ -567,6 +567,13 @@ def customer_detail(cid: str, db: Session = Depends(get_db), _: str = Depends(au
             COALESCE(m.frequency, 0) AS frequency,
             COALESCE(m.monetary_total, 0) AS monetary_total,
             COALESCE(m.avg_review_score, 0) AS avg_review_score,
+            (
+                SELECT AVG(DATEDIFF(o.order_delivered_customer_date, o.order_purchase_timestamp))
+                FROM orders o
+                WHERE o.customer_id = c.customer_id
+                  AND o.order_delivered_customer_date IS NOT NULL
+                  AND o.order_purchase_timestamp IS NOT NULL
+            ) AS avg_delivery_days,
             m.segment,
             CASE WHEN COALESCE(m.frequency, 0) > 1 THEN 1 ELSE 0 END AS is_repeat_customer
             FROM customers c 

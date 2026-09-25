@@ -3633,3 +3633,257 @@ em {
   font-style: italic;
   padding: 6px 0;
 }
+
+/* ==========================================================================
+   AI Insights & Machine Learning Dashboard Components (Light & Dark Mode)
+   ========================================================================== */
+
+.aiMetricCard {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--card-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.aiMetricCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .aiMetricCard {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .aiMetricCard:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.aiMetricHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.aiMetricLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted, #64748b);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-theme="dark"] .aiMetricLabel {
+  color: #94a3b8;
+}
+
+.aiMetricValue {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--text-main, #0f172a);
+  line-height: 1.1;
+  margin: 4px 0;
+}
+
+[data-theme="dark"] .aiMetricValue {
+  color: #f8fafc;
+}
+
+.aiMetricSub {
+  font-size: 12px;
+  color: var(--text-muted, #64748b);
+  margin-top: 6px;
+}
+
+[data-theme="dark"] .aiMetricSub {
+  color: #64748b;
+}
+
+.aiBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: capitalize;
+}
+
+.aiBadge.high {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+[data-theme="dark"] .aiBadge.high {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.aiBadge.medium {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+[data-theme="dark"] .aiBadge.medium {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.aiBadge.low {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+[data-theme="dark"] .aiBadge.low {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.aiBadge.neutral {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+[data-theme="dark"] .aiBadge.neutral {
+  background: #1e293b;
+  color: #cbd5e1;
+  border-color: #334155;
+}
+
+/* SHAP Feature Bars */
+.shapRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shapHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.shapLabel {
+  font-weight: 500;
+  color: var(--text-main, #1e293b);
+}
+
+[data-theme="dark"] .shapLabel {
+  color: #e2e8f0;
+}
+
+.shapImpactRisk {
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+[data-theme="dark"] .shapImpactRisk {
+  color: #f87171;
+}
+
+.shapImpactSafe {
+  color: #16a34a;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+[data-theme="dark"] .shapImpactSafe {
+  color: #34d399;
+}
+
+.shapTrack {
+  height: 7px;
+  background: var(--track, #f1f5f9);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .shapTrack {
+  background: #1e293b;
+}
+
+/* Reason Codes Box */
+.reasonCodeCard {
+  background: var(--subtle-bg, #f8fafc);
+  border: 1px solid var(--card-border, #e2e8f0);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+[data-theme="dark"] .reasonCodeCard {
+  background: #131d31;
+  border-color: #1e293b;
+}
+
+.reasonCodeTag {
+  background: #e0e7ff;
+  color: #4338ca;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+[data-theme="dark"] .reasonCodeTag {
+  background: rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}
+
+.reasonCodeText {
+  font-size: 12px;
+  color: var(--text-main, #1e293b);
+  line-height: 1.45;
+}
+
+[data-theme="dark"] .reasonCodeText {
+  color: #cbd5e1;
+}
+
+/* Retention Banner */
+.retentionBanner {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+[data-theme="dark"] .retentionBanner {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.16) 0%, rgba(168, 85, 247, 0.14) 100%);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.retentionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main, #0f172a);
+}
+
+[data-theme="dark"] .retentionTitle {
+  color: #f1f5f9;
+}

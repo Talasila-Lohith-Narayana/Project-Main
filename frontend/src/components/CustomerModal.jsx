@@ -32,14 +32,13 @@ const initialForm = {
   customer_zip_code_prefix: "",
   customer_city: "",
   customer_state: "SP",
-  segment: "New / Developing",
+  segment: "Satisfied One-Time Buyers",
 };
 
 const SEGMENT_OPTIONS = [
-  "Champions",
-  "Engaged",
-  "At Risk",
-  "New / Developing",
+  "Satisfied One-Time Buyers",
+  "Product-Dissatisfied One-Time Buyers",
+  "High-Value Satisfied Repeat Buyers",
 ];
 
 export default function CustomerModal({ customer, close, save }) {
@@ -51,7 +50,7 @@ export default function CustomerModal({ customer, close, save }) {
         customer_zip_code_prefix: customer.customer_zip_code_prefix ?? "",
         customer_city: customer.customer_city || "",
         customer_state: customer.customer_state || "SP",
-        segment: customer.segment || "New / Developing",
+        segment: customer.segment || "Satisfied One-Time Buyers",
       }
       : initialForm,
   );
@@ -135,7 +134,7 @@ export default function CustomerModal({ customer, close, save }) {
 
         {customer && (
           <label>
-            RFM Customer Segment
+            ML Customer Segment
             <select
               value={form.segment}
               onChange={(event) => update("segment", event.target.value)}
@@ -202,4 +201,3 @@ export default function CustomerModal({ customer, close, save }) {
     </div>
   );
 }
-

@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import {
   TIMEFRAME_OPTIONS,
   SEGMENT_COLORS,
+  getSegmentChurnColor,
   PAYMENT_ICONS,
   PAYMENT_COLORS,
   STATE_COLORS,
@@ -16,10 +17,14 @@ import {
 describe("dashboardConstants and Tooltips", () => {
   it("exports configuration arrays and maps with correct items", () => {
     expect(TIMEFRAME_OPTIONS).toHaveLength(5);
-    expect(SEGMENT_COLORS.Champions).toBe("#10b981");
+    expect(SEGMENT_COLORS["High-Value Satisfied Repeat Buyers"]).toBe("#10b981");
     expect(PAYMENT_ICONS.credit_card).toBe("💳");
     expect(PAYMENT_COLORS.credit_card).toBe("#10b981");
     expect(STATE_COLORS.length).toBeGreaterThan(0);
+    expect(getSegmentChurnColor(10)).toBe("#16a34a");
+    expect(getSegmentChurnColor(50)).toBe("#f59e0b");
+    expect(getSegmentChurnColor(99.7)).toBe("#dc2626");
+    expect(getSegmentChurnColor(undefined)).toBe("#94a3b8");
   });
 
   describe("SegmentBarTooltip", () => {

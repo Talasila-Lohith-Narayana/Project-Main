@@ -60,7 +60,11 @@ class CustomerIn(BaseModel):
     def clean_segment(cls, v):
         if v is not None:
             v = v.strip()
-            allowed = ["Champions", "Engaged", "At Risk", "New / Developing"]
+            allowed = [
+                "Satisfied One-Time Buyers",
+                "Product-Dissatisfied One-Time Buyers",
+                "High-Value Satisfied Repeat Buyers",
+            ]
             if v and v not in allowed:
                 raise ValueError(f"Segment must be one of: {', '.join(allowed)}")
         return v

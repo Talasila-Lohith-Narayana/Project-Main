@@ -509,6 +509,6 @@ describe("Customer Page Orchestrator", () => {
     });
 
     // At Risk multiplier is 1.02, 1000 * 1.02 = 1020.00
-    expect(screen.getByText(/1,020\.00/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/1,020\.00/i).length).toBeGreaterThan(0);
   });
 });

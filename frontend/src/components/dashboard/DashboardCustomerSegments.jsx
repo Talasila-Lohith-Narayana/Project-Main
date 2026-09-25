@@ -10,7 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { Panel } from "../States";
-import { SEGMENT_COLORS, SegmentBarTooltip } from "./dashboardConstants";
+import { SegmentBarTooltip, getSegmentChurnColor } from "./dashboardConstants";
 
 export default function DashboardCustomerSegments({ segments = [], navigate }) {
   return (
@@ -49,7 +49,9 @@ export default function DashboardCustomerSegments({ segments = [], navigate }) {
               {segments.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
-                  fill={SEGMENT_COLORS[entry.segment] || "#2f7d72"}
+                  fill={getSegmentChurnColor(
+                    entry.churn_percentage ?? entry.churnPercentage,
+                  )}
                 />
               ))}
             </Bar>

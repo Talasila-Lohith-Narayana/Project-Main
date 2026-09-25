@@ -93,7 +93,10 @@ def customers(
         f.append("c.customer_state=:state")
         p["state"] = str(state).upper()
     if segment:
-        f.append("m.segment=:segment")
+        f.append(
+            "COALESCE(cs.segment_label, m.segment) COLLATE utf8mb4_unicode_ci "
+            "= :segment COLLATE utf8mb4_unicode_ci"
+        )
         p["segment"] = segment
     if activity == "active":
         f.append("m.frequency>0")
@@ -144,28 +147,29 @@ def customers(
         f.append("m.avg_review_score>=:min_rating")
         p["min_rating"] = min_rating
 
-    # Churn risk filter (low / medium / high)
-    churn_risk_expr = """(
-        (CASE WHEN m.recency_days > 180 THEN 30 WHEN m.recency_days > 120 THEN 15 ELSE 0 END)
-        + (CASE WHEN m.frequency = 1 THEN 25 ELSE 0 END)
-        + (CASE WHEN m.avg_review_score > 0 AND m.avg_review_score < 3.0 THEN 20 ELSE 0 END)
-        + (CASE WHEN m.monetary_total < 50 THEN 10 ELSE 0 END)
-        + (CASE WHEN m.segment = 'At Risk' THEN 20 ELSE 0 END)
-    )"""
+    # Churn risk filter uses the model probability shown by the segment dot.
+    churn_probability_filter_expr = "(cp.churn_probability * 100)"
+    churn_probability_expr = "(MAX(cp.churn_probability) * 100)"
     if churn_risk:
         risk_levels = [r.strip().lower() for r in churn_risk.split(",") if r.strip()]
         risk_conds = []
         if "high" in risk_levels:
-            risk_conds.append(f"{churn_risk_expr} >= 51")
+            risk_conds.append(f"{churn_probability_filter_expr} >= 70")
         if "medium" in risk_levels:
-            risk_conds.append(f"({churn_risk_expr} BETWEEN 21 AND 50)")
+            risk_conds.append(f"({churn_probability_filter_expr} >= 30 AND {churn_probability_filter_expr} < 70)")
         if "low" in risk_levels:
-            risk_conds.append(f"{churn_risk_expr} <= 20")
+            risk_conds.append(f"{churn_probability_filter_expr} < 30")
         if risk_conds:
             f.append(f"({' OR '.join(risk_conds)})")
 
     where = " AND ".join(f)
-    join_clause = "JOIN customer_metrics_cache m ON m.customer_id = c.customer_id"
+    join_clause = """JOIN customer_metrics_cache m ON m.customer_id = c.customer_id
+        LEFT JOIN customer_intelligence.customer_segments cs
+        ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
+           c.customer_unique_id COLLATE utf8mb4_unicode_ci
+        LEFT JOIN customer_intelligence.churn_predictions cp
+        ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
+           c.customer_unique_id COLLATE utf8mb4_unicode_ci"""
 
     # Multi-field sorting
     sort_map = {
@@ -198,17 +202,24 @@ def customers(
                 m.monetary_total,
                 m.avg_review_score,
                 CASE WHEN m.frequency>1 THEN 1 ELSE 0 END as is_repeat_customer,
-                m.segment,
-                {churn_risk_expr} AS churn_risk_score,
+                COALESCE(cs.segment_label, m.segment) COLLATE utf8mb4_unicode_ci AS segment,
+                ROUND(MAX(cp.churn_probability) * 100, 2) AS churn_percentage,
+                ROUND({churn_probability_expr}, 2) AS churn_risk_score,
                 CASE
-                    WHEN {churn_risk_expr} >= 51 THEN 'high'
-                    WHEN {churn_risk_expr} >= 21 THEN 'medium'
+                    WHEN {churn_probability_expr} >= 70 THEN 'high'
+                    WHEN {churn_probability_expr} >= 30 THEN 'medium'
                     ELSE 'low'
                 END AS churn_risk_level
             FROM customers c 
-            JOIN customer_metrics_cache m ON m.customer_id = c.customer_id 
+            JOIN customer_metrics_cache m ON m.customer_id = c.customer_id
+            LEFT JOIN customer_intelligence.customer_segments cs
+                ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                   c.customer_unique_id COLLATE utf8mb4_unicode_ci
+            LEFT JOIN customer_intelligence.churn_predictions cp
+                ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                   c.customer_unique_id COLLATE utf8mb4_unicode_ci
             WHERE {where} 
-            GROUP BY c.customer_unique_id, m.recency_days, m.frequency, m.monetary_total, m.avg_review_score, m.segment 
+            GROUP BY c.customer_unique_id, m.recency_days, m.frequency, m.monetary_total, m.avg_review_score, cs.segment_label, m.segment
             ORDER BY {order_clause} 
             LIMIT :limit OFFSET :offset"""
         ),
@@ -261,7 +272,7 @@ def add_customer(
         text(
             """INSERT INTO customer_metrics_cache 
                (customer_id, customer_unique_id, recency_days, frequency, monetary_total, avg_review_score, segment) 
-               VALUES (:id, :unique_id, 0, 0, 0.00, 0.00, 'New / Developing')"""
+               VALUES (:id, :unique_id, 0, 0, 0.00, 0.00, 'Satisfied One-Time Buyers')"""
         ),
         {"id": customer_id, "unique_id": x.customer_unique_id.strip()},
     )
@@ -291,6 +302,7 @@ def export_all_customers_csv(
     state: str = "",
     segment: str = "",
     activity: str = "",
+    churn_risk: str = "",
     max_recency: int | None = None,
     min_spend: float | None = None,
     min_orders: int | None = None,
@@ -313,7 +325,10 @@ def export_all_customers_csv(
         f.append("c.customer_state=:state")
         p["state"] = str(state).upper()
     if segment:
-        f.append("m.segment=:segment")
+        f.append(
+            "COALESCE(cs.segment_label, m.segment) COLLATE utf8mb4_unicode_ci "
+            "= :segment COLLATE utf8mb4_unicode_ci"
+        )
         p["segment"] = segment
     if activity == "active":
         f.append("m.frequency>0")
@@ -328,6 +343,17 @@ def export_all_customers_csv(
     if min_orders is not None:
         f.append("m.frequency>=:min_orders")
         p["min_orders"] = min_orders
+    if churn_risk:
+        risk_levels = {part.strip().lower() for part in churn_risk.split(",") if part.strip()}
+        risk_conditions = []
+        if "high" in risk_levels:
+            risk_conditions.append("cp.churn_probability >= 0.70")
+        if "medium" in risk_levels:
+            risk_conditions.append("(cp.churn_probability >= 0.30 AND cp.churn_probability < 0.70)")
+        if "low" in risk_levels:
+            risk_conditions.append("cp.churn_probability < 0.30")
+        if risk_conditions:
+            f.append(f"({' OR '.join(risk_conditions)})")
 
     selected_ratings = []
     if rating:
@@ -376,16 +402,22 @@ def export_all_customers_csv(
                 c.customer_unique_id,
                 MIN(c.customer_city) as customer_city,
                 MIN(c.customer_state) as customer_state,
-                m.segment,
+                COALESCE(cs.segment_label, m.segment) COLLATE utf8mb4_unicode_ci AS segment,
                 m.frequency,
                 m.monetary_total,
                 m.avg_review_score,
                 m.recency_days,
                 CASE WHEN m.frequency>1 THEN 'Yes' ELSE 'No' END as is_repeat_customer
             FROM customers c 
-            JOIN customer_metrics_cache m ON m.customer_id = c.customer_id 
+            JOIN customer_metrics_cache m ON m.customer_id = c.customer_id
+            LEFT JOIN customer_intelligence.customer_segments cs
+                ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                   c.customer_unique_id COLLATE utf8mb4_unicode_ci
+            LEFT JOIN customer_intelligence.churn_predictions cp
+                ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                   c.customer_unique_id COLLATE utf8mb4_unicode_ci
             WHERE {where} 
-            GROUP BY c.customer_unique_id, m.segment, m.frequency, m.monetary_total, m.avg_review_score, m.recency_days
+            GROUP BY c.customer_unique_id, cs.segment_label, m.segment, m.frequency, m.monetary_total, m.avg_review_score, m.recency_days
             ORDER BY {order_clause}"""
         ),
         p,
@@ -448,7 +480,11 @@ def bulk_update_segment(
     """
     if not payload.customer_unique_ids:
         raise HTTPException(400, "No customers selected")
-    if payload.segment not in ["Champions", "Engaged", "At Risk", "New / Developing"]:
+    if payload.segment not in [
+        "Satisfied One-Time Buyers",
+        "Product-Dissatisfied One-Time Buyers",
+        "High-Value Satisfied Repeat Buyers",
+    ]:
         raise HTTPException(400, "Invalid segment value")
 
     for uid in payload.customer_unique_ids:
@@ -567,11 +603,18 @@ def customer_detail(cid: str, db: Session = Depends(get_db), _: str = Depends(au
             COALESCE(m.frequency, 0) AS frequency,
             COALESCE(m.monetary_total, 0) AS monetary_total,
             COALESCE(m.avg_review_score, 0) AS avg_review_score,
-            m.segment,
+            COALESCE(cs.segment_label, m.segment) COLLATE utf8mb4_unicode_ci AS segment,
+            ROUND(cp.churn_probability * 100, 2) AS churn_percentage,
             CASE WHEN COALESCE(m.frequency, 0) > 1 THEN 1 ELSE 0 END AS is_repeat_customer
             FROM customers c 
             JOIN customer_metrics_cache m ON m.customer_id = c.customer_id
             LEFT JOIN customer_features cf ON (cf.customer_id = c.customer_id OR cf.customer_id = c.customer_unique_id)
+            LEFT JOIN customer_intelligence.customer_segments cs
+                ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                   c.customer_unique_id COLLATE utf8mb4_unicode_ci
+            LEFT JOIN customer_intelligence.churn_predictions cp
+                ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                   c.customer_unique_id COLLATE utf8mb4_unicode_ci
             WHERE c.customer_unique_id = :id OR c.customer_id = :id LIMIT 1"""
         ),
         {"id": cid},
@@ -686,37 +729,8 @@ def customer_detail(cid: str, db: Session = Depends(get_db), _: str = Depends(au
 
     # Calculate formal Customer Lifetime Value (CLV):
     # CLV = Realized Total Spend * Segment Value Multiplier
-    seg_mults = {
-        "Champions": 1.40,
-        "Engaged": 1.25,
-        "New / Developing": 1.10,
-        "At Risk": 1.02,
-    }
     customer_spend = float(data.get("monetary_total") or 0.0)
-    customer_segment = data.get("segment") or "New / Developing"
-    data["customer_lifetime_value"] = round(customer_spend * seg_mults.get(customer_segment, 1.10), 2)
-
-    # Compute churn risk score and level
-    recency = float(data.get("recency_days") or 0)
-    frequency = float(data.get("frequency") or 0)
-    avg_review = float(data.get("avg_review_score") or 0)
-    monetary = float(data.get("monetary_total") or 0)
-    segment_val = data.get("segment") or "New / Developing"
-
-    churn_score = 0
-    churn_score += 30 if recency > 180 else (15 if recency > 120 else 0)
-    churn_score += 25 if frequency == 1 else 0
-    churn_score += 20 if 0 < avg_review < 3.0 else 0
-    churn_score += 10 if monetary < 50 else 0
-    churn_score += 20 if segment_val == "At Risk" else 0
-
-    data["churn_risk_score"] = churn_score
-    if churn_score >= 51:
-        data["churn_risk_level"] = "high"
-    elif churn_score >= 21:
-        data["churn_risk_level"] = "medium"
-    else:
-        data["churn_risk_level"] = "low"
+    data["customer_lifetime_value"] = round(customer_spend, 2)
 
     return data
 

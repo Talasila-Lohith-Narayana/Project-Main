@@ -1,15 +1,46 @@
-import React from "react";
-import { Edit2, PackagePlus } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Edit2, PackagePlus, Trash2 } from "lucide-react";
 import { Panel } from "../States";
 import { PAYMENT_ICONS } from "./CustomerOverview";
 
-export default function CustomerOrders({ items, onAddOrder, onEditOrder, isAdmin }) {
+export default function CustomerOrders({
+  items,
+  onAddOrder,
+  onEditOrder,
+  onBulkDelete,
+  isAdmin,
+}) {
+  const [selectedIds, setSelectedIds] = useState([]);
+  const orderIds = useMemo(() => (items || []).map((item) => item.order_id), [items]);
+  const allSelected = orderIds.length > 0 && orderIds.every((id) => selectedIds.includes(id));
+
+  const toggleAll = () => {
+    setSelectedIds(allSelected ? [] : orderIds);
+  };
+
+  const toggleOrder = (orderId) => {
+    setSelectedIds((current) =>
+      current.includes(orderId)
+        ? current.filter((id) => id !== orderId)
+        : [...current, orderId],
+    );
+  };
+
   return (
     <Panel
       title="Order history"
       sub="Latest customer orders"
     >
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        {isAdmin && selectedIds.length > 0 ? (
+          <button
+            className="btn ghost"
+            onClick={() => onBulkDelete(selectedIds, () => setSelectedIds([]))}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#dc2626", fontSize: 13, padding: "7px 14px" }}
+          >
+            <Trash2 size={15} /> Delete {selectedIds.length} selected
+          </button>
+        ) : <span />}
         {isAdmin && (
           <button
             className="btn primary"
@@ -25,6 +56,16 @@ export default function CustomerOrders({ items, onAddOrder, onEditOrder, isAdmin
           <table>
             <thead>
               <tr>
+                {isAdmin && (
+                  <th>
+                    <input
+                      type="checkbox"
+                      aria-label="Select all orders"
+                      checked={allSelected}
+                      onChange={toggleAll}
+                    />
+                  </th>
+                )}
                 <th>Order</th>
                 <th>Status</th>
                 <th>Payment Type</th>
@@ -41,6 +82,16 @@ export default function CustomerOrders({ items, onAddOrder, onEditOrder, isAdmin
                 const installments = item.installments > 1 ? ` (${item.installments}x)` : "";
                 return (
                   <tr key={item.order_id}>
+                    {isAdmin && (
+                      <td>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select order ${item.order_id}`}
+                          checked={selectedIds.includes(item.order_id)}
+                          onChange={() => toggleOrder(item.order_id)}
+                        />
+                      </td>
+                    )}
                     <td>
                       <code
                         title={item.order_id}

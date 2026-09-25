@@ -161,6 +161,8 @@ export const customerService = {
   /** Delete an order and its associated reviews and items */
   removeOrder: (id, orderId) =>
     data(api.delete(`/customers/${id}/orders/${orderId}`)),
+  removeOrders: (id, orderIds) =>
+    data(api.post(`/customers/${id}/orders/bulk-delete`, { order_ids: orderIds })),
   /** Bulk update segment for multiple customers */
   bulkSegmentUpdate: (payload) =>
     data(api.post("/customers/bulk-segment", payload)),
@@ -176,3 +178,10 @@ export const customerService = {
   globalAuditLogs: (params) => data(api.get("/audit-logs", { params })),
 };
 
+/** AI Intelligence & Machine Learning endpoints */
+export const predictionService = {
+  /** Fetch complete ML insights (Churn, SHAP, CLV, AI Segment, Recommendations) */
+  get: (idOrUniqueId) => data(api.get(`/predictions/${idOrUniqueId}`)),
+  /** Manually trigger model scoring for a customer */
+  rescore: (idOrUniqueId) => data(api.post(`/predictions/${idOrUniqueId}/rescore`)),
+};

@@ -217,7 +217,7 @@ def dashboard(
     if time_filter_orders:
         seg = db.execute(
             text(
-                f"""SELECT cs.segment_label AS segment,
+                f"""SELECT COALESCE(cs.segment_label, c.segment) AS segment,
                 COUNT(DISTINCT c.customer_unique_id) as count,
                 ROUND(COALESCE(AVG(cp.churn_probability) * 100, 0), 2) AS churn_percentage
                 FROM customer_metrics_cache c

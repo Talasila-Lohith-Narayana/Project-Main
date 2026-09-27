@@ -484,6 +484,7 @@ def bulk_update_segment(
         "Satisfied One-Time Buyers",
         "Product-Dissatisfied One-Time Buyers",
         "High-Value Satisfied Repeat Buyers",
+        "Engaged",
     ]:
         raise HTTPException(400, "Invalid segment value")
 

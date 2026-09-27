@@ -210,7 +210,7 @@ export default function DashboardHeroBanner({
       <div className="dashHeroStats">
         <div className="dashHeroStatItem">
           <span>Market Reach</span>
-          <b>{data?.top_states?.length || 27} States</b>
+          <b>{data?.geo_distribution?.length || 27} States</b>
         </div>
         <div className="dashHeroStatItem">
           <span>Product Catalog</span>
@@ -220,4 +220,3 @@ export default function DashboardHeroBanner({
     </div>
   );
 }
-

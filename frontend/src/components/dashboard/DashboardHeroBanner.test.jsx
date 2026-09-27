@@ -6,6 +6,7 @@ import DashboardHeroBanner from "./DashboardHeroBanner";
 describe("DashboardHeroBanner Component", () => {
   const mockData = {
     top_states: new Array(20).fill({ state: "SP" }),
+    geo_distribution: new Array(27).fill({ state: "SP" }),
   };
 
   const mockCustomRange = {
@@ -128,7 +129,7 @@ describe("DashboardHeroBanner Component", () => {
       />
     );
 
-    expect(screen.getByText("20 States")).toBeInTheDocument();
+    expect(screen.getByText("27 States")).toBeInTheDocument();
     expect(screen.getByText("73 Categories")).toBeInTheDocument();
 
     rerender(

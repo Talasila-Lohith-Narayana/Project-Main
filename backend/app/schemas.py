@@ -64,6 +64,7 @@ class CustomerIn(BaseModel):
                 "Satisfied One-Time Buyers",
                 "Product-Dissatisfied One-Time Buyers",
                 "High-Value Satisfied Repeat Buyers",
+                "Engaged",
             ]
             if v and v not in allowed:
                 raise ValueError(f"Segment must be one of: {', '.join(allowed)}")

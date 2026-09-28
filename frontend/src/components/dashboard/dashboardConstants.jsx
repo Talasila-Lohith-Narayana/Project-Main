@@ -29,9 +29,9 @@ export const COMPARE_OPTIONS = [
 
 
 export const SEGMENT_COLORS = {
-  "Satisfied One-Time Buyers": "#0ea5e9",
-  "Product-Dissatisfied One-Time Buyers": "#f43f5e",
-  "High-Value Satisfied Repeat Buyers": "#10b981",
+  "High Risk": "#f43f5e",
+  "Medium Risk": "#f59e0b",
+  "Low Risk": "#10b981",
 };
 
 export const getSegmentChurnColor = (churnPercentage) => {

@@ -94,7 +94,7 @@ def customers(
         p["state"] = str(state).upper()
     if segment:
         f.append(
-            "COALESCE(cs.segment_label, m.segment) COLLATE utf8mb4_unicode_ci "
+            "COALESCE(rt.risk_tier, m.segment) COLLATE utf8mb4_unicode_ci "
             "= :segment COLLATE utf8mb4_unicode_ci"
         )
         p["segment"] = segment
@@ -167,6 +167,9 @@ def customers(
         LEFT JOIN customer_intelligence.customer_segments cs
         ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
            c.customer_unique_id COLLATE utf8mb4_unicode_ci
+        LEFT JOIN customer_intelligence.customer_risk_tiers rt
+        ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
+           c.customer_unique_id COLLATE utf8mb4_unicode_ci
         LEFT JOIN customer_intelligence.churn_predictions cp
         ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
            c.customer_unique_id COLLATE utf8mb4_unicode_ci"""
@@ -202,7 +205,7 @@ def customers(
                 m.monetary_total,
                 m.avg_review_score,
                 CASE WHEN m.frequency>1 THEN 1 ELSE 0 END as is_repeat_customer,
-                COALESCE(cs.segment_label, m.segment) COLLATE utf8mb4_unicode_ci AS segment,
+                COALESCE(rt.risk_tier, m.segment) COLLATE utf8mb4_unicode_ci AS segment,
                 ROUND(MAX(cp.churn_probability) * 100, 2) AS churn_percentage,
                 ROUND({churn_probability_expr}, 2) AS churn_risk_score,
                 CASE
@@ -215,11 +218,14 @@ def customers(
             LEFT JOIN customer_intelligence.customer_segments cs
                 ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
+            LEFT JOIN customer_intelligence.customer_risk_tiers rt
+                ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                   c.customer_unique_id COLLATE utf8mb4_unicode_ci
             LEFT JOIN customer_intelligence.churn_predictions cp
                 ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
             WHERE {where} 
-            GROUP BY c.customer_unique_id, m.recency_days, m.frequency, m.monetary_total, m.avg_review_score, cs.segment_label, m.segment
+            GROUP BY c.customer_unique_id, m.recency_days, m.frequency, m.monetary_total, m.avg_review_score, rt.risk_tier, m.segment
             ORDER BY {order_clause} 
             LIMIT :limit OFFSET :offset"""
         ),
@@ -272,7 +278,7 @@ def add_customer(
         text(
             """INSERT INTO customer_metrics_cache 
                (customer_id, customer_unique_id, recency_days, frequency, monetary_total, avg_review_score, segment) 
-               VALUES (:id, :unique_id, 0, 0, 0.00, 0.00, 'Satisfied One-Time Buyers')"""
+               VALUES (:id, :unique_id, 0, 0, 0.00, 0.00, 'Low Risk')"""
         ),
         {"id": customer_id, "unique_id": x.customer_unique_id.strip()},
     )
@@ -326,7 +332,7 @@ def export_all_customers_csv(
         p["state"] = str(state).upper()
     if segment:
         f.append(
-            "COALESCE(cs.segment_label, m.segment) COLLATE utf8mb4_unicode_ci "
+            "COALESCE(rt.risk_tier, m.segment) COLLATE utf8mb4_unicode_ci "
             "= :segment COLLATE utf8mb4_unicode_ci"
         )
         p["segment"] = segment
@@ -402,7 +408,7 @@ def export_all_customers_csv(
                 c.customer_unique_id,
                 MIN(c.customer_city) as customer_city,
                 MIN(c.customer_state) as customer_state,
-                COALESCE(cs.segment_label, m.segment) COLLATE utf8mb4_unicode_ci AS segment,
+                COALESCE(rt.risk_tier, m.segment) COLLATE utf8mb4_unicode_ci AS segment,
                 m.frequency,
                 m.monetary_total,
                 m.avg_review_score,
@@ -413,11 +419,14 @@ def export_all_customers_csv(
             LEFT JOIN customer_intelligence.customer_segments cs
                 ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
+            LEFT JOIN customer_intelligence.customer_risk_tiers rt
+                ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                   c.customer_unique_id COLLATE utf8mb4_unicode_ci
             LEFT JOIN customer_intelligence.churn_predictions cp
                 ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
             WHERE {where} 
-            GROUP BY c.customer_unique_id, cs.segment_label, m.segment, m.frequency, m.monetary_total, m.avg_review_score, m.recency_days
+            GROUP BY c.customer_unique_id, rt.risk_tier, m.segment, m.frequency, m.monetary_total, m.avg_review_score, m.recency_days
             ORDER BY {order_clause}"""
         ),
         p,
@@ -481,10 +490,9 @@ def bulk_update_segment(
     if not payload.customer_unique_ids:
         raise HTTPException(400, "No customers selected")
     if payload.segment not in [
-        "Satisfied One-Time Buyers",
-        "Product-Dissatisfied One-Time Buyers",
-        "High-Value Satisfied Repeat Buyers",
-        "Engaged",
+        "High Risk",
+        "Medium Risk",
+        "Low Risk",
     ]:
         raise HTTPException(400, "Invalid segment value")
 
@@ -604,7 +612,7 @@ def customer_detail(cid: str, db: Session = Depends(get_db), _: str = Depends(au
             COALESCE(m.frequency, 0) AS frequency,
             COALESCE(m.monetary_total, 0) AS monetary_total,
             COALESCE(m.avg_review_score, 0) AS avg_review_score,
-            COALESCE(cs.segment_label, m.segment) COLLATE utf8mb4_unicode_ci AS segment,
+            COALESCE(rt.risk_tier, m.segment) COLLATE utf8mb4_unicode_ci AS segment,
             ROUND(cp.churn_probability * 100, 2) AS churn_percentage,
             CASE WHEN COALESCE(m.frequency, 0) > 1 THEN 1 ELSE 0 END AS is_repeat_customer
             FROM customers c 
@@ -612,6 +620,9 @@ def customer_detail(cid: str, db: Session = Depends(get_db), _: str = Depends(au
             LEFT JOIN customer_features cf ON (cf.customer_id = c.customer_id OR cf.customer_id = c.customer_unique_id)
             LEFT JOIN customer_intelligence.customer_segments cs
                 ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                   c.customer_unique_id COLLATE utf8mb4_unicode_ci
+            LEFT JOIN customer_intelligence.customer_risk_tiers rt
+                ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
             LEFT JOIN customer_intelligence.churn_predictions cp
                 ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =

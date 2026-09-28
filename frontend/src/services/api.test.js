@@ -157,7 +157,7 @@ describe("API Service Layer", () => {
     });
 
     it("handles bulkSegmentUpdate and bulkDelete", async () => {
-      const res1 = await customerService.bulkSegmentUpdate({ customer_ids: ["c1"], segment: "Champions" });
+      const res1 = await customerService.bulkSegmentUpdate({ customer_ids: ["c1"], segment: "High Risk" });
       const res2 = await customerService.bulkDelete({ customer_ids: ["c1"] });
       expect(res1).toEqual({ success: true });
       expect(res2).toEqual({ success: true });

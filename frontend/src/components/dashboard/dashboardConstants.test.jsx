@@ -17,7 +17,7 @@ import {
 describe("dashboardConstants and Tooltips", () => {
   it("exports configuration arrays and maps with correct items", () => {
     expect(TIMEFRAME_OPTIONS).toHaveLength(5);
-    expect(SEGMENT_COLORS["High-Value Satisfied Repeat Buyers"]).toBe("#10b981");
+    expect(SEGMENT_COLORS["Low Risk"]).toBe("#10b981");
     expect(PAYMENT_ICONS.credit_card).toBe("💳");
     expect(PAYMENT_COLORS.credit_card).toBe("#10b981");
     expect(STATE_COLORS.length).toBeGreaterThan(0);
@@ -37,14 +37,14 @@ describe("dashboardConstants and Tooltips", () => {
       const payload = [
         {
           payload: {
-            segment: "Champions",
+            segment: "High Risk",
             count: 4520,
           },
         },
       ];
 
       render(<SegmentBarTooltip active={true} payload={payload} />);
-      expect(screen.getByText("Champions")).toBeInTheDocument();
+      expect(screen.getByText("High Risk")).toBeInTheDocument();
       expect(screen.getByText("4,520")).toBeInTheDocument();
     });
 

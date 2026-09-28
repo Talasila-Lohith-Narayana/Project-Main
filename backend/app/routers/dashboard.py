@@ -217,20 +217,20 @@ def dashboard(
     if time_filter_orders:
         seg = db.execute(
             text(
-                f"""SELECT COALESCE(cs.segment_label, c.segment) AS segment,
+                f"""SELECT rt.risk_tier AS segment,
                 COUNT(DISTINCT c.customer_unique_id) as count,
                 ROUND(COALESCE(AVG(cp.churn_probability) * 100, 0), 2) AS churn_percentage
                 FROM customer_metrics_cache c
                 JOIN customers cust ON cust.customer_unique_id = c.customer_unique_id
                 JOIN orders o ON o.customer_id = cust.customer_id
-                JOIN customer_intelligence.customer_segments cs
-                    ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                JOIN customer_intelligence.customer_risk_tiers rt
+                    ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
                        c.customer_unique_id COLLATE utf8mb4_unicode_ci
                 JOIN customer_intelligence.churn_predictions cp
                     ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
                        c.customer_unique_id COLLATE utf8mb4_unicode_ci
                 {time_filter_orders}
-                GROUP BY COALESCE(cs.segment_label, c.segment)
+                GROUP BY rt.risk_tier
                 ORDER BY count DESC"""
             ),
             params,
@@ -242,16 +242,16 @@ def dashboard(
                 ROUND(COALESCE(AVG(churn_probability) * 100, 0), 2) AS churn_percentage
                 FROM (
                     SELECT c.customer_unique_id,
-                        cs.segment_label AS segment,
+                        rt.risk_tier AS segment,
                         cp.churn_probability
                     FROM customer_metrics_cache c
-                    JOIN customer_intelligence.customer_segments cs
-                        ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                    JOIN customer_intelligence.customer_risk_tiers rt
+                        ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
                            c.customer_unique_id COLLATE utf8mb4_unicode_ci
                     JOIN customer_intelligence.churn_predictions cp
                         ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
                            c.customer_unique_id COLLATE utf8mb4_unicode_ci
-                    GROUP BY c.customer_unique_id, cs.segment_label,
+                    GROUP BY c.customer_unique_id, rt.risk_tier,
                         cp.churn_probability
                 ) t
                 GROUP BY segment

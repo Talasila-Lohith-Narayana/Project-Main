@@ -61,10 +61,9 @@ class CustomerIn(BaseModel):
         if v is not None:
             v = v.strip()
             allowed = [
-                "Satisfied One-Time Buyers",
-                "Product-Dissatisfied One-Time Buyers",
-                "High-Value Satisfied Repeat Buyers",
-                "Engaged",
+                "High Risk",
+                "Medium Risk",
+                "Low Risk",
             ]
             if v and v not in allowed:
                 raise ValueError(f"Segment must be one of: {', '.join(allowed)}")

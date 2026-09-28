@@ -26,13 +26,13 @@ def test_search_customers(client, admin_headers):
 
 
 def test_filter_customers_by_segment(client, admin_headers):
-    """Verifies segment filtering (e.g. Champions)."""
-    response = client.get("/api/customers?segment=Champions&page_size=5", headers=admin_headers)
+    """Verifies filtering by the database-backed risk tier."""
+    response = client.get("/api/customers?segment=High%20Risk&page_size=5", headers=admin_headers)
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
     for item in data["items"]:
-        assert item.get("segment") == "Champions"
+        assert item.get("segment") == "High Risk"
 
 
 def test_get_customer_detail_and_not_found(client, admin_headers):
@@ -87,7 +87,7 @@ def test_customer_crud_lifecycle(client, admin_headers):
         "customer_city": "Campinas Updated",
         "customer_state": "SP",
         "customer_zip_code_prefix": "13010",
-        "segment": "Engaged",
+        "segment": "High Risk",
     }
     update_res = client.patch(f"/api/customers/{cid}", json=update_payload, headers=admin_headers)
     assert update_res.status_code == 200

@@ -5,11 +5,9 @@ import DashboardCustomerSegments from "./DashboardCustomerSegments";
 
 describe("DashboardCustomerSegments Component", () => {
   const mockSegments = [
-    { segment: "Champions", count: 1200 },
-    { segment: "Engaged", count: 4500 },
-    { segment: "At Risk", count: 800 },
-    { segment: "New / Developing", count: 89000 },
-    { segment: "Custom / Unknown", count: 150 },
+    { segment: "High Risk", count: 1200 },
+    { segment: "Medium Risk", count: 4500 },
+    { segment: "Low Risk", count: 800 },
   ];
 
   it("renders customer segments panel title and subtitle", () => {

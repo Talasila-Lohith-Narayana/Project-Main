@@ -33,7 +33,7 @@ import FilterModal from "../components/FilterModal";
 import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import { getSegmentChurnColor } from "../components/dashboard/dashboardConstants";
+import { SEGMENT_COLORS } from "../components/dashboard/dashboardConstants";
 
 // Reference data for filters and sorts (All 27 Brazilian States & Federal District)
 const states = [
@@ -43,9 +43,9 @@ const states = [
 ];
 const segments = [
   "",
-  "Satisfied One-Time Buyers",
-  "Product-Dissatisfied One-Time Buyers",
-  "High-Value Satisfied Repeat Buyers",
+  "High Risk",
+  "Medium Risk",
+  "Low Risk",
 ];
 const activityOptions = [
   ["", "All activity"],
@@ -118,7 +118,7 @@ export default function Customers() {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkModal, setShowBulkModal] = useState(false);
-  const [bulkSegment, setBulkSegment] = useState("Satisfied One-Time Buyers");
+  const [bulkSegment, setBulkSegment] = useState("Low Risk");
   const [bulkBusy, setBulkBusy] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const sortMenuRef = useRef(null);
@@ -660,14 +660,14 @@ export default function Customers() {
                     </td>
                     <td>
                       <em>
-                        {customer.churn_risk_level && (
+                      {customer.segment && (
                           <span
                             className="churnDot"
                             style={{
-                              background: getSegmentChurnColor(customer.churn_percentage),
-                              boxShadow: `0 0 6px ${getSegmentChurnColor(customer.churn_percentage)}66`,
+                            background: SEGMENT_COLORS[customer.segment] || "#94a3b8",
+                            boxShadow: `0 0 6px ${(SEGMENT_COLORS[customer.segment] || "#94a3b8")}66`,
                             }}
-                            title={`Churn probability: ${customer.churn_percentage ?? "N/A"}%`}
+                          title={`Segment: ${customer.segment}`}
                           />
                         )}
                         {customer.segment}
@@ -774,9 +774,9 @@ export default function Customers() {
                 onChange={(e) => setBulkSegment(e.target.value)}
                 style={{ width: "100%", marginTop: 4 }}
               >
-                <option value="Satisfied One-Time Buyers">Satisfied One-Time Buyers</option>
-                <option value="Product-Dissatisfied One-Time Buyers">Product-Dissatisfied One-Time Buyers</option>
-                <option value="High-Value Satisfied Repeat Buyers">High-Value Satisfied Repeat Buyers</option>
+                <option value="High Risk">High Risk</option>
+                <option value="Medium Risk">Medium Risk</option>
+                <option value="Low Risk">Low Risk</option>
               </select>
             </label>
             <div className="actions" style={{ marginTop: 18 }}>

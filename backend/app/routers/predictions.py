@@ -229,28 +229,12 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
         purchase_freq = 1.0
         lifespan_yrs = 1.0
 
-    # ── Fetch real ML-pipeline segment from customer_intelligence DB ──
-    seg_row = db.execute(
-        text("""
-            SELECT segment_label, risk_tier, cluster_probability
-            FROM customer_intelligence.customer_segments
-            WHERE customer_unique_id = :cuid
-            LIMIT 1
-        """),
-        {"cuid": customer_unique_id},
-    ).mappings().first()
-
-    if seg_row and seg_row["segment_label"]:
-        segment_label = seg_row["segment_label"]
-        # The segment row is refreshed independently from realtime scoring.
-        # Use the fresh churn result rather than displaying a stale risk tier.
-        segment_risk_tier = f"{risk_level.title()} Risk"
-        cluster_prob = round(float(seg_row["cluster_probability"]), 4) if seg_row["cluster_probability"] else 0.95
-    else:
-        # Formula fallback only for genuinely new customers
-        segment_label = "ML segment unavailable"
-        segment_risk_tier = f"{risk_level.title()} Risk"
-        cluster_prob = 0.95
+    # The manual run must reflect the fresh model result. The offline
+    # customer_risk_tiers table is refreshed separately and may contain a
+    # stale value from before the customer's latest orders or reviews.
+    segment_label = f"{risk_level.title()} Risk"
+    segment_risk_tier = segment_label
+    cluster_prob = 0.95
 
     # ── Fetch campaign recommendation from customer_intelligence DB ──
     campaign_row = db.execute(
@@ -338,8 +322,8 @@ def get_customer_predictions(
             clv.value_tier,
             clv.purchase_frequency_per_year,
             clv.customer_lifespan_years,
-            cs.segment_label,
-            cs.risk_tier AS segment_risk_tier,
+            rt.risk_tier AS segment_label,
+            rt.risk_tier AS segment_risk_tier,
             cs.cluster_probability,
             cr.campaign_name,
             cr.campaign_priority,
@@ -347,7 +331,9 @@ def get_customer_predictions(
         FROM customer_intelligence.churn_predictions cp
         LEFT JOIN customer_intelligence.customer_clv clv 
             ON clv.customer_unique_id COLLATE utf8mb4_unicode_ci = cp.customer_unique_id COLLATE utf8mb4_unicode_ci
-        LEFT JOIN customer_intelligence.customer_segments cs 
+        LEFT JOIN customer_intelligence.customer_risk_tiers rt
+            ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci = cp.customer_unique_id COLLATE utf8mb4_unicode_ci
+        LEFT JOIN customer_intelligence.customer_segments cs
             ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci = cp.customer_unique_id COLLATE utf8mb4_unicode_ci
         LEFT JOIN customer_intelligence.customer_campaign_recommendations cr 
             ON cr.customer_unique_id COLLATE utf8mb4_unicode_ci = cp.customer_unique_id COLLATE utf8mb4_unicode_ci
@@ -457,4 +443,23 @@ def rescore_customer_manually(
 
     # Compute fresh dynamic score
     fresh_predictions = _compute_realtime_prediction(db, customer_unique_id)
+
+    # Keep the customer directory in sync with the result shown by the AI
+    # insights page. The directory falls back to customer_metrics_cache when
+    # the offline customer_risk_tiers pipeline has not produced a row yet.
+    segment = fresh_predictions["segmentation"]["segment_label"]
+    result = db.execute(
+        text(
+            """UPDATE customer_metrics_cache
+               SET segment = :segment
+               WHERE customer_unique_id = :customer_unique_id"""
+        ),
+        {"segment": segment, "customer_unique_id": customer_unique_id},
+    )
+    if result.rowcount != 1:
+        db.rollback()
+        raise RuntimeError(
+            f"Could not update the segment cache for customer {customer_unique_id!r}"
+        )
+    db.commit()
     return fresh_predictions

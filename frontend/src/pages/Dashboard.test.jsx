@@ -17,7 +17,7 @@ const mockDashboardData = {
   },
   top_states: [{ state: "SP", revenue: 5000000, customers: 40000 }],
   monthly: [{ month: "2018-01", revenue: 1000000, orders: 6000 }],
-  segments: [{ segment: "Champions", count: 1200 }],
+  segments: [{ segment: "High Risk", count: 1200 }],
   payments: [{ type: "credit_card", total_value: 1000000, count: 5000 }],
   ratings_dist: [{ stars: 5, count: 5000 }],
   categories: [{ category: "health_beauty", purchases: 1000 }],

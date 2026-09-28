@@ -6,7 +6,7 @@ import FilterModal from "./FilterModal";
 describe("FilterModal Component", () => {
   const mockValues = {
     state: "SP",
-    segment: "Champions",
+    segment: "High Risk",
     activity: "active",
     ratings: ["5"],
     maxRecency: "30",
@@ -15,7 +15,7 @@ describe("FilterModal Component", () => {
   };
 
   const mockStates = ["SP", "RJ", "MG"];
-  const mockSegments = ["Champions", "Engaged", "At Risk", "New / Developing"];
+  const mockSegments = ["High Risk", "Medium Risk", "Low Risk"];
   const mockActivityOptions = [
     ["", "All activity"],
     ["active", "Has orders"],
@@ -58,7 +58,7 @@ describe("FilterModal Component", () => {
 
     expect(mockApply).toHaveBeenCalledWith(expect.objectContaining({
       state: "SP",
-      segment: "Champions",
+      segment: "High Risk",
       minSpend: "500",
     }));
   });
@@ -104,7 +104,7 @@ describe("FilterModal Component", () => {
     );
 
     fireEvent.change(screen.getByPlaceholderText(/e\.g\. SP/i), { target: { value: "rj" } });
-    fireEvent.change(screen.getByLabelText(/Segment/i), { target: { value: "Engaged" } });
+    fireEvent.change(screen.getByLabelText(/Segment/i), { target: { value: "Medium Risk" } });
     fireEvent.change(screen.getByLabelText(/Activity/i), { target: { value: "inactive" } });
     fireEvent.change(screen.getByPlaceholderText("Days"), { target: { value: "60" } });
     fireEvent.change(screen.getByPlaceholderText("R$ amount"), { target: { value: "250" } });
@@ -114,7 +114,7 @@ describe("FilterModal Component", () => {
 
     expect(mockApply).toHaveBeenCalledWith({
       state: "RJ",
-      segment: "Engaged",
+      segment: "Medium Risk",
       activity: "inactive",
       ratings: [],
       churnRisk: [],

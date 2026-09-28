@@ -32,13 +32,13 @@ const initialForm = {
   customer_zip_code_prefix: "",
   customer_city: "",
   customer_state: "SP",
-  segment: "Satisfied One-Time Buyers",
+  segment: "Low Risk",
 };
 
 const SEGMENT_OPTIONS = [
-  "Satisfied One-Time Buyers",
-  "Product-Dissatisfied One-Time Buyers",
-  "High-Value Satisfied Repeat Buyers",
+  "High Risk",
+  "Medium Risk",
+  "Low Risk",
 ];
 
 export default function CustomerModal({ customer, close, save }) {
@@ -50,7 +50,7 @@ export default function CustomerModal({ customer, close, save }) {
         customer_zip_code_prefix: customer.customer_zip_code_prefix ?? "",
         customer_city: customer.customer_city || "",
         customer_state: customer.customer_state || "SP",
-        segment: customer.segment || "Satisfied One-Time Buyers",
+        segment: customer.segment || "Low Risk",
       }
       : initialForm,
   );

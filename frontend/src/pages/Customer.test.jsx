@@ -31,7 +31,7 @@ const mockCustomerDetail = {
   customer_zip_code_prefix: 13010,
   customer_city: "Sao Paulo",
   customer_state: "SP",
-  segment: "Champions",
+  segment: "High Risk",
   monetary_total: 1500,
   frequency: 4,
   recency_days: 20,
@@ -151,7 +151,7 @@ describe("Customer Page Orchestrator", () => {
     await waitFor(() => {
       expect(screen.getByText("uid_999999")).toBeInTheDocument();
       expect(screen.getByText(/Sao Paulo, SP/i)).toBeInTheDocument();
-      expect(screen.getByText("CONSUMER PROFILE · Champions")).toBeInTheDocument();
+      expect(screen.getByText("CONSUMER PROFILE · High Risk")).toBeInTheDocument();
     });
 
     // Test all tab buttons exist
@@ -486,7 +486,7 @@ describe("Customer Page Orchestrator", () => {
       ...mockCustomerDetail,
       customer_lifetime_value: null,
       monetary_total: 1000,
-      segment: "At Risk",
+      segment: "Medium Risk",
     };
 
     vi.spyOn(ApiModule.customerService, "detail").mockResolvedValue(customerWithoutCLV);
@@ -505,10 +505,10 @@ describe("Customer Page Orchestrator", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("CONSUMER PROFILE · At Risk")).toBeInTheDocument();
+      expect(screen.getByText("CONSUMER PROFILE · Medium Risk")).toBeInTheDocument();
     });
 
-    // At Risk multiplier is 1.02, 1000 * 1.02 = 1020.00
-    expect(screen.getAllByText(/1,020\.00/i).length).toBeGreaterThan(0);
+    // Medium Risk fallback preserves realized spend.
+    expect(screen.getAllByText(/1,000\.00/i).length).toBeGreaterThan(0);
   });
 });

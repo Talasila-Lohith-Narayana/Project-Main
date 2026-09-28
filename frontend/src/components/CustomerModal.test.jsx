@@ -9,7 +9,7 @@ describe("CustomerModal Component", () => {
     customer_zip_code_prefix: 13010,
     customer_city: "Campinas",
     customer_state: "SP",
-    segment: "Champions",
+    segment: "High Risk",
   };
 
   it("pre-fills form inputs in edit mode", () => {
@@ -71,8 +71,8 @@ describe("CustomerModal Component", () => {
     render(<CustomerModal customer={mockCustomer} close={mockClose} save={mockSave} />);
 
     // Change segment
-    fireEvent.change(screen.getByLabelText(/RFM Customer Segment/i), {
-      target: { value: "Engaged" },
+    fireEvent.change(screen.getByLabelText(/ML Customer Segment/i), {
+      target: { value: "High Risk" },
     });
 
     const submitBtn = screen.getByRole("button", { name: /save changes/i });
@@ -84,7 +84,7 @@ describe("CustomerModal Component", () => {
         customer_zip_code_prefix: 13010,
         customer_city: "Campinas",
         customer_state: "SP",
-        segment: "Engaged",
+        segment: "High Risk",
       });
     });
   });

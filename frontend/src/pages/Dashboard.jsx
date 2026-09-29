@@ -39,6 +39,7 @@ import DashboardGeoHeatmap from "../components/dashboard/DashboardGeoHeatmap";
 import DashboardPaymentMethods from "../components/dashboard/DashboardPaymentMethods";
 import DashboardReviewSatisfaction from "../components/dashboard/DashboardReviewSatisfaction";
 import DashboardTopCategories from "../components/dashboard/DashboardTopCategories";
+import DashboardAnalytics from "../components/dashboard/DashboardAnalytics";
 import { COMPARISON_PERIODS } from "../components/dashboard/dashboardConstants";
 
 export default function Dashboard() {
@@ -180,7 +181,9 @@ export default function Dashboard() {
 
       {/* Top Product Categories Leaderboard */}
       <DashboardTopCategories categories={data.categories} navigate={navigate} />
+
+      {/* Additional analytics are loaded independently from the core dashboard */}
+      <DashboardAnalytics />
     </Page>
   );
 }
-

@@ -47,6 +47,9 @@ describe("Shell Navigation & Layout Component", () => {
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByText("Customers")).toBeInTheDocument();
     expect(screen.getByText("Products")).toBeInTheDocument();
+    expect(screen.getByText("Analytics")).toBeInTheDocument();
+    expect(screen.getByText("Campaigns")).toBeInTheDocument();
+    expect(screen.getByText("Model")).toBeInTheDocument();
   });
 
   it("displays logged-in user profile badge and role indicator", () => {

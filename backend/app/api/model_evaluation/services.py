@@ -11,12 +11,13 @@ from sqlalchemy import text
 import yaml
 
 from app.database import engine
+from app.artifact_paths import get_models_dir, get_outputs_dir, get_reports_dir
 from app.ml.experiment_logger import get_experiment_history
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-OUTPUTS_DIR = PROJECT_ROOT / "outputs"
-REPORTS_DIR = OUTPUTS_DIR / "reports"
-MODELS_DIR = OUTPUTS_DIR / "models"
+OUTPUTS_DIR = get_outputs_dir()
+REPORTS_DIR = get_reports_dir()
+MODELS_DIR = get_models_dir()
 CONFIG_DIR = PROJECT_ROOT / "app" / "config"
 
 DEFAULT_KEY_FEATURES = [

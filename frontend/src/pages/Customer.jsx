@@ -61,6 +61,7 @@ import CustomerOrders from "../components/customer/CustomerOrders";
 import CustomerReviews from "../components/customer/CustomerReviews";
 import CustomerInteractions from "../components/customer/CustomerInteractions";
 import CustomerAuditLogs from "../components/customer/CustomerAuditLogs";
+import CustomerAnalytics from "../components/customer/CustomerAnalytics";
 import CustomerAiInsights from "../components/customer/CustomerAiInsights";
 
 export default function Customer() {
@@ -307,7 +308,10 @@ export default function Customer() {
       </div>
 
       {tab === "overview" && (
-        <CustomerOverview customer={customer} predictions={data.predictions} />
+        <>
+          <CustomerOverview customer={customer} predictions={data.predictions} />
+          <CustomerAnalytics customerUniqueId={customer.customer_unique_id} />
+        </>
       )}
       {tab === "ai-insights" && (
         <CustomerAiInsights

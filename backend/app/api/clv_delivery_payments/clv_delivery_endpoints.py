@@ -195,42 +195,6 @@ def clv_by_segment():
     return records(df)
 
 
-@router.get("/clv/top-customers")
-def clv_top_customers(n: int = Query(10, ge=1, le=100)):
-    df = q(f"""
-        SELECT c.{C['clv_customer_id']} AS customer_id,
-               c.{C['clv_value']} AS clv,
-               c.{C['clv_tier']} AS value_tier,
-               s.{C['seg_label']} AS segment_label,
-               p.{C['churn_prob']} AS churn_probability,
-               s.{C['risk_tier']} AS risk_tier
-        FROM {C['clv_table']} c
-        LEFT JOIN {C['seg_table']} s ON s.{C['seg_customer_id']} = c.{C['clv_customer_id']}
-        LEFT JOIN {C['churn_table']} p ON p.{C['churn_customer_id']} = c.{C['clv_customer_id']}
-        ORDER BY c.{C['clv_value']} DESC
-        LIMIT :n
-    """, {"n": n})
-    return records(df)
-
-
-@router.get("/clv/revenue-at-risk")
-def clv_revenue_at_risk():
-    df = q(f"""
-        SELECT COUNT(*) AS high_risk_customers,
-               COALESCE(SUM(c.{C['clv_value']}), 0) AS revenue_at_risk
-        FROM {C['clv_table']} c
-        JOIN {C['seg_table']} s ON s.{C['seg_customer_id']} = c.{C['clv_customer_id']}
-        WHERE s.{C['risk_tier']} LIKE :hr
-    """, {"hr": HR})
-    total = q(f"SELECT COALESCE(SUM({C['clv_value']}), 0) AS t FROM {C['clv_table']}")["t"].iloc[0]
-    out = records(df)[0]
-    out["total_clv"] = float(total)
-    out["pct_of_total_clv"] = (
-        round(float(out["revenue_at_risk"]) / float(total) * 100, 2) if total else 0
-    )
-    return out
-
-
 # --------------------------------------------------------------------------
 # Delivery and payment drivers
 # --------------------------------------------------------------------------
@@ -322,45 +286,3 @@ def customer_delivery_performance(customer_id: str):
         "deliveries": records(df.head(10)),
     }
 
-
-@router.get("/payments/installments-distribution")
-def installments_distribution():
-    df = q(f"""
-        SELECT {C['pay_installments']} AS installments,
-               COUNT(*) AS payments,
-               SUM({C['pay_value']}) AS total_value,
-               AVG({C['pay_value']}) AS avg_value
-        FROM {C['payments_table']}
-        GROUP BY {C['pay_installments']}
-        ORDER BY installments
-    """)
-    total = df["payments"].sum()
-    df["pct_share"] = (df["payments"] / total * 100).round(2) if total else 0
-    return records(df)
-
-
-@router.get("/products/category-churn-correlation")
-def category_churn_correlation(min_customers: int = Query(30, ge=1)):
-    """Avg churn probability and high-risk share per product category."""
-    df = q(f"""
-        SELECT cc.category,
-               COUNT(*) AS customers,
-               AVG(p.{C['churn_prob']}) AS avg_churn_probability,
-               100 * AVG(s.{C['risk_tier']} LIKE :hr) AS high_risk_pct
-        FROM (
-            SELECT DISTINCT {CU_KEY} AS customer_id,
-                   pr.{C['products_category']} AS category
-            FROM {C['orders_table']} o
-            JOIN {C['customers_table']} cu
-              ON cu.{C['cust_order_key']} = o.{C['orders_customer_id']}
-            JOIN {C['items_table']} i ON i.{C['items_order_id']} = o.{C['orders_order_id']}
-            JOIN {C['products_table']} pr ON pr.{C['products_product_id']} = i.{C['items_product_id']}
-            WHERE pr.{C['products_category']} IS NOT NULL
-        ) cc
-        JOIN {C['churn_table']} p ON p.{C['churn_customer_id']} = cc.customer_id
-        JOIN {C['seg_table']} s ON s.{C['seg_customer_id']} = cc.customer_id
-        GROUP BY cc.category
-        HAVING customers >= :minc
-        ORDER BY avg_churn_probability DESC
-    """, {"hr": HR, "minc": min_customers})
-    return records(df)

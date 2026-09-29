@@ -415,22 +415,23 @@ export default function Model() {
   const [feature, setFeature] = useState("avg_review_score");
   return (
     <Page>
-      <header className="analyticsPageHeader">
-        <div className="analyticsPageIcon"><Activity size={22} /></div>
-        <div>
-          <p className="eyebrow">CHURN MODEL INSIGHTS</p>
-          <h1>Model diagnostics</h1>
-          <p>Inspect churn risk, model reports, experiment records, and observed feature behavior.</p>
-        </div>
-      </header>
-      <section className="analyticsPageSection" aria-labelledby="model-churn-heading">
-        <h2 id="model-churn-heading">Stored churn predictions</h2>
-        <div className="grid2">
+      <div className="modelPage">
+        <header className="analyticsPageHeader">
+          <div className="analyticsPageIcon"><Activity size={22} /></div>
+          <div>
+            <p className="eyebrow">CHURN MODEL INSIGHTS</p>
+            <h1>Model diagnostics</h1>
+            <p>Inspect churn risk, model reports, experiment records, and observed feature behavior.</p>
+          </div>
+        </header>
+        <section className="analyticsPageSection" aria-labelledby="model-churn-heading">
+          <h2 id="model-churn-heading">Stored churn predictions</h2>
+          <div className="grid2">
           <AnalyticsPanel title="Churn overview" sub="Risk volume based on stored customer predictions" load={churnSummaryLoad}>
             {(data) => <ChurnSummary data={data} />}
           </AnalyticsPanel>
           <AnalyticsPanel title="Prediction refresh" sub="Most recent batch score and prediction distribution" load={churnRefreshLoad}>
-            {(data) => <p className="analyticsMeta">{data.last_refreshed_at || "No stored prediction refresh is available."}</p>}
+            {(data) => <p className="analyticsMeta modelRefreshTimestamp">{data.last_refreshed_at || "No stored prediction refresh is available."}</p>}
           </AnalyticsPanel>
           <AnalyticsPanel title="Churn probability distribution" sub="Stored customer scores grouped into probability ranges" load={churnDistributionLoad}>
             {(data) => <ProbabilityDistribution data={data} />}
@@ -447,12 +448,12 @@ export default function Model() {
           <AnalyticsPanel title="Pipeline tables" sub="Availability and row counts for required analytics tables" load={tableStatusesLoad}>
             {(data) => <PipelineTables data={data} />}
           </AnalyticsPanel>
-        </div>
-        <PredictCustomer />
-      </section>
-      <section className="analyticsPageSection" aria-labelledby="model-evaluation-heading">
-        <h2 id="model-evaluation-heading">Model evaluation and feature behavior</h2>
-      <div className="grid2">
+          </div>
+          <PredictCustomer />
+        </section>
+        <section className="analyticsPageSection" aria-labelledby="model-evaluation-heading">
+          <h2 id="model-evaluation-heading">Model evaluation and feature behavior</h2>
+          <div className="grid2">
         <AnalyticsPanel title="Model test performance" sub="Reported metrics for the evaluated test split" load={analyticsService.modelPerformance}>
           {(data) => <Performance data={data} />}
         </AnalyticsPanel>
@@ -471,9 +472,10 @@ export default function Model() {
         <AnalyticsPanel title="Feature statistics" sub="Descriptive statistics and missing values for model features" load={featuresLoad}>
           {(data) => <FeatureStatistics data={data} feature={feature} setFeature={setFeature} />}
         </AnalyticsPanel>
+          </div>
+          <FeatureAnalysis feature={feature} setFeature={setFeature} />
+        </section>
       </div>
-      <FeatureAnalysis feature={feature} setFeature={setFeature} />
-      </section>
     </Page>
   );
 }

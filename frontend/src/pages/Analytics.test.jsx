@@ -20,15 +20,22 @@ describe("Analytics page", () => {
       { value_tier: "High", customers: 32032, pct_share: 33.33, avg_clv: 667.66 },
     ]);
     vi.spyOn(analyticsService, "cohortSummary").mockResolvedValue({
-      count: 1,
-      data: [{
-        cohort: "2018-08",
-        label: "Aug 2018",
-        cohort_size: null,
-        m1_retention_pct: 7.5,
-        m3_retention_pct: null,
-        cumulative_repeat_purchase_rate_pct: 11.2,
-      }],
+      count: 10,
+      data: Array.from({ length: 10 }, (_, index) => {
+        const month = index + 11;
+        const year = month > 12 ? 2018 : 2017;
+        const monthNumber = month > 12 ? month - 12 : month;
+        const date = new Date(year, monthNumber - 1, 1);
+        return {
+          cohort: `${year}-${String(monthNumber).padStart(2, "0")}`,
+          label: date.toLocaleString("en-US", { month: "short", year: "numeric" }),
+          cohort_size: null,
+          months_observed: 10 - index,
+          m1_retention_pct: 7.5,
+          m3_retention_pct: null,
+          cumulative_repeat_purchase_rate_pct: 11.2,
+        };
+      }),
     });
     vi.spyOn(analyticsService, "deliveryPerformance").mockResolvedValue({
       summary: {
@@ -79,6 +86,8 @@ describe("Analytics page", () => {
     expect(await screen.findByText((content) => content.includes("294,45"))).toBeInTheDocument();
     expect(screen.getByText("High value")).toBeInTheDocument();
     expect(screen.getByText("Aug 2018")).toBeInTheDocument();
+    expect(screen.getByText("Nov 2017")).toBeInTheDocument();
+    expect(screen.getByText("All 10 acquisition months · newest first")).toBeInTheDocument();
     expect(screen.getByText("12.5 days")).toBeInTheDocument();
     expect(screen.getByText("Priority Recovery")).toBeInTheDocument();
     expect(screen.getByText("LightGBM Classifier")).toBeInTheDocument();

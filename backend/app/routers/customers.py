@@ -614,7 +614,14 @@ def customer_detail(cid: str, db: Session = Depends(get_db), _: str = Depends(au
             COALESCE(m.avg_review_score, 0) AS avg_review_score,
             COALESCE(rt.risk_tier, m.segment) COLLATE utf8mb4_unicode_ci AS segment,
             ROUND(cp.churn_probability * 100, 2) AS churn_percentage,
-            CASE WHEN COALESCE(m.frequency, 0) > 1 THEN 1 ELSE 0 END AS is_repeat_customer
+            CASE WHEN COALESCE(m.frequency, 0) > 1 THEN 1 ELSE 0 END AS is_repeat_customer,
+            COALESCE((
+                SELECT AVG(DATEDIFF(o.order_delivered_customer_date, o.order_purchase_timestamp))
+                FROM orders o
+                WHERE o.customer_id = c.customer_id
+                  AND o.order_status = 'delivered'
+                  AND o.order_delivered_customer_date IS NOT NULL
+            ), 0) AS avg_delivery_days
             FROM customers c 
             JOIN customer_metrics_cache m ON m.customer_id = c.customer_id
             LEFT JOIN customer_features cf ON (cf.customer_id = c.customer_id OR cf.customer_id = c.customer_unique_id)

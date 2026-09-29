@@ -57,6 +57,15 @@ def get_ml_predictor():
         if ml_app_path not in backend_app.__path__:
             backend_app.__path__.append(ml_app_path)
 
+        # This backend also contains app.ml for local helpers, so importing
+        # app.ml first would otherwise hide the inference package in the
+        # shared ML project.
+        import app.ml as backend_ml
+
+        source_ml_path = str(ML_PROJECT_ROOT / "app" / "ml")
+        if source_ml_path not in backend_ml.__path__:
+            backend_ml.__path__.append(source_ml_path)
+
         from app.ml.explainibility_inference.inference.predict import ChurnPredictor
 
         model_path = Path(
@@ -338,6 +347,7 @@ def get_customer_predictions(
         LEFT JOIN customer_intelligence.customer_campaign_recommendations cr 
             ON cr.customer_unique_id COLLATE utf8mb4_unicode_ci = cp.customer_unique_id COLLATE utf8mb4_unicode_ci
         WHERE cp.customer_unique_id = :cuid
+        ORDER BY cp.scored_at DESC
         LIMIT 1
     """)
 
@@ -444,11 +454,50 @@ def rescore_customer_manually(
     # Compute fresh dynamic score
     fresh_predictions = _compute_realtime_prediction(db, customer_unique_id)
 
+    churn = fresh_predictions["churn"]
+    explainability = fresh_predictions["explainability"]
+    prediction_values = {
+        "customer_unique_id": customer_unique_id,
+        "churn_probability": churn["probability"],
+        "shap_values": json.dumps(
+            {driver["feature"]: driver["impact"]
+             for driver in explainability["shap_drivers"]}
+        ),
+        "reason_codes": json.dumps(
+            [item["code"] for item in explainability["reason_codes"]]
+        ),
+        "model_version": churn["model_version"],
+        "scored_at": churn["scored_at"],
+    }
+    updated_prediction = db.execute(
+        text(
+            """UPDATE customer_intelligence.churn_predictions
+               SET churn_probability = :churn_probability,
+                   shap_values = :shap_values,
+                   reason_codes = :reason_codes,
+                   model_version = :model_version,
+                   scored_at = :scored_at
+               WHERE customer_unique_id = :customer_unique_id"""
+        ),
+        prediction_values,
+    )
+    if updated_prediction.rowcount == 0:
+        db.execute(
+            text(
+                """INSERT INTO customer_intelligence.churn_predictions
+                       (customer_unique_id, churn_probability, shap_values,
+                        reason_codes, model_version, scored_at)
+                   VALUES (:customer_unique_id, :churn_probability, :shap_values,
+                           :reason_codes, :model_version, :scored_at)"""
+            ),
+            prediction_values,
+        )
+
     # Keep the customer directory in sync with the result shown by the AI
     # insights page. The directory falls back to customer_metrics_cache when
     # the offline customer_risk_tiers pipeline has not produced a row yet.
     segment = fresh_predictions["segmentation"]["segment_label"]
-    result = db.execute(
+    db.execute(
         text(
             """UPDATE customer_metrics_cache
                SET segment = :segment
@@ -456,7 +505,16 @@ def rescore_customer_manually(
         ),
         {"segment": segment, "customer_unique_id": customer_unique_id},
     )
-    if result.rowcount != 1:
+    cache_row = db.execute(
+        text(
+            """SELECT 1
+               FROM customer_metrics_cache
+               WHERE customer_unique_id = :customer_unique_id
+               LIMIT 1"""
+        ),
+        {"customer_unique_id": customer_unique_id},
+    ).first()
+    if cache_row is None:
         db.rollback()
         raise RuntimeError(
             f"Could not update the segment cache for customer {customer_unique_id!r}"

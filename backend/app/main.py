@@ -53,6 +53,14 @@ from .routers.interactions import router as interactions_router
 from .routers.audit_logs import router as audit_logs_router
 from .routers.predictions import router as predictions_router
 
+# Analytics routers are mounted beneath a dedicated prefix so their paths do
+# not overlap the existing customer/dashboard APIs.
+from .api.campaigns_forecast.router import router as campaigns_forecast_router
+from .api.cohort_trend_api.routers import router as cohort_trend_router
+from .api.clv_delivery_payments.clv_delivery_endpoints import router as clv_router
+from .api.model_evaluation.router import router as model_evaluation_router
+from .api.segmentation_and_risk.segmentation_routes import router as segmentation_router
+
 
 # ------------------------------------------------------------------------------
 # Application Lifespan Event (Table Checks, Admin/Analyst Users & Cache Setup)
@@ -167,3 +175,8 @@ app.include_router(reviews_router)
 app.include_router(interactions_router)
 app.include_router(audit_logs_router)
 app.include_router(predictions_router)
+app.include_router(campaigns_forecast_router, prefix="/api/analytics")
+app.include_router(cohort_trend_router, prefix="/api/analytics")
+app.include_router(clv_router, prefix="/api/analytics")
+app.include_router(model_evaluation_router, prefix="/api/analytics")
+app.include_router(segmentation_router, prefix="/api/analytics")

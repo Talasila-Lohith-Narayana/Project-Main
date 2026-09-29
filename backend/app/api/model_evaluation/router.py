@@ -9,7 +9,6 @@ from app.api.model_evaluation.schemas import (
     CalibrationResponse,
     ChurnByFeatureResponse,
     ChurnDefinitionResponse,
-    ExperimentsHistoryResponse,
     FeatureDistributionResponse,
     FeaturesSummaryResponse,
     ImbalanceExperimentsResponse,
@@ -92,26 +91,7 @@ def get_version():
 
 
 # ---------------------------------------------------------------------------
-# 5. /model/experiments
-# ---------------------------------------------------------------------------
-@router.get(
-    "/model/experiments",
-    response_model=ExperimentsHistoryResponse,
-    summary="Get full ML experiment run history from experiment_log.csv",
-    tags=["Experiments"],
-)
-def get_experiments(
-    limit: Optional[int] = Query(None, description="Maximum number of latest runs to return"),
-):
-    """Retrieve recorded machine learning experiment runs from experiment_log.csv."""
-    try:
-        return services.get_experiments_history(limit=limit)
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Failed to load experiments history: {exc}")
-
-
-# ---------------------------------------------------------------------------
-# 6. /model/calibration
+# 5. /model/calibration
 # ---------------------------------------------------------------------------
 @router.get(
     "/model/calibration",

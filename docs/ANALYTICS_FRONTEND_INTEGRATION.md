@@ -271,7 +271,6 @@ diagnostics page now use these backend routes:
 - `/analytics/model/performance-summary`
 - `/analytics/model/comparison`
 - `/analytics/model/threshold-analysis`
-- `/analytics/model/experiments`
 - `/analytics/model/imbalance-experiments`
 - `/analytics/model/calibration`
 - `/analytics/features/summary`

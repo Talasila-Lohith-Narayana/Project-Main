@@ -6,7 +6,6 @@ import { analyticsService } from "../services/api";
 
 const number = new Intl.NumberFormat("en-US");
 const featuresLoad = () => analyticsService.featureSummary();
-const experimentsLoad = () => analyticsService.modelExperiments({ limit: 20 });
 const featureLabel = (feature) => feature.replaceAll("_", " ");
 const percent = (value) => value == null ? "Unavailable" : `${(Number(value) * 100).toFixed(1)}%`;
 const churnSummaryLoad = () => analyticsService.churnSummary();
@@ -116,28 +115,6 @@ function ThresholdAnalysis({ data }) {
           </table>
         </div>
       )}
-    </>
-  );
-}
-
-function Experiments({ data }) {
-  const runs = data?.runs || [];
-  if (runs.length === 0) return <p className="analyticsEmpty">No experiment history is available.</p>;
-  return (
-    <>
-      <p className="analyticsMeta">{number.format(data.total_runs || runs.length)} recorded runs</p>
-      <div className="analyticsTableWrap">
-        <table className="analyticsTable">
-          <thead><tr><th>Run</th><th>Date</th><th>Model</th><th>Strategy</th><th>ROC AUC</th><th>F1</th></tr></thead>
-          <tbody>{runs.map((run) => (
-            <tr key={run.run_id}>
-              <td>{run.run_id}</td><td>{run.timestamp || "—"}</td><td>{run.model}</td><td>{run.strategy}</td>
-              <td>{run.roc_auc == null ? "—" : Number(run.roc_auc).toFixed(4)}</td>
-              <td>{run.f1_score == null ? "—" : Number(run.f1_score).toFixed(4)}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div>
     </>
   );
 }
@@ -413,6 +390,8 @@ function PredictCustomer() {
 
 export default function Model() {
   const [feature, setFeature] = useState("avg_review_score");
+  const [view, setView] = useState("overview");
+
   return (
     <Page>
       <div className="modelPage">
@@ -424,57 +403,155 @@ export default function Model() {
             <p>Inspect churn risk, model reports, experiment records, and observed feature behavior.</p>
           </div>
         </header>
-        <section className="analyticsPageSection" aria-labelledby="model-churn-heading">
-          <h2 id="model-churn-heading">Stored churn predictions</h2>
-          <div className="grid2">
-          <AnalyticsPanel title="Churn overview" sub="Risk volume based on stored customer predictions" load={churnSummaryLoad}>
-            {(data) => <ChurnSummary data={data} />}
-          </AnalyticsPanel>
-          <AnalyticsPanel title="Prediction refresh" sub="Most recent batch score and prediction distribution" load={churnRefreshLoad}>
-            {(data) => <p className="analyticsMeta modelRefreshTimestamp">{data.last_refreshed_at || "No stored prediction refresh is available."}</p>}
-          </AnalyticsPanel>
-          <AnalyticsPanel title="Churn probability distribution" sub="Stored customer scores grouped into probability ranges" load={churnDistributionLoad}>
-            {(data) => <ProbabilityDistribution data={data} />}
-          </AnalyticsPanel>
-          <AnalyticsPanel title="Reason-code summary" sub="Most frequently recorded explanations for churn predictions" load={reasonCodesLoad}>
-            {(data) => <ReasonCodeSummary data={data} />}
-          </AnalyticsPanel>
-          <AnalyticsPanel title="Top positive churn drivers" sub="Features most often pushing risk upward in stored explanations" load={churnTopFeaturesLoad}>
-            {(data) => <ShapFeatureList data={data} valueKey="avg_positive_shap" label="Avg. positive SHAP" />}
-          </AnalyticsPanel>
-          <AnalyticsPanel title="Global feature importance" sub="Mean absolute SHAP contribution across stored predictions" load={churnImportanceLoad}>
-            {(data) => <ShapFeatureList data={data} valueKey="mean_abs_shap" label="Mean |SHAP|" />}
-          </AnalyticsPanel>
-          <AnalyticsPanel title="Pipeline tables" sub="Availability and row counts for required analytics tables" load={tableStatusesLoad}>
-            {(data) => <PipelineTables data={data} />}
-          </AnalyticsPanel>
+        <div className="modelPageSummary" aria-label="Model summary highlights">
+          <div className="modelSummaryCard">
+            <span className="modelSummaryLabel">Prediction coverage</span>
+            <strong>Live scoring</strong>
           </div>
-          <PredictCustomer />
-        </section>
-        <section className="analyticsPageSection" aria-labelledby="model-evaluation-heading">
-          <h2 id="model-evaluation-heading">Model evaluation and feature behavior</h2>
-          <div className="grid2">
-        <AnalyticsPanel title="Model test performance" sub="Reported metrics for the evaluated test split" load={analyticsService.modelPerformance}>
-          {(data) => <Performance data={data} />}
-        </AnalyticsPanel>
-        <AnalyticsPanel title="Model comparison" sub="Comparison of logistic regression and LightGBM reports" load={analyticsService.modelComparison}>
-          {(data) => <ModelComparison data={data} />}
-        </AnalyticsPanel>
-        <AnalyticsPanel title="Operating thresholds" sub="Best reported thresholds and associated scores" load={analyticsService.modelThresholds}>
-          {(data) => <ThresholdAnalysis data={data} />}
-        </AnalyticsPanel>
-        <AnalyticsPanel title="Training experiments" sub="Recent recorded model and feature-strategy runs" load={experimentsLoad}>
-          {(data) => <Experiments data={data} />}
-        </AnalyticsPanel>
-        <AnalyticsPanel title="Class-imbalance experiments" sub="Reported performance across imbalance strategies" load={analyticsService.modelImbalanceExperiments}>
-          {(data) => <ImbalanceExperiments data={data} />}
-        </AnalyticsPanel>
-        <AnalyticsPanel title="Feature statistics" sub="Descriptive statistics and missing values for model features" load={featuresLoad}>
-          {(data) => <FeatureStatistics data={data} feature={feature} setFeature={setFeature} />}
-        </AnalyticsPanel>
+          <div className="modelSummaryCard">
+            <span className="modelSummaryLabel">Experiment depth</span>
+            <strong>Historical runs</strong>
           </div>
-          <FeatureAnalysis feature={feature} setFeature={setFeature} />
-        </section>
+          <div className="modelSummaryCard">
+            <span className="modelSummaryLabel">Monitoring</span>
+            <strong>Pipeline health</strong>
+          </div>
+        </div>
+
+        <div className="tabs modelTabs" role="tablist" aria-label="Model page sections">
+          <button
+            type="button"
+            className={view === "all" ? "active" : ""}
+            onClick={() => setView("all")}
+            aria-selected={view === "all"}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            className={view === "overview" ? "active" : ""}
+            onClick={() => setView("overview")}
+            aria-selected={view === "overview"}
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            className={view === "advanced" ? "active" : ""}
+            onClick={() => setView("advanced")}
+            aria-selected={view === "advanced"}
+          >
+            Advanced diagnostics
+          </button>
+        </div>
+
+        {view === "overview" && (
+          <section className="analyticsPageSection" aria-labelledby="model-churn-heading">
+            <h2 id="model-churn-heading">Stored churn predictions</h2>
+            <div className="grid2">
+              <AnalyticsPanel title="Churn overview" sub="Risk volume based on stored customer predictions" load={churnSummaryLoad}>
+                {(data) => <ChurnSummary data={data} />}
+              </AnalyticsPanel>
+              <AnalyticsPanel title="Prediction refresh" sub="Most recent batch score and prediction distribution" load={churnRefreshLoad}>
+                {(data) => <p className="analyticsMeta modelRefreshTimestamp">{data.last_refreshed_at || "No stored prediction refresh is available."}</p>}
+              </AnalyticsPanel>
+              <AnalyticsPanel title="Churn probability distribution" sub="Stored customer scores grouped into probability ranges" load={churnDistributionLoad}>
+                {(data) => <ProbabilityDistribution data={data} />}
+              </AnalyticsPanel>
+              <AnalyticsPanel title="Reason-code summary" sub="Most frequently recorded explanations for churn predictions" load={reasonCodesLoad}>
+                {(data) => <ReasonCodeSummary data={data} />}
+              </AnalyticsPanel>
+              <AnalyticsPanel title="Top positive churn drivers" sub="Features most often pushing risk upward in stored explanations" load={churnTopFeaturesLoad}>
+                {(data) => <ShapFeatureList data={data} valueKey="avg_positive_shap" label="Avg. positive SHAP" />}
+              </AnalyticsPanel>
+              <AnalyticsPanel title="Global feature importance" sub="Mean absolute SHAP contribution across stored predictions" load={churnImportanceLoad}>
+                {(data) => <ShapFeatureList data={data} valueKey="mean_abs_shap" label="Mean |SHAP|" />}
+              </AnalyticsPanel>
+              <AnalyticsPanel title="Pipeline tables" sub="Availability and row counts for required analytics tables" load={tableStatusesLoad}>
+                {(data) => <PipelineTables data={data} />}
+              </AnalyticsPanel>
+            </div>
+            <PredictCustomer />
+          </section>
+        )}
+
+        {view === "advanced" && (
+          <section className="analyticsPageSection" aria-labelledby="model-evaluation-heading">
+            <h2 id="model-evaluation-heading">Model evaluation and feature behavior</h2>
+            <div className="grid2">
+              <AnalyticsPanel title="Model test performance" sub="Reported metrics for the evaluated test split" load={analyticsService.modelPerformance}>
+                {(data) => <Performance data={data} />}
+              </AnalyticsPanel>
+              <AnalyticsPanel title="Model comparison" sub="Comparison of logistic regression and LightGBM reports" load={analyticsService.modelComparison}>
+                {(data) => <ModelComparison data={data} />}
+              </AnalyticsPanel>
+              <AnalyticsPanel title="Operating thresholds" sub="Best reported thresholds and associated scores" load={analyticsService.modelThresholds}>
+                {(data) => <ThresholdAnalysis data={data} />}
+              </AnalyticsPanel>
+              <AnalyticsPanel title="Class-imbalance experiments" sub="Reported performance across imbalance strategies" load={analyticsService.modelImbalanceExperiments}>
+                {(data) => <ImbalanceExperiments data={data} />}
+              </AnalyticsPanel>
+              <AnalyticsPanel title="Feature statistics" sub="Descriptive statistics and missing values for model features" load={featuresLoad}>
+                {(data) => <FeatureStatistics data={data} feature={feature} setFeature={setFeature} />}
+              </AnalyticsPanel>
+            </div>
+            <FeatureAnalysis feature={feature} setFeature={setFeature} />
+          </section>
+        )}
+
+        {view === "all" && (
+          <>
+            <section className="analyticsPageSection" aria-labelledby="model-churn-heading">
+              <h2 id="model-churn-heading">Stored churn predictions</h2>
+              <div className="grid2">
+                <AnalyticsPanel title="Churn overview" sub="Risk volume based on stored customer predictions" load={churnSummaryLoad}>
+                  {(data) => <ChurnSummary data={data} />}
+                </AnalyticsPanel>
+                <AnalyticsPanel title="Prediction refresh" sub="Most recent batch score and prediction distribution" load={churnRefreshLoad}>
+                  {(data) => <p className="analyticsMeta modelRefreshTimestamp">{data.last_refreshed_at || "No stored prediction refresh is available."}</p>}
+                </AnalyticsPanel>
+                <AnalyticsPanel title="Churn probability distribution" sub="Stored customer scores grouped into probability ranges" load={churnDistributionLoad}>
+                  {(data) => <ProbabilityDistribution data={data} />}
+                </AnalyticsPanel>
+                <AnalyticsPanel title="Reason-code summary" sub="Most frequently recorded explanations for churn predictions" load={reasonCodesLoad}>
+                  {(data) => <ReasonCodeSummary data={data} />}
+                </AnalyticsPanel>
+                <AnalyticsPanel title="Top positive churn drivers" sub="Features most often pushing risk upward in stored explanations" load={churnTopFeaturesLoad}>
+                  {(data) => <ShapFeatureList data={data} valueKey="avg_positive_shap" label="Avg. positive SHAP" />}
+                </AnalyticsPanel>
+                <AnalyticsPanel title="Global feature importance" sub="Mean absolute SHAP contribution across stored predictions" load={churnImportanceLoad}>
+                  {(data) => <ShapFeatureList data={data} valueKey="mean_abs_shap" label="Mean |SHAP|" />}
+                </AnalyticsPanel>
+                <AnalyticsPanel title="Pipeline tables" sub="Availability and row counts for required analytics tables" load={tableStatusesLoad}>
+                  {(data) => <PipelineTables data={data} />}
+                </AnalyticsPanel>
+              </div>
+              <PredictCustomer />
+            </section>
+
+            <section className="analyticsPageSection" aria-labelledby="model-evaluation-heading">
+              <h2 id="model-evaluation-heading">Model evaluation and feature behavior</h2>
+              <div className="grid2">
+                <AnalyticsPanel title="Model test performance" sub="Reported metrics for the evaluated test split" load={analyticsService.modelPerformance}>
+                  {(data) => <Performance data={data} />}
+                </AnalyticsPanel>
+                <AnalyticsPanel title="Model comparison" sub="Comparison of logistic regression and LightGBM reports" load={analyticsService.modelComparison}>
+                  {(data) => <ModelComparison data={data} />}
+                </AnalyticsPanel>
+                <AnalyticsPanel title="Operating thresholds" sub="Best reported thresholds and associated scores" load={analyticsService.modelThresholds}>
+                  {(data) => <ThresholdAnalysis data={data} />}
+                </AnalyticsPanel>
+                <AnalyticsPanel title="Class-imbalance experiments" sub="Reported performance across imbalance strategies" load={analyticsService.modelImbalanceExperiments}>
+                  {(data) => <ImbalanceExperiments data={data} />}
+                </AnalyticsPanel>
+                <AnalyticsPanel title="Feature statistics" sub="Descriptive statistics and missing values for model features" load={featuresLoad}>
+                  {(data) => <FeatureStatistics data={data} feature={feature} setFeature={setFeature} />}
+                </AnalyticsPanel>
+              </div>
+              <FeatureAnalysis feature={feature} setFeature={setFeature} />
+            </section>
+          </>
+        )}
       </div>
     </Page>
   );

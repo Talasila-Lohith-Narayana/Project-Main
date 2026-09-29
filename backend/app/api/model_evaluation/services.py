@@ -12,7 +12,6 @@ import yaml
 
 from app.database import engine
 from app.artifact_paths import get_models_dir, get_outputs_dir, get_reports_dir
-from app.ml.experiment_logger import get_experiment_history
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 OUTPUTS_DIR = get_outputs_dir()
@@ -194,39 +193,6 @@ def get_model_version_info() -> Dict[str, Any]:
         "positive_class": int(meta.get("positive_class", 0)),
         "best_hyperparameters": meta.get("best_params", {}),
         "artifact_path": artifact_path,
-    }
-
-
-def get_experiments_history(limit: Optional[int] = None) -> Dict[str, Any]:
-    """Read run history from experiment_log.csv."""
-    df = get_experiment_history(log_dir=REPORTS_DIR)
-    if df.empty:
-        return {"total_runs": 0, "runs": []}
-
-    df = df.sort_values("run_id", ascending=False)
-    if limit is not None and limit > 0:
-        df = df.head(limit)
-
-    records = []
-    for _, r in df.iterrows():
-        records.append({
-            "run_id": int(r["run_id"]),
-            "timestamp": str(r["timestamp"]),
-            "model": str(r["model"]),
-            "strategy": str(r["strategy"]),
-            "features_count": int(r["features_count"]),
-            "threshold": str(r["threshold"]),
-            "roc_auc": float(r["roc_auc"]) if pd.notnull(r["roc_auc"]) else None,
-            "pr_auc": float(r["pr_auc"]) if pd.notnull(r["pr_auc"]) else None,
-            "balanced_accuracy": float(r["balanced_accuracy"]) if pd.notnull(r["balanced_accuracy"]) else None,
-            "precision": float(r["precision"]) if pd.notnull(r["precision"]) else None,
-            "recall": float(r["recall"]) if pd.notnull(r["recall"]) else None,
-            "f1_score": float(r["f1_score"]) if pd.notnull(r["f1_score"]) else None,
-        })
-
-    return {
-        "total_runs": len(records),
-        "runs": records,
     }
 
 

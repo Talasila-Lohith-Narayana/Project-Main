@@ -103,7 +103,6 @@ describe("API Service Layer", () => {
       await analyticsService.modelPerformance();
       await analyticsService.modelComparison();
       await analyticsService.modelThresholds();
-      await analyticsService.modelExperiments({ limit: 20 });
       await analyticsService.modelImbalanceExperiments();
       await analyticsService.featureSummary();
       await analyticsService.featureDistribution({ feature: "avg_review_score", bins: 10 });
@@ -144,10 +143,6 @@ describe("API Service Layer", () => {
       expect(axios.create().get).toHaveBeenCalledWith("/analytics/model/performance-summary");
       expect(axios.create().get).toHaveBeenCalledWith("/analytics/model/comparison");
       expect(axios.create().get).toHaveBeenCalledWith("/analytics/model/threshold-analysis");
-      expect(axios.create().get).toHaveBeenCalledWith(
-        "/analytics/model/experiments",
-        { params: { limit: 20 } },
-      );
       expect(axios.create().get).toHaveBeenCalledWith(
         "/analytics/model/imbalance-experiments",
         { params: {} },

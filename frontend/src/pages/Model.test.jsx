@@ -18,7 +18,6 @@ describe("Model diagnostics", () => {
       summary_winner: null,
     });
     vi.spyOn(analyticsService, "modelThresholds").mockResolvedValue({ best_thresholds: [] });
-    vi.spyOn(analyticsService, "modelExperiments").mockResolvedValue({ total_runs: 0, runs: [] });
     vi.spyOn(analyticsService, "modelImbalanceExperiments").mockResolvedValue({ strategies: [] });
     vi.spyOn(analyticsService, "churnSummary").mockResolvedValue({
       total_customers: 50,
@@ -95,27 +94,40 @@ describe("Model diagnostics", () => {
 
     render(<Model />);
 
+    expect(await screen.findByText("Scored customers")).toBeInTheDocument();
+    expect(await screen.findByText("20.0%")).toBeInTheDocument();
+    expect(await screen.findByText("churn_predictions")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Advanced diagnostics" }));
+
     expect(await screen.findByText("Evaluation metrics are not available for this model.")).toBeInTheDocument();
     expect(screen.getByText("Model comparison data is not available.")).toBeInTheDocument();
-    expect(screen.getByText("Feature distribution")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Feature distribution")).toBeInTheDocument();
+    });
     expect(screen.getByText("6.7% churn")).toBeInTheDocument();
     expect(distribution).toHaveBeenCalledWith({ feature: "avg_review_score", bins: 10 });
-    expect(screen.getByText("Scored customers")).toBeInTheDocument();
-    expect(screen.getByText("20.0%")).toBeInTheDocument();
-    expect(screen.getByText("churn_predictions")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Analyze feature"), {
+    fireEvent.click(screen.getByRole("button", { name: "Overview" }));
+
+    const customerInput = await screen.findByLabelText("Customer unique ID");
+    fireEvent.change(customerInput, {
+      target: { value: "unique_customer_1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Score customer" }));
+
+    await waitFor(() => {
+      expect(analyticsService.predictCustomer).toHaveBeenCalledWith("unique_customer_1");
+    });
+    expect(await screen.findByText("63.0%", { selector: "strong" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Advanced diagnostics" }));
+    const featureSelect = await screen.findByLabelText("Analyze feature");
+    fireEvent.change(featureSelect, {
       target: { value: "avg_order_value" },
     });
     await waitFor(() => {
       expect(distribution).toHaveBeenCalledWith({ feature: "avg_order_value", bins: 10 });
     });
-
-    fireEvent.change(screen.getByLabelText("Customer unique ID"), {
-      target: { value: "unique_customer_1" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Score customer" }));
-    expect(await screen.findByText("63.0%")).toBeInTheDocument();
-    expect(analyticsService.predictCustomer).toHaveBeenCalledWith("unique_customer_1");
   });
 });

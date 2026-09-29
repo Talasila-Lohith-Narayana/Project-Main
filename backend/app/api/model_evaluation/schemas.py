@@ -100,30 +100,6 @@ class ModelVersionResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# /model/experiments
-# ---------------------------------------------------------------------------
-
-class ExperimentRunRecord(BaseModel):
-    run_id: int
-    timestamp: str
-    model: str
-    strategy: str
-    features_count: int
-    threshold: str
-    roc_auc: Optional[float] = None
-    pr_auc: Optional[float] = None
-    balanced_accuracy: Optional[float] = None
-    precision: Optional[float] = None
-    recall: Optional[float] = None
-    f1_score: Optional[float] = None
-
-
-class ExperimentsHistoryResponse(BaseModel):
-    total_runs: int
-    runs: List[ExperimentRunRecord]
-
-
-# ---------------------------------------------------------------------------
 # /model/calibration
 # ---------------------------------------------------------------------------
 

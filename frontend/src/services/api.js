@@ -157,9 +157,6 @@ export const analyticsService = {
   modelComparison: () => data(api.get("/analytics/model/comparison")),
   /** Fetch threshold tradeoffs and recommended operating thresholds */
   modelThresholds: () => data(api.get("/analytics/model/threshold-analysis")),
-  /** Fetch recent training experiment records */
-  modelExperiments: (params = {}) =>
-    data(api.get("/analytics/model/experiments", { params })),
   /** Fetch experiments comparing class-imbalance strategies */
   modelImbalanceExperiments: (params = {}) =>
     data(api.get("/analytics/model/imbalance-experiments", { params })),

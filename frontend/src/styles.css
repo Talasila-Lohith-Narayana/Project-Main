@@ -2343,6 +2343,206 @@ em {
   min-width: 0;
 }
 
+.analyticsDashboardPage,
+.modelPage {
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.analyticsDashboardPage .grid2 > .panel,
+.modelPage .grid2 > .panel,
+.modelPage .grid2 > div {
+  min-width: 0;
+}
+
+.analyticsDashboardPage .panel,
+.modelPage .panel {
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.035);
+}
+
+.analyticsDashboardPage .panelHead,
+.modelPage .panelHead {
+  margin-bottom: 14px;
+}
+
+.analyticsDashboardPage .panelHead h2,
+.modelPage .panelHead h2 {
+  letter-spacing: -0.02em;
+}
+
+.modelPage .analyticsPageSection,
+.analyticsDashboardPage .analyticsPageSection {
+  margin-top: 28px;
+}
+
+.modelPage .analyticsPageSection > h2,
+.analyticsDashboardPage .analyticsPageSection > h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.modelPage .analyticsPageSection > h2::before,
+.analyticsDashboardPage .analyticsPageSection > h2::before {
+  width: 4px;
+  height: 20px;
+  content: "";
+  background: #6366f1;
+  border-radius: 999px;
+}
+
+.modelPage .analyticsMeta {
+  line-height: 1.6;
+}
+
+.modelRefreshTimestamp {
+  padding: 12px;
+  overflow-wrap: anywhere;
+  background: var(--surface-subtle, #f8fafc);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.modelPage .analyticsMetrics {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr));
+}
+
+.modelPage .analyticsMetric,
+.analyticsDashboardPage .analyticsMetric {
+  padding: 14px;
+  border-radius: 12px;
+}
+
+.modelPage .analyticsMetric strong,
+.analyticsDashboardPage .analyticsMetric strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.modelPage .analyticsTableWrap,
+.analyticsDashboardPage .analyticsTableWrap {
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+}
+
+.modelPage .analyticsTable,
+.analyticsDashboardPage .analyticsTable {
+  font-size: 12px;
+}
+
+.modelPage .analyticsTable th,
+.analyticsDashboardPage .analyticsTable th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-subtle, #f8fafc);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.modelPage .analyticsTable tbody tr:hover,
+.analyticsDashboardPage .analyticsTable tbody tr:hover {
+  background: var(--surface-subtle, #f8fafc);
+}
+
+.modelPage .analyticsTable td,
+.analyticsDashboardPage .analyticsTable td {
+  font-variant-numeric: tabular-nums;
+}
+
+.modelPage .analyticsCampaignRow,
+.modelPage .analyticsRow {
+  padding: 10px 12px;
+  background: var(--surface-subtle, #f8fafc);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+}
+
+.modelPage .analyticsCampaignHeading {
+  gap: 8px 16px;
+  line-height: 1.5;
+}
+
+.modelPage .analyticsBarTrack {
+  height: 7px;
+  margin-top: 8px;
+}
+
+.modelPage .pipelineStatus {
+  min-width: 78px;
+  justify-content: center;
+}
+
+[data-theme="dark"] .analyticsDashboardPage .panel,
+[data-theme="dark"] .modelPage .panel {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="dark"] .modelRefreshTimestamp {
+  background: var(--surface-subtle, #111827);
+}
+
+[data-theme="dark"] .modelPage .analyticsTable th,
+[data-theme="dark"] .analyticsDashboardPage .analyticsTable th {
+  background: var(--surface-subtle, #111827);
+}
+
+[data-theme="dark"] .modelPage .analyticsTable tbody tr:hover,
+[data-theme="dark"] .analyticsDashboardPage .analyticsTable tbody tr:hover {
+  background: rgba(148, 163, 184, 0.07);
+}
+
+@container (max-width: 900px) {
+  .analyticsDashboardPage .grid2,
+  .modelPage .grid2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cohortSummaryTableWrap {
+  max-height: min(70vh, 680px);
+  overflow: auto;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+}
+
+.cohortSummaryTable {
+  min-width: 680px;
+}
+
+.cohortSummaryTable th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-subtle, #f8fafc);
+}
+
+.cohortSummaryTable th:not(:first-child),
+.cohortSummaryTable td:not(:first-child) {
+  text-align: right;
+}
+
+.cohortSummaryTable td:first-child {
+  white-space: nowrap;
+}
+
+.cohortSummaryTable tbody tr:hover {
+  background: var(--surface-subtle, #f8fafc);
+}
+
+[data-theme="dark"] .cohortSummaryTable th {
+  background: var(--surface-subtle, #111827);
+}
+
+[data-theme="dark"] .cohortSummaryTable tbody tr:hover {
+  background: rgba(148, 163, 184, 0.07);
+}
+
 .analyticsMetrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
@@ -2761,6 +2961,115 @@ em {
   color: var(--muted, #64748b);
   font-size: 12px;
   line-height: 1.6;
+}
+
+.campaignsPage {
+  min-width: 0;
+}
+
+.campaignsLower {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+}
+
+.campaignsPage .analyticsTableWrap {
+  overflow: auto;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+}
+
+.campaignsPage .analyticsTable {
+  font-size: 12px;
+}
+
+.campaignsPage .analyticsTable th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-subtle, #f8fafc);
+  font-size: 10px;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.campaignsPage .analyticsTable tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.campaignsPage .analyticsTable tbody tr:hover {
+  background: var(--surface-subtle, #f8fafc);
+}
+
+.campaignAudience {
+  min-width: 0;
+  scroll-margin-top: 20px;
+}
+
+.campaignAudienceTable {
+  min-width: 980px;
+  table-layout: fixed;
+}
+
+.campaignAudienceTable th:nth-child(1),
+.campaignAudienceTable td:nth-child(1) {
+  width: 270px;
+}
+
+.campaignAudienceTable th:nth-child(4),
+.campaignAudienceTable td:nth-child(4) {
+  width: 250px;
+}
+
+.campaignAudienceTable .analyticsLinkButton {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.campaignsPage .analyticsLinkButton:focus-visible,
+.campaignsPage .btn:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+}
+
+.campaignsPage .analyticsCampaignTags span {
+  line-height: 1.45;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.campaignsPage .analyticsCampaignTags span:hover {
+  border-color: #a5b4fc;
+}
+
+.campaignsPage .analyticsMeta {
+  line-height: 1.5;
+}
+
+[data-theme="dark"] .campaignsPage .analyticsTable tbody tr:hover {
+  background: rgba(148, 163, 184, 0.07);
+}
+
+[data-theme="dark"] .campaignsPage .analyticsTable th {
+  background: var(--surface-subtle, #111827);
+}
+
+[data-theme="dark"] .campaignsPage .analyticsCampaignTags span:hover {
+  border-color: #64748b;
+}
+
+@media (max-width: 720px) {
+  .campaignsPage .analyticsPageHeader {
+    align-items: flex-start;
+  }
+
+  .campaignAudienceTable {
+    min-width: 900px;
+  }
 }
 
 .kpiCardHover {

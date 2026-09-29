@@ -77,7 +77,7 @@ function CampaignCustomers({ data, navigate }) {
         {number.format(data.total)} targeted customers · ordered by churn probability
       </p>
       <div className="analyticsTableWrap">
-        <table className="analyticsTable campaignsTable">
+        <table className="analyticsTable campaignsTable campaignAudienceTable">
           <thead>
             <tr><th>Customer</th><th>Risk</th><th>Priority</th><th>Segment</th><th>Value</th><th>Churn score</th><th>Reason</th></tr>
           </thead>
@@ -88,6 +88,7 @@ function CampaignCustomers({ data, navigate }) {
                   <button
                     type="button"
                     className="analyticsLinkButton"
+                    title={customer.customer_unique_id}
                     onClick={() => navigate(`/customers/${customer.customer_unique_id}`)}
                   >
                     {customer.customer_unique_id}
@@ -131,78 +132,83 @@ export default function Campaigns() {
 
   return (
     <Page>
-      <header className="analyticsPageHeader">
-        <div className="analyticsPageIcon"><Megaphone size={22} /></div>
-        <div>
-          <p className="eyebrow">CUSTOMER ENGAGEMENT</p>
-          <h1>Campaigns</h1>
-          <p>Review active retention campaigns and explore the customers targeted by each.</p>
-        </div>
-      </header>
-
-      <AnalyticsPanel
-        title="Active campaign reach"
-        sub="Campaign volume, total audience, and high-priority targets"
-        load={analyticsService.activeCampaigns}
-      >
-        {(data) => (
-          <>
-            <div className="analyticsMetrics analyticsMetricsCompact">
-              <div className="analyticsMetric"><span>Active campaigns</span><strong>{number.format(data.active_campaigns || 0)}</strong></div>
-              <div className="analyticsMetric"><span>Customers targeted</span><strong>{number.format(data.customers_targeted || 0)}</strong></div>
-              <div className="analyticsMetric"><span>High priority</span><strong>{number.format(data.high_priority_customers || 0)}</strong></div>
-            </div>
-            <ActiveCampaigns data={data} onSelect={(name) => { setSelectedCampaign(name); setPage(1); }} />
-          </>
-        )}
-      </AnalyticsPanel>
-
-      <div className="grid2">
-        <AnalyticsPanel
-          title="Campaign allocation by segment"
-          sub="Campaign mix and audience counts for each customer segment"
-          load={analyticsService.campaignsBySegment}
-        >
-          {(data) => <CampaignSegments data={data} />}
-        </AnalyticsPanel>
-        {selectedCampaign ? (
-          <div className="campaignAudience" ref={audienceRef}>
-            <AnalyticsPanel
-              title="Campaign audience"
-              sub={selectedCampaign}
-              load={loadCampaignCustomers}
-            >
-              {(data) => (
-                  <>
-                    <CampaignCustomers data={data} navigate={navigate} />
-                    <div className="analyticsPagination">
-                      <button
-                        type="button"
-                        className="btn ghost"
-                        disabled={page <= 1}
-                        onClick={() => setPage((current) => current - 1)}
-                      >
-                        Previous
-                      </button>
-                      <button
-                        type="button"
-                        className="btn ghost"
-                        disabled={!data.items || page * data.page_size >= data.total}
-                        onClick={() => setPage((current) => current + 1)}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </>
-                )
-              }
-            </AnalyticsPanel>
+      <div className="campaignsPage">
+        <header className="analyticsPageHeader">
+          <div className="analyticsPageIcon"><Megaphone size={22} /></div>
+          <div>
+            <p className="eyebrow">CUSTOMER ENGAGEMENT</p>
+            <h1>Campaigns</h1>
+            <p>Review active retention campaigns and explore the customers targeted by each.</p>
           </div>
-        ) : (
-          <Panel title="Campaign audience" sub="Select a campaign above to inspect its audience">
-            <p className="analyticsEmpty">Choose “View customers” for a campaign to load its audience.</p>
-          </Panel>
-        )}
+        </header>
+
+        <AnalyticsPanel
+          title="Active campaign reach"
+          sub="Campaign volume, total audience, and high-priority targets"
+          load={analyticsService.activeCampaigns}
+        >
+          {(data) => (
+            <>
+              <div className="analyticsMetrics analyticsMetricsCompact">
+                <div className="analyticsMetric"><span>Active campaigns</span><strong>{number.format(data.active_campaigns || 0)}</strong></div>
+                <div className="analyticsMetric"><span>Customers targeted</span><strong>{number.format(data.customers_targeted || 0)}</strong></div>
+                <div className="analyticsMetric"><span>High priority</span><strong>{number.format(data.high_priority_customers || 0)}</strong></div>
+              </div>
+              <ActiveCampaigns data={data} onSelect={(name) => { setSelectedCampaign(name); setPage(1); }} />
+            </>
+          )}
+        </AnalyticsPanel>
+
+        <div className="campaignsLower">
+          <AnalyticsPanel
+            title="Campaign allocation by segment"
+            sub="Campaign mix and audience counts for each customer segment"
+            load={analyticsService.campaignsBySegment}
+          >
+            {(data) => <CampaignSegments data={data} />}
+          </AnalyticsPanel>
+          {selectedCampaign ? (
+            <div className="campaignAudience" ref={audienceRef}>
+              <AnalyticsPanel
+                title="Campaign audience"
+                sub={selectedCampaign}
+                load={loadCampaignCustomers}
+              >
+                {(data) => (
+                    <>
+                      <CampaignCustomers data={data} navigate={navigate} />
+                      <div className="analyticsPagination">
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          disabled={page <= 1}
+                          onClick={() => setPage((current) => current - 1)}
+                        >
+                          Previous
+                        </button>
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          disabled={!data.items || page * data.page_size >= data.total}
+                          onClick={() => setPage((current) => current + 1)}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </>
+                  )
+                }
+              </AnalyticsPanel>
+            </div>
+          ) : (
+            <Panel
+              title="Campaign audience"
+              sub="Select a campaign above to inspect its audience"
+            >
+              <p className="analyticsEmpty">Choose “View customers” for a campaign to load its audience.</p>
+            </Panel>
+          )}
+        </div>
       </div>
     </Page>
   );

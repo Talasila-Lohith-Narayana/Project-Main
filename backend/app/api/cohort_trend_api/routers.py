@@ -55,37 +55,6 @@ def _trend_response(engine: Engine, p: TrendParams, table: str, model) -> dict:
 
 
 # ----------------------------------------------------------------------
-# Trends
-# ----------------------------------------------------------------------
-@router.get("/churn/trend", response_model=schemas.ChurnTrendResponse,
-            summary="Churn and retention over time")
-def churn_trend(p: TrendParams = Depends(), engine: Engine = Depends(get_engine)):
-    """Churn rate per period. `is_censored = true` marks periods whose churn
-    is not final yet (the 180-day inactivity window hasn't closed)."""
-    return _trend_response(engine, p, svc.CHURN_TABLE, schemas.ChurnTrendPoint)
-
-
-@router.get("/revenue/trend", response_model=schemas.RevenueTrendResponse,
-            summary="Revenue over time")
-def revenue_trend(p: TrendParams = Depends(), engine: Engine = Depends(get_engine)):
-    return _trend_response(engine, p, svc.REVENUE_TABLE, schemas.RevenueTrendPoint)
-
-
-@router.get("/trends/combined", response_model=schemas.CombinedTrendResponse,
-            summary="Revenue and churn side by side")
-def combined_trend(p: TrendParams = Depends(), engine: Engine = Depends(get_engine)):
-    return _trend_response(engine, p, svc.COMBINED_TABLE, schemas.CombinedTrendPoint)
-
-
-@router.get("/trends/new-vs-repeat", response_model=schemas.NewVsRepeatResponse,
-            summary="New vs repeat customers over time")
-def new_vs_repeat(p: TrendParams = Depends(), engine: Engine = Depends(get_engine)):
-    """`repeat_customers` = customers placing a non-first order in the period."""
-    rows = svc.to_records(svc.get_new_vs_repeat(engine, p.granularity, p.start_date, p.end_date))
-    return {"granularity": p.granularity, "count": len(rows), "data": rows}
-
-
-# ----------------------------------------------------------------------
 # Cohorts  (fixed paths must be declared before /cohort/{cohort})
 # ----------------------------------------------------------------------
 @router.get("/customers/cohort-retention", response_model=schemas.RetentionMatrixResponse,
@@ -99,54 +68,8 @@ def _cohort_list(df, data) -> dict:
     return {"generated_date": svc.generated_date(df), "count": len(data), "data": data}
 
 
-@router.get("/cohort/churn", response_model=schemas.CohortChurnResponse,
-            summary="Churn per cohort")
-def cohort_churn(r: CohortRange = Depends(), engine: Engine = Depends(get_engine)):
-    df = svc.get_cohorts(engine, r.cohort_from, r.cohort_to)
-    data = svc.cohort_series(
-        df, ["monthly_churn_rate_pct", "cumulative_churn_rate_pct"],
-        lambda rows: {"final_churn_rate_pct": svc.first_value(rows, "final_churn_rate_pct")},
-    )
-    return _cohort_list(df, data)
-
-
-@router.get("/cohort/revenue", response_model=schemas.CohortRevenueResponse,
-            summary="Cumulative revenue per customer, per cohort")
-def cohort_revenue(r: CohortRange = Depends(), engine: Engine = Depends(get_engine)):
-    df = svc.get_cohorts(engine, r.cohort_from, r.cohort_to)
-    data = svc.cohort_series(
-        df, ["cumulative_average_revenue"],
-        lambda rows: {"latest_cumulative_average_revenue": svc.last_value(rows, "cumulative_average_revenue")},
-    )
-    return _cohort_list(df, data)
-
-
-@router.get("/cohort/repeat-purchase", response_model=schemas.CohortRepeatResponse,
-            summary="Repeat purchase rate per cohort")
-def cohort_repeat_purchase(r: CohortRange = Depends(), engine: Engine = Depends(get_engine)):
-    df = svc.get_cohorts(engine, r.cohort_from, r.cohort_to)
-    data = svc.cohort_series(
-        df, ["repeat_purchase_rate_pct", "cumulative_repeat_purchase_rate_pct"],
-        lambda rows: {"latest_cumulative_repeat_purchase_rate_pct":
-                      svc.last_value(rows, "cumulative_repeat_purchase_rate_pct")},
-    )
-    return _cohort_list(df, data)
-
-
 @router.get("/cohort/summary", response_model=schemas.CohortSummaryResponse,
             summary="One summary row per cohort")
 def cohort_summary(r: CohortRange = Depends(), engine: Engine = Depends(get_engine)):
     df = svc.get_cohorts(engine, r.cohort_from, r.cohort_to)
     return _cohort_list(df, svc.cohort_summary(df))
-
-
-@router.get("/cohort/{cohort}", response_model=schemas.CohortDetailResponse,
-            summary="All metrics for one cohort")
-def cohort_detail(
-    cohort: str = Path(..., pattern=COHORT_PATTERN, description="Cohort month", examples=["2017-03"]),
-    engine: Engine = Depends(get_engine),
-):
-    detail = svc.cohort_detail(svc.get_cohorts(engine), cohort)
-    if detail is None:
-        raise HTTPException(404, f"Cohort '{cohort}' not found")
-    return detail

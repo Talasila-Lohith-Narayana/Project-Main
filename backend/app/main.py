@@ -60,7 +60,6 @@ from .api.campaigns_forecast.router import router as campaigns_forecast_router
 from .api.cohort_trend_api.routers import router as cohort_trend_router
 from .api.clv_delivery_payments.clv_delivery_endpoints import router as clv_router
 from .api.model_evaluation.router import router as model_evaluation_router
-from .api.segmentation_and_risk.segmentation_routes import router as segmentation_router
 
 
 # ------------------------------------------------------------------------------
@@ -181,4 +180,3 @@ app.include_router(campaigns_forecast_router, prefix="/api/analytics")
 app.include_router(cohort_trend_router, prefix="/api/analytics")
 app.include_router(clv_router, prefix="/api/analytics")
 app.include_router(model_evaluation_router, prefix="/api/analytics")
-app.include_router(segmentation_router, prefix="/api/analytics")

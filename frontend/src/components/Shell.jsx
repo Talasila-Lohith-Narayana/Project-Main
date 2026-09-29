@@ -23,7 +23,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, History, KeyRound, LayoutDashboard, Lock, LogOut, Moon, Package, RefreshCw, Shield, Sparkles, Sun, UserCheck, UserPlus, Users, X } from "lucide-react";
+import { Activity, BarChart3, ChevronLeft, ChevronRight, History, KeyRound, LayoutDashboard, Lock, LogOut, Megaphone, Moon, Package, RefreshCw, Shield, Sparkles, Sun, UserCheck, UserPlus, Users, X } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -152,6 +152,18 @@ export default function Shell() {
         <NavLink to="/products" title="Products">
           <Package size={17} />
           {!collapsed && <span>Products</span>}
+        </NavLink>
+        <NavLink to="/analytics" title="Analytics">
+          <BarChart3 size={17} />
+          {!collapsed && <span>Analytics</span>}
+        </NavLink>
+        <NavLink to="/campaigns" title="Campaigns">
+          <Megaphone size={17} />
+          {!collapsed && <span>Campaigns</span>}
+        </NavLink>
+        <NavLink to="/model" title="Model diagnostics">
+          <Activity size={17} />
+          {!collapsed && <span>Model</span>}
         </NavLink>
         
         {/* Workspace Admin Data Changes Button */}
@@ -390,4 +402,3 @@ export default function Shell() {
     </div>
   );
 }
-

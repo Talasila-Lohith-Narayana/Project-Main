@@ -3,6 +3,7 @@ import axios from "axios";
 import {
   authService,
   dashboardService,
+  analyticsService,
   productsService,
   customerService,
 } from "./api";
@@ -60,6 +61,143 @@ describe("API Service Layer", () => {
     it("handles string timeframe argument", async () => {
       const res = await dashboardService.summary("2018");
       expect(res).toEqual({ success: true });
+    });
+  });
+
+  describe("analyticsService", () => {
+    it("fetches customer segment profiles", async () => {
+      await analyticsService.valueBySegment();
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/clv/by-segment");
+    });
+
+    it("fetches CLV distribution with query parameters", async () => {
+      await analyticsService.clvDistribution({ bins: 10 });
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/clv/distribution",
+        { params: { bins: 10 } },
+      );
+    });
+
+    it("fetches cohort retention with range parameters", async () => {
+      await analyticsService.cohortRetention({ cohort_from: "2017-01" });
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/customers/cohort-retention",
+        { params: { cohort_from: "2017-01" } },
+      );
+    });
+
+    it("calls analytics reporting endpoints", async () => {
+      await analyticsService.clvSummary();
+      await analyticsService.valueTiers();
+      await analyticsService.cohortSummary();
+      await analyticsService.activeCampaigns();
+      await analyticsService.campaignsBySegment();
+      await analyticsService.deliveryPerformance();
+      await analyticsService.modelVersion();
+      await analyticsService.modelCalibration();
+      await analyticsService.churnDefinition();
+      await analyticsService.customerClv("unique_123");
+      await analyticsService.customerCampaign("unique_123");
+      await analyticsService.customerDelivery("unique_123");
+      await analyticsService.campaignCustomers("Retention Offer", { page: 2, page_size: 25 });
+      await analyticsService.modelPerformance();
+      await analyticsService.modelComparison();
+      await analyticsService.modelThresholds();
+      await analyticsService.modelExperiments({ limit: 20 });
+      await analyticsService.modelImbalanceExperiments();
+      await analyticsService.featureSummary();
+      await analyticsService.featureDistribution({ feature: "avg_review_score", bins: 10 });
+      await analyticsService.churnByFeature({ feature: "avg_review_score", buckets: 5 });
+      await analyticsService.churnSummary({ threshold: 0.6 });
+      await analyticsService.churnTopFeatures({ limit: 5 });
+      await analyticsService.churnFeatureImportance({ limit: 15 });
+      await analyticsService.predictCustomer("unique_123");
+      await analyticsService.customerRisk("unique_123");
+      await analyticsService.churnLastRefresh();
+      await analyticsService.churnProbabilityDistribution();
+      await analyticsService.churnReasonCodeSummary();
+      await analyticsService.customerExplanation("unique_123");
+      await analyticsService.analyticsTableStatuses();
+
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/clv/summary");
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/customers/byvaluetier");
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/cohort/summary",
+        { params: {} },
+      );
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/campaigns/active");
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/campaigns/by-segment");
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/delivery/performance");
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/model/version");
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/model/calibration");
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/churn/definition");
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/customers/unique_123/clv",
+      );
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/customers/unique_123/delivery",
+      );
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/campaigns/Retention%20Offer/customers",
+        { params: { page: 2, page_size: 25 } },
+      );
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/model/performance-summary");
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/model/comparison");
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/model/threshold-analysis");
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/model/experiments",
+        { params: { limit: 20 } },
+      );
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/model/imbalance-experiments",
+        { params: {} },
+      );
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/features/summary",
+        { params: {} },
+      );
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/features/distribution",
+        { params: { feature: "avg_review_score", bins: 10 } },
+      );
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/features/churn-by-feature",
+        { params: { feature: "avg_review_score", buckets: 5 } },
+      );
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/churn/summary",
+        { params: { threshold: 0.6 } },
+      );
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/churn/top-features",
+        { params: { limit: 5 } },
+      );
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/churn/feature-importance-global",
+        { params: { limit: 15 } },
+      );
+      expect(axios.create().post).toHaveBeenCalledWith(
+        "/analytics/predict",
+        { customer_unique_id: "unique_123" },
+      );
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/members/unique_123/risk",
+      );
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/data/last-refresh");
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/churn/probability-distribution",
+      );
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/churn/reason-codes/summary",
+      );
+      expect(axios.create().get).toHaveBeenCalledWith(
+        "/analytics/customers/unique_123/explanation",
+      );
+      expect(axios.create().get).toHaveBeenCalledWith("/analytics/data/tables");
+      expect(axios.create().post).toHaveBeenCalledWith(
+        "/analytics/campaigns/evaluate",
+        { customer_unique_id: "unique_123" },
+      );
     });
   });
 

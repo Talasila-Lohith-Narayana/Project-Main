@@ -17,6 +17,7 @@
  *   • /customers      -> Customers Directory (`Customers.jsx`)
  *   • /customers/:id  -> Customer Profile Detail (`Customer.jsx`)
  *   • /products       -> Products Catalog (`Products.jsx`)
+ *   • /analytics      -> Customer Intelligence Analytics (`Analytics.jsx`)
  * - Global Theme Provider (Dark Mode / Light Mode switcher).
  * - Global Authentication Provider (keeps you logged in across pages).
  * ================================================================================
@@ -38,6 +39,9 @@ import Dashboard from "./pages/Dashboard";
 const Customer = lazy(() => import("./pages/Customer"));
 const Customers = lazy(() => import("./pages/Customers"));
 const Products = lazy(() => import("./pages/Products"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Campaigns = lazy(() => import("./pages/Campaigns"));
+const Model = lazy(() => import("./pages/Model"));
 const Login = lazy(() => import("./pages/Login"));
 
 function App() {
@@ -58,6 +62,9 @@ function App() {
                     <Route path="customers" element={<Customers />} />
                     <Route path="customers/:id" element={<Customer />} />
                     <Route path="products" element={<Products />} />
+                    <Route path="analytics" element={<Analytics />} />
+                    <Route path="campaigns" element={<Campaigns />} />
+                    <Route path="model" element={<Model />} />
                   </Route>
                 </Route>
 
@@ -74,4 +81,3 @@ function App() {
 
 // Mount React application into HTML #root element
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-

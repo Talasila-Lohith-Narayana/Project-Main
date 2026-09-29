@@ -271,6 +271,58 @@ def delivery_performance():
     return {"summary": records(kpi)[0], "by_delivery_status": records(by_status)}
 
 
+@router.get("/customers/{customer_id}/delivery")
+def customer_delivery_performance(customer_id: str):
+    """Return delivery outcomes for one customer_unique_id."""
+    df = q(f"""
+        SELECT o.{C['orders_order_id']} AS order_id,
+               o.{C['orders_purchased']} AS purchased_at,
+               o.{C['orders_delivered']} AS delivered_at,
+               o.{C['orders_estimated']} AS estimated_delivery_at,
+               DATEDIFF(o.{C['orders_delivered']}, o.{C['orders_purchased']}) AS delivery_days,
+               CASE WHEN o.{C['orders_delivered']} > o.{C['orders_estimated']}
+                    THEN 'Late' ELSE 'On time' END AS delivery_status
+        FROM {C['orders_table']} o
+        JOIN {C['customers_table']} cu
+          ON cu.{C['cust_order_key']} = o.{C['orders_customer_id']}
+        WHERE {CU_KEY} = :customer_id
+          AND o.{C['orders_status']} = 'delivered'
+          AND o.{C['orders_delivered']} IS NOT NULL
+        ORDER BY o.{C['orders_purchased']} DESC
+    """, {"customer_id": customer_id})
+    if df.empty:
+        exists = q(
+            f"SELECT 1 AS found FROM {C['customers_table']} "
+            f"WHERE {C['cust_unique_id']} = :customer_id LIMIT 1",
+            {"customer_id": customer_id},
+        )
+        if exists.empty:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        return {
+            "customer_unique_id": customer_id,
+            "summary": {
+                "delivered_orders": 0,
+                "avg_delivery_days": None,
+                "on_time_pct": None,
+                "late_pct": None,
+            },
+            "deliveries": [],
+        }
+
+    total = len(df)
+    late_count = int((df["delivery_status"] == "Late").sum())
+    return {
+        "customer_unique_id": customer_id,
+        "summary": {
+            "delivered_orders": total,
+            "avg_delivery_days": float(df["delivery_days"].mean()),
+            "on_time_pct": round((total - late_count) / total * 100, 2),
+            "late_pct": round(late_count / total * 100, 2),
+        },
+        "deliveries": records(df.head(10)),
+    }
+
+
 @router.get("/payments/installments-distribution")
 def installments_distribution():
     df = q(f"""

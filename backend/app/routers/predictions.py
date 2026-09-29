@@ -16,18 +16,13 @@ from sqlalchemy import text
 import pandas as pd
 import numpy as np
 
+from ..artifact_paths import get_customer_intelligence_root, get_models_dir
 from ..database import get_db
 from ..auth import auth
 
 router = APIRouter(prefix="/api/predictions", tags=["AI Predictions"])
 logger = logging.getLogger("customer_sphere")
 
-ML_PROJECT_ROOT = Path(
-    os.getenv(
-        "CUSTOMER_INTELLIGENCE_ROOT",
-        "/Users/teja/Desktop/untitled folder/customer-intelligence-platform",
-    )
-).expanduser()
 _cached_predictor = None
 
 
@@ -37,13 +32,14 @@ def get_ml_predictor():
     if _cached_predictor is not None:
         return _cached_predictor
 
-    if not ML_PROJECT_ROOT.is_dir():
+    ml_project_root = get_customer_intelligence_root()
+    if not ml_project_root.is_dir():
         raise RuntimeError(
-            f"Customer Intelligence project was not found at {ML_PROJECT_ROOT}. "
+            f"Customer Intelligence project was not found at {ml_project_root}. "
             "Set CUSTOMER_INTELLIGENCE_ROOT to its location."
         )
 
-    project_root = str(ML_PROJECT_ROOT)
+    project_root = str(ml_project_root)
     if project_root not in sys.path:
         sys.path.insert(0, project_root)
 
@@ -53,7 +49,7 @@ def get_ml_predictor():
         # a second, conflicting ``app`` package.
         import app as backend_app
 
-        ml_app_path = str(ML_PROJECT_ROOT / "app")
+        ml_app_path = str(ml_project_root / "app")
         if ml_app_path not in backend_app.__path__:
             backend_app.__path__.append(ml_app_path)
 
@@ -62,7 +58,7 @@ def get_ml_predictor():
         # shared ML project.
         import app.ml as backend_ml
 
-        source_ml_path = str(ML_PROJECT_ROOT / "app" / "ml")
+        source_ml_path = str(ml_project_root / "app" / "ml")
         if source_ml_path not in backend_ml.__path__:
             backend_ml.__path__.append(source_ml_path)
 
@@ -71,11 +67,11 @@ def get_ml_predictor():
         model_path = Path(
             os.getenv(
                 "MODEL_PATH",
-                str(ML_PROJECT_ROOT / "outputs/models/lgb_churn_model_calibrated.joblib"),
+                str(get_models_dir() / "lgb_churn_model_calibrated.joblib"),
             )
         ).expanduser()
         if not model_path.is_absolute():
-            model_path = ML_PROJECT_ROOT / model_path
+            model_path = ml_project_root / model_path
 
         model_version = os.getenv("MODEL_VERSION", "v1")
         _cached_predictor = ChurnPredictor(

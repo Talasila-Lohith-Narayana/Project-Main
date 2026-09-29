@@ -52,6 +52,7 @@ from .routers.reviews import router as reviews_router
 from .routers.interactions import router as interactions_router
 from .routers.audit_logs import router as audit_logs_router
 from .routers.predictions import router as predictions_router
+from .api.churn_analytics.router import router as churn_analytics_router
 
 # Analytics routers are mounted beneath a dedicated prefix so their paths do
 # not overlap the existing customer/dashboard APIs.
@@ -175,6 +176,7 @@ app.include_router(reviews_router)
 app.include_router(interactions_router)
 app.include_router(audit_logs_router)
 app.include_router(predictions_router)
+app.include_router(churn_analytics_router, prefix="/api/analytics")
 app.include_router(campaigns_forecast_router, prefix="/api/analytics")
 app.include_router(cohort_trend_router, prefix="/api/analytics")
 app.include_router(clv_router, prefix="/api/analytics")

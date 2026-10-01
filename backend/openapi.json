@@ -1830,9 +1830,10 @@
             "description": "Unique 32-character customer hash"
           },
           "customer_zip_code_prefix": {
-            "type": "integer",
-            "maximum": 999999.0,
-            "minimum": 0.0,
+            "type": "string",
+            "maxLength": 6,
+            "minLength": 1,
+            "pattern": "^[0-9]{1,6}$",
             "title": "Customer Zip Code Prefix",
             "description": "Up to 6-digit postal code prefix"
           },

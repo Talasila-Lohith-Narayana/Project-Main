@@ -104,45 +104,202 @@ REASON_CODE_MESSAGES = {
 }
 
 
+def _build_realtime_feature_row(
+    customer_unique_id: str,
+    order_stats,
+    payment_stats,
+    review_stats,
+    delivery_stats,
+    frequency_stats,
+) -> dict:
+    total_spend = float(order_stats["total_spend"])
+    total_freight = float(order_stats["total_freight"])
+    total_value = total_spend + total_freight
+
+    return {
+        "customer_unique_id": customer_unique_id,
+        "monetary_value": float(np.log1p(total_value)) if total_value > 0 else 0.0,
+        "avg_payment_installments": float(payment_stats["avg_installments"]),
+        "avg_review_score": float(review_stats["avg_review_score"]),
+        "has_bad_review": int(review_stats["has_bad_review"]),
+        "has_review_comment": int(review_stats["has_review_comment"]),
+        "avg_product_weight_g": float(order_stats["avg_product_weight"]),
+        "freight_ratio": total_freight / total_value if total_value > 0 else 0.15,
+        "avg_delivery_days": float(delivery_stats["avg_delivery_days"]),
+        "avg_delivery_delay_days": float(delivery_stats["avg_delivery_delay_days"]),
+        "is_delayed_delivery": int(delivery_stats["is_delayed"]),
+        "dominant_product_category_frequency": float(
+            frequency_stats["category_frequency"]
+        ),
+        "customer_city_state_frequency": float(
+            frequency_stats["city_state_frequency"]
+        ),
+        "preferred_payment_type_debit_card": int(payment_stats["used_debit_card"]),
+    }
+
+
 def _compute_realtime_prediction(db: Session, customer_unique_id: str):
     """
     On-demand feature extraction and live model inference for newly added customers
     who haven't been scored in the offline batch yet.
     """
-    # 1. Fetch any orders placed by this customer
-    order_stats = db.execute(
+    customer = db.execute(
         text("""
-            SELECT 
-                COUNT(DISTINCT o.order_id) as total_orders,
-                COALESCE(SUM(oi.price), 0) as total_spend,
-                COALESCE(SUM(oi.freight_value), 0) as total_freight,
-                COALESCE(AVG(op.payment_installments), 1.0) as avg_installments,
-                COALESCE(AVG(r.review_score), 4.2) as avg_review_score,
-                COALESCE(MIN(r.review_score), 5) as min_review_score,
-                COALESCE(AVG(p.product_weight_g), 1200) as avg_product_weight,
-                COALESCE(AVG(DATEDIFF(o.order_delivered_customer_date, o.order_purchase_timestamp)), 9.0) as avg_delivery_days,
-                COALESCE(AVG(DATEDIFF(o.order_delivered_customer_date, o.order_estimated_delivery_date)), -6.0) as avg_delivery_delay_days,
-                COALESCE(MAX(CASE WHEN o.order_delivered_customer_date > o.order_estimated_delivery_date THEN 1 ELSE 0 END), 0) as is_delayed,
-                COALESCE(MAX(CASE WHEN op.payment_type = 'debit_card' THEN 1 ELSE 0 END), 0) as used_debit_card
-            FROM customers c
-            LEFT JOIN orders o ON o.customer_id = c.customer_id
-            LEFT JOIN order_items oi ON oi.order_id = o.order_id
-            LEFT JOIN products p ON p.product_id = oi.product_id
-            LEFT JOIN order_payments op ON op.order_id = o.order_id
-            LEFT JOIN order_reviews r ON r.order_id = o.order_id
-            WHERE c.customer_unique_id = :cuid
-            GROUP BY c.customer_unique_id
+            SELECT customer_id, customer_city, customer_state
+            FROM customers
+            WHERE customer_unique_id = :cuid
+            LIMIT 1
         """),
         {"cuid": customer_unique_id},
     ).mappings().first()
 
+    order_stats = None
+    payment_stats = review_stats = delivery_stats = frequency_stats = None
+    if customer:
+        customer_id = customer["customer_id"]
+        order_stats = db.execute(
+            text("""
+                SELECT
+                    COUNT(DISTINCT o.order_id) AS total_orders,
+                    COALESCE(SUM(oi.price), 0) AS total_spend,
+                    COALESCE(SUM(oi.freight_value), 0) AS total_freight,
+                    COALESCE(AVG(p.product_weight_g), 1200) AS avg_product_weight
+                FROM orders o
+                LEFT JOIN order_items oi ON oi.order_id = o.order_id
+                LEFT JOIN products p ON p.product_id = oi.product_id
+                WHERE o.customer_id = :customer_id
+            """),
+            {"customer_id": customer_id},
+        ).mappings().one()
+
+        if order_stats["total_orders"] > 0:
+            payment_stats = db.execute(
+                text("""
+                    SELECT
+                        COALESCE(AVG(per_order.avg_installments), 1.0) AS avg_installments
+                    FROM (
+                        SELECT
+                            o.order_id,
+                            AVG(op.payment_installments) AS avg_installments
+                        FROM orders o
+                        LEFT JOIN order_payments op ON op.order_id = o.order_id
+                        WHERE o.customer_id = :customer_id
+                        GROUP BY o.order_id
+                    ) AS per_order
+                """),
+                {"customer_id": customer_id},
+            ).mappings().one()
+            preferred_payment = db.execute(
+                text("""
+                    SELECT op.payment_type
+                    FROM orders o
+                    JOIN order_payments op ON op.order_id = o.order_id
+                    WHERE o.customer_id = :customer_id
+                      AND op.payment_type IS NOT NULL
+                    GROUP BY op.payment_type
+                    ORDER BY COUNT(DISTINCT o.order_id) DESC, op.payment_type ASC
+                    LIMIT 1
+                """),
+                {"customer_id": customer_id},
+            ).mappings().first()
+            payment_stats = {
+                **payment_stats,
+                "used_debit_card": int(
+                    preferred_payment is not None
+                    and preferred_payment["payment_type"] == "debit_card"
+                ),
+            }
+
+            review_stats = db.execute(
+                text("""
+                    SELECT
+                        COALESCE(AVG(r.review_score), 4.2) AS avg_review_score,
+                        CASE WHEN MIN(r.review_score) <= 2 THEN 1 ELSE 0 END
+                            AS has_bad_review,
+                        COALESCE(MAX(CASE
+                            WHEN r.review_comment_message IS NOT NULL
+                                 AND TRIM(r.review_comment_message) != ''
+                            THEN 1 ELSE 0
+                        END), 0) AS has_review_comment
+                    FROM orders o
+                    LEFT JOIN order_reviews r ON r.order_id = o.order_id
+                    WHERE o.customer_id = :customer_id
+                """),
+                {"customer_id": customer_id},
+            ).mappings().one()
+
+            delivery_stats = db.execute(
+                text("""
+                    SELECT
+                        COALESCE(AVG(DATEDIFF(
+                            o.order_delivered_customer_date,
+                            o.order_purchase_timestamp
+                        )), 9.0) AS avg_delivery_days,
+                        COALESCE(AVG(DATEDIFF(
+                            o.order_delivered_customer_date,
+                            o.order_estimated_delivery_date
+                        )), -6.0) AS avg_delivery_delay_days,
+                        COALESCE(MAX(CASE
+                            WHEN o.order_delivered_customer_date >
+                                 o.order_estimated_delivery_date
+                            THEN 1 ELSE 0
+                        END), 0) AS is_delayed
+                    FROM orders o
+                    WHERE o.customer_id = :customer_id
+                      AND o.order_status = 'delivered'
+                      AND o.order_delivered_customer_date IS NOT NULL
+                """),
+                {"customer_id": customer_id},
+            ).mappings().one()
+
+            category_row = db.execute(
+                text("""
+                    SELECT p.product_category_name
+                    FROM orders o
+                    JOIN order_items oi ON oi.order_id = o.order_id
+                    JOIN products p ON p.product_id = oi.product_id
+                    WHERE o.customer_id = :customer_id
+                      AND p.product_category_name IS NOT NULL
+                    GROUP BY p.product_category_name
+                    ORDER BY COUNT(oi.order_item_id) DESC,
+                             p.product_category_name ASC
+                    LIMIT 1
+                """),
+                {"customer_id": customer_id},
+            ).mappings().first()
+            dominant_category = (
+                category_row["product_category_name"] if category_row else "unknown"
+            )
+            city_state = (
+                f"{(customer['customer_city'] or '').strip()}, "
+                f"{(customer['customer_state'] or '').strip()}"
+            ).strip().strip(",") or "unknown"
+
+            frequency_stats = db.execute(
+                text("""
+                    SELECT
+                        COALESCE(
+                            SUM(CASE
+                                WHEN COALESCE(customer_city_state, 'unknown') = :city_state
+                                THEN 1 ELSE 0
+                            END) / NULLIF(COUNT(*), 0),
+                            0
+                        ) AS city_state_frequency,
+                        COALESCE(
+                            SUM(CASE
+                                WHEN BINARY COALESCE(dominant_product_category, 'unknown')
+                                     = BINARY :category
+                                THEN 1 ELSE 0
+                            END) / NULLIF(COUNT(*), 0),
+                            0
+                        ) AS category_frequency
+                    FROM customer_intelligence.customer_features_with_labels
+                """),
+                {"city_state": city_state, "category": dominant_category},
+            ).mappings().one()
+
     has_orders = order_stats and order_stats["total_orders"] > 0
     total_spend = float(order_stats["total_spend"]) if order_stats else 0.0
-    total_freight = float(order_stats["total_freight"]) if order_stats else 0.0
-    total_val = total_spend + total_freight
-
-    freight_ratio = (total_freight / total_val) if total_val > 0 else 0.15
-    log_monetary = float(np.log1p(total_spend)) if total_spend > 0 else 0.0
 
     churn_prob = 0.25  # baseline for brand new user with 0 orders
     risk_level = "low"
@@ -151,23 +308,15 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
 
     if has_orders:
         try:
-            # Prepare feature vector matching REQUIRED_FEATURES exactly
-            features_df = pd.DataFrame([{
-                "customer_unique_id": customer_unique_id,
-                "monetary_value": log_monetary,
-                "avg_payment_installments": float(order_stats["avg_installments"]),
-                "avg_review_score": float(order_stats["avg_review_score"]),
-                "has_bad_review": 1 if order_stats["min_review_score"] <= 2 else 0,
-                "has_review_comment": 1,
-                "avg_product_weight_g": float(order_stats["avg_product_weight"]),
-                "freight_ratio": float(freight_ratio),
-                "avg_delivery_days": float(order_stats["avg_delivery_days"]),
-                "avg_delivery_delay_days": float(order_stats["avg_delivery_delay_days"]),
-                "is_delayed_delivery": int(order_stats["is_delayed"]),
-                "dominant_product_category_frequency": 0.10,
-                "customer_city_state_frequency": 0.005,
-                "preferred_payment_type_debit_card": int(order_stats["used_debit_card"]),
-            }])
+            feature_values = _build_realtime_feature_row(
+                customer_unique_id,
+                order_stats,
+                payment_stats,
+                review_stats,
+                delivery_stats,
+                frequency_stats,
+            )
+            features_df = pd.DataFrame([feature_values])
 
             prediction = get_ml_predictor().predict(features_df)[0]
             churn_prob = float(prediction["churn_probability"])

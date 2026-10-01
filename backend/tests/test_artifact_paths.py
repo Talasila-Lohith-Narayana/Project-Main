@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from app.artifact_paths import (
+from app.core.artifact_paths import (
     DEFAULT_CUSTOMER_INTELLIGENCE_ROOT,
     get_customer_intelligence_root,
     get_models_dir,

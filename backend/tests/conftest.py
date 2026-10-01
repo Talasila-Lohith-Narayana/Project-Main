@@ -8,8 +8,8 @@ from fastapi.testclient import TestClient
 from jose import jwt
 
 from app.main import app
-from app.config import SECRET, ALGO, ADMIN_USERNAME, VIEWER_USERNAME
-from app.database import get_db, SessionLocal
+from app.core.config import SECRET, ALGO, ADMIN_USERNAME, VIEWER_USERNAME
+from app.core.database import get_db, SessionLocal
 
 
 @pytest.fixture(scope="session")

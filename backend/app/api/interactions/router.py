@@ -27,10 +27,10 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from ..auth import auth, admin_auth
-from ..database import get_db
-from ..models import ConsumerInteraction, AuditLog
-from ..schemas import InteractionIn
+from app.core.auth import auth, admin_auth
+from app.core.database import get_db
+from app.models import ConsumerInteraction, AuditLog
+from app.schemas import InteractionIn
 
 router = APIRouter(tags=["interactions"])
 

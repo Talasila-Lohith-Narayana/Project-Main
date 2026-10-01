@@ -1,6 +1,6 @@
 import math
 
-from app.routers.predictions import _build_realtime_feature_row, _build_shap_drivers
+from app.api.predictions.router import _build_realtime_feature_row, _build_shap_drivers
 
 
 def test_realtime_feature_row_matches_training_transformations():

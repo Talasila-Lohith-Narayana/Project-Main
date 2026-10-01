@@ -26,9 +26,9 @@ WHAT PART OF THE UI HANDLES THIS:
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from ..auth import auth
-from ..database import get_db
-from ..utils import rows, ser
+from app.core.auth import auth
+from app.core.database import get_db
+from app.core.serialization import rows, ser
 
 router = APIRouter(tags=["dashboard"])
 

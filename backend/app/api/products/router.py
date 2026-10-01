@@ -34,9 +34,9 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from ..auth import auth
-from ..database import get_db
-from ..utils import rows
+from app.core.auth import auth
+from app.core.database import get_db
+from app.core.serialization import rows
 
 router = APIRouter(tags=["products"])
 
@@ -383,4 +383,3 @@ def get_products_by_category(category: str, limit: int = 50, db: Session = Depen
         {"cat": clean_cat, "limit": limit},
     ).fetchall()
     return {"items": [{"product_id": r[0], "category": r[1], "avg_price": float(r[2])} for r in res]}
-

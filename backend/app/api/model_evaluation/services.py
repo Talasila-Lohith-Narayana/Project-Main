@@ -9,8 +9,8 @@ import pandas as pd
 from sqlalchemy import text
 import yaml
 
-from app.database import engine
-from app.artifact_paths import get_models_dir, get_outputs_dir, get_reports_dir
+from app.core.artifact_paths import get_models_dir, get_outputs_dir, get_reports_dir
+from app.core.database import engine
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 OUTPUTS_DIR = get_outputs_dir()

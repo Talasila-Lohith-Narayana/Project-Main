@@ -11,7 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import OperationalError, ProgrammingError
 
 from app.api.churn_analytics import repository as repo
-from app.routers.predictions import REASON_CODE_MESSAGES
+from app.api.predictions.router import REASON_CODE_MESSAGES
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Churn Analytics"])

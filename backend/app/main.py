@@ -30,7 +30,7 @@ from jose import jwt, JWTError
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
-from .config import (
+from .core.config import (
     ADMIN_USERNAME,
     ADMIN_PASSWORD,
     VIEWER_USERNAME,
@@ -39,27 +39,27 @@ from .config import (
     ALGO,
     pwd,
 )
-from .database import engine, get_db
-from .auth import auth
+from .core.database import engine, get_db
+from .core.auth import auth
 from .models import Base, AppUser
 
-# Import all domain APIRouters
-from .routers.auth import router as auth_router
-from .routers.dashboard import router as dashboard_router
-from .routers.customers import router as customers_router
-from .routers.orders import router as orders_router
-from .routers.products import router as products_router
-from .routers.reviews import router as reviews_router
-from .routers.interactions import router as interactions_router
-from .routers.audit_logs import router as audit_logs_router
-from .routers.predictions import router as predictions_router
+# Import all domain API routers
+from .api.auth.router import router as auth_router
+from .api.dashboard.router import router as dashboard_router
+from .api.customers.router import router as customers_router
+from .api.orders.router import router as orders_router
+from .api.products.router import router as products_router
+from .api.reviews.router import router as reviews_router
+from .api.interactions.router import router as interactions_router
+from .api.audit_logs.router import router as audit_logs_router
+from .api.predictions.router import router as predictions_router
 from .api.churn_analytics.router import router as churn_analytics_router
 
 # Analytics routers are mounted beneath a dedicated prefix so their paths do
 # not overlap the existing customer/dashboard APIs.
 from .api.campaigns_forecast.router import router as campaigns_forecast_router
-from .api.cohort_trend_api.routers import router as cohort_trend_router
-from .api.clv_delivery_payments.clv_delivery_endpoints import router as clv_router
+from .api.cohort_trends.router import router as cohort_trend_router
+from .api.clv_delivery_payments.router import router as clv_router
 from .api.model_evaluation.router import router as model_evaluation_router
 
 

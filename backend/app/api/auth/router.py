@@ -21,10 +21,10 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from jose import jwt
 from sqlalchemy.orm import Session
-from ..config import SECRET, ALGO, pwd
-from ..database import get_db
-from ..models import AppUser
-from ..schemas import Login
+from app.core.config import SECRET, ALGO, pwd
+from app.core.database import get_db
+from app.models import AppUser
+from app.schemas import Login
 
 router = APIRouter(tags=["auth"])
 

@@ -5,8 +5,8 @@ from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.engine import Engine
 
-from app.api.cohort_trend_api import schemas as schemas
-from app.api.cohort_trend_api  import services as svc
+from app.api.cohort_trends import schemas as schemas
+from app.api.cohort_trends import services as svc
 
 router = APIRouter(tags=["Trends & Cohorts"])
 
@@ -17,7 +17,7 @@ Granularity = Literal["daily", "weekly", "monthly"]
 def get_engine() -> Engine:
     """Shared DB engine. Imported lazily so tests can swap it via
     app.dependency_overrides without needing a real .env / MySQL."""
-    from app.database import engine
+    from app.core.database import engine
     return engine
 
 

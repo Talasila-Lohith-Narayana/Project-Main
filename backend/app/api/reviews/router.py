@@ -27,11 +27,11 @@ from datetime import datetime, date, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from ..auth import auth, admin_auth
-from ..database import get_db
-from ..models import AuditLog
-from ..schemas import ReviewIn
-from ..utils import rows
+from app.core.auth import auth, admin_auth
+from app.core.database import get_db
+from app.core.serialization import rows
+from app.models import AuditLog
+from app.schemas import ReviewIn
 
 router = APIRouter(tags=["reviews"])
 

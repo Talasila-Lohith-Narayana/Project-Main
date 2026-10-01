@@ -1,6 +1,6 @@
 import pandas as pd
 
-from app.api.cohort_trend_api import services
+from app.api.cohort_trends import services
 
 
 def test_load_cohorts_fills_missing_cohort_size_from_first_purchases(monkeypatch):

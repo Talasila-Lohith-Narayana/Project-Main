@@ -25,9 +25,9 @@ WHAT PART OF THE UI HANDLES THIS:
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from ..auth import auth
-from ..database import get_db
-from ..models import AuditLog
+from app.core.auth import auth
+from app.core.database import get_db
+from app.models import AuditLog
 
 router = APIRouter(tags=["audit-logs"])
 

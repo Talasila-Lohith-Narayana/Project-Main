@@ -5,7 +5,7 @@ from typing import Any
 
 from sqlalchemy import text
 
-from app.database import engine
+from app.core.database import engine
 
 ANALYTICS_SCHEMA = "customer_intelligence"
 RECOMMENDATIONS_TABLE = f"{ANALYTICS_SCHEMA}.customer_campaign_recommendations"

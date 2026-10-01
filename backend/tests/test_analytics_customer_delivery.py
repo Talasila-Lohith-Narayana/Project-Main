@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 from fastapi import HTTPException
 
-from app.api.clv_delivery_payments import clv_delivery_endpoints as delivery_api
+from app.api.clv_delivery_payments import router as delivery_api
 
 
 def test_customer_delivery_returns_summary_and_recent_orders(monkeypatch):

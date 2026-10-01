@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy import text
 
-from app.database import engine
+from app.core.database import engine
 
 ANALYTICS_SCHEMA = "customer_intelligence"
 PREDICTIONS_TABLE = f"{ANALYTICS_SCHEMA}.churn_predictions"

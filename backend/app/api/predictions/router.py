@@ -16,9 +16,9 @@ from sqlalchemy import text
 import pandas as pd
 import numpy as np
 
-from ..artifact_paths import get_customer_intelligence_root, get_models_dir
-from ..database import get_db
-from ..auth import auth
+from app.core.artifact_paths import get_customer_intelligence_root, get_models_dir
+from app.core.auth import auth
+from app.core.database import get_db
 
 router = APIRouter(prefix="/api/predictions", tags=["AI Predictions"])
 logger = logging.getLogger("customer_sphere")

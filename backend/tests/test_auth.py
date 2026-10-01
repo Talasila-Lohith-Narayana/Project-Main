@@ -4,7 +4,7 @@ Authentication and System Health Unit Tests.
 
 from datetime import datetime, timedelta, timezone
 from jose import jwt
-from app.config import ADMIN_USERNAME, ADMIN_PASSWORD, VIEWER_USERNAME, VIEWER_PASSWORD, SECRET, ALGO
+from app.core.config import ADMIN_USERNAME, ADMIN_PASSWORD, VIEWER_USERNAME, VIEWER_PASSWORD, SECRET, ALGO
 
 
 def test_login_admin_success(client):

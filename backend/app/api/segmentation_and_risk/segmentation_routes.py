@@ -7,7 +7,7 @@ import pandas as pd
 import yaml
 from fastapi import APIRouter, HTTPException, Query
 
-from app.database import engine
+from app.core.database import engine
 
 from app.api.segmentation_and_risk.schemas.segmentation_schemas import (
     AtRiskResponse,

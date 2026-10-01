@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import text
 
-from app.database import engine
+from app.core.database import engine
 
 load_dotenv()
 

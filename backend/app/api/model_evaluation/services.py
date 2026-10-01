@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-import numpy as np
+from typing import Any, Dict
 import pandas as pd
 from sqlalchemy import text
 import yaml
@@ -82,7 +81,6 @@ def get_model_performance_summary() -> Dict[str, Any]:
                 "fn": int(first.get("FN", 0)),
                 "tp": int(first.get("TP", 0)),
             }
-
     return {
         "model_name": "LightGBM",
         "version_or_timestamp": meta.get("config", {}).get("TIMESTAMP", "latest"),
@@ -134,43 +132,6 @@ def get_model_comparison() -> Dict[str, Any]:
     return {
         "comparison_table": rows,
         "summary_winner": winner,
-    }
-
-
-def get_threshold_analysis() -> Dict[str, Any]:
-    """Retrieve threshold sweep curve and best thresholds comparison."""
-    sweep_file = REPORTS_DIR / "threshold_sweep_LightGBM_val.csv"
-    best_file = REPORTS_DIR / "best_threshold_comparison_val.csv"
-
-    sweep_curve = []
-    if sweep_file.exists():
-        sweep_df = pd.read_csv(sweep_file)
-        for _, r in sweep_df.iterrows():
-            sweep_curve.append({
-                "threshold": round(float(r["threshold"]), 4),
-                "precision": round(float(r["precision"]), 4),
-                "recall": round(float(r["recall"]), 4),
-                "f1": round(float(r["f1"]), 4),
-                "balanced_accuracy": round(float(r["balanced_accuracy"]), 4),
-            })
-
-    best_thresholds = []
-    if best_file.exists():
-        best_df = pd.read_csv(best_file)
-        for _, r in best_df.iterrows():
-            best_thresholds.append({
-                "metric": str(r["metric"]),
-                "best_threshold_logreg": float(r["best_threshold_logreg"]) if pd.notnull(r["best_threshold_logreg"]) else None,
-                "best_score_logreg": float(r["best_score_logreg"]) if pd.notnull(r["best_score_logreg"]) else None,
-                "best_threshold_lgbm": float(r["best_threshold_lgbm"]) if pd.notnull(r["best_threshold_lgbm"]) else None,
-                "best_score_lgbm": float(r["best_score_lgbm"]) if pd.notnull(r["best_score_lgbm"]) else None,
-                "better": str(r["better"]) if pd.notnull(r.get("better")) else None,
-            })
-
-    return {
-        "recommended_model": "LightGBM",
-        "sweep_curve": sweep_curve,
-        "best_thresholds": best_thresholds,
     }
 
 
@@ -242,6 +203,9 @@ def get_imbalance_experiments(model: str = "lightgbm") -> Dict[str, Any]:
     df = pd.read_csv(target_file)
     strategies = []
     for _, r in df.iterrows():
+        tp = int(r["TP"]) if pd.notnull(r.get("TP")) else None
+        fp = int(r["FP"]) if pd.notnull(r.get("FP")) else None
+        churn_precision = tp / (tp + fp) if tp is not None and fp is not None and tp + fp else None
         strategies.append({
             "strategy": str(r["Strategy"]),
             "tuned_threshold": float(r["Tuned Thresh"]) if pd.notnull(r.get("Tuned Thresh")) else None,
@@ -249,12 +213,13 @@ def get_imbalance_experiments(model: str = "lightgbm") -> Dict[str, Any]:
             "retained_recall": str(r.get("Retained Recall (TN%)", "")),
             "retained_precision": str(r.get("Retained Prec", "")),
             "churn_recall": str(r.get("Churn Recall (TP%)", "")),
+            "churn_precision": churn_precision,
             "roc_auc": float(r["ROC-AUC"]) if pd.notnull(r.get("ROC-AUC")) else None,
             "pr_auc": float(r["PR-AUC"]) if pd.notnull(r.get("PR-AUC")) else None,
             "tn": int(r["TN"]) if pd.notnull(r.get("TN")) else None,
-            "fp": int(r["FP"]) if pd.notnull(r.get("FP")) else None,
+            "fp": fp,
             "fn": int(r["FN"]) if pd.notnull(r.get("FN")) else None,
-            "tp": int(r["TP"]) if pd.notnull(r.get("TP")) else None,
+            "tp": tp,
         })
 
     return {
@@ -323,176 +288,4 @@ def get_churn_definition_and_counts() -> Dict[str, Any]:
             "churn_rate_uncensored_pct": churn_rate_uncensored,
             "churn_rate_total_pct": churn_rate_total,
         },
-    }
-
-
-def get_features_summary(features: Optional[List[str]] = None) -> Dict[str, Any]:
-    """Calculate mean, median, IQR, min, max, std for requested features from DB."""
-    cols_to_query = features if features else DEFAULT_KEY_FEATURES
-    columns_sql = ", ".join([f"`{col}`" for col in cols_to_query])
-
-    try:
-        with engine.connect() as conn:
-            df = pd.read_sql(text(f"SELECT {columns_sql} FROM customer_intelligence.features_encoded;"), conn)
-    except Exception:
-        # If DB is not available in mock/testing, return empty summary
-        return {
-            "total_records": 0,
-            "features": [],
-        }
-
-    total_records = len(df)
-    feature_stats = []
-
-    for col in cols_to_query:
-        if col not in df.columns:
-            continue
-        series = pd.to_numeric(df[col], errors="coerce").dropna()
-        null_count = int(df[col].isnull().sum())
-        count = len(series)
-
-        if count == 0:
-            feature_stats.append({
-                "feature": col,
-                "count": 0,
-                "null_count": null_count,
-                "mean": None,
-                "std": None,
-                "min": None,
-                "p25": None,
-                "median": None,
-                "p75": None,
-                "max": None,
-                "iqr": None,
-            })
-            continue
-
-        p25 = float(np.percentile(series, 25))
-        p75 = float(np.percentile(series, 75))
-        feature_stats.append({
-            "feature": col,
-            "count": count,
-            "null_count": null_count,
-            "mean": round(float(series.mean()), 4),
-            "std": round(float(series.std()), 4),
-            "min": round(float(series.min()), 4),
-            "p25": round(p25, 4),
-            "median": round(float(series.median()), 4),
-            "p75": round(p75, 4),
-            "max": round(float(series.max()), 4),
-            "iqr": round(p75 - p25, 4),
-        })
-
-    return {
-        "total_records": total_records,
-        "features": feature_stats,
-    }
-
-
-def get_feature_distribution(feature_name: str, num_bins: int = 10) -> Dict[str, Any]:
-    """Generate histogram bins and counts for a feature."""
-    with engine.connect() as conn:
-        df = pd.read_sql(text(f"SELECT `{feature_name}` FROM customer_intelligence.features_encoded WHERE `{feature_name}` IS NOT NULL;"), conn)
-
-    series = pd.to_numeric(df[feature_name], errors="coerce").dropna()
-    total_count = len(df)
-    null_count = int(df[feature_name].isnull().sum())
-
-    if len(series) == 0:
-        return {
-            "feature": feature_name,
-            "total_count": total_count,
-            "null_count": null_count,
-            "bins": [],
-        }
-
-    counts, bin_edges = np.histogram(series, bins=num_bins)
-    total_val = len(series)
-
-    bins_data = []
-    for i in range(len(counts)):
-        start = float(bin_edges[i])
-        end = float(bin_edges[i + 1])
-        c = int(counts[i])
-        density = round(c / total_val, 4) if total_val > 0 else 0.0
-        bins_data.append({
-            "bin_start": round(start, 4),
-            "bin_end": round(end, 4),
-            "count": c,
-            "density": density,
-        })
-
-    return {
-        "feature": feature_name,
-        "total_count": total_val,
-        "null_count": null_count,
-        "bins": bins_data,
-    }
-
-
-def get_churn_by_feature(feature_name: str, num_buckets: int = 5) -> Dict[str, Any]:
-    """Calculate churn rate across quantiles or unique buckets of a feature."""
-    with engine.connect() as conn:
-        df = pd.read_sql(
-            text(f"SELECT `{feature_name}`, churn_label FROM customer_intelligence.features_encoded WHERE churn_label IS NOT NULL AND `{feature_name}` IS NOT NULL;"),
-            conn,
-        )
-
-    df[feature_name] = pd.to_numeric(df[feature_name], errors="coerce")
-    df = df.dropna(subset=[feature_name, "churn_label"])
-    df["churn_label"] = df["churn_label"].astype(int)
-
-    total_customers = len(df)
-    if total_customers == 0:
-        return {
-            "feature": feature_name,
-            "total_customers": 0,
-            "buckets": [],
-        }
-
-    unique_vals = df[feature_name].nunique()
-    buckets_data = []
-
-    if unique_vals <= num_buckets:
-        # Categorical or binary discrete feature (e.g. has_bad_review: 0 or 1)
-        grouped = df.groupby(feature_name)["churn_label"].agg(["count", "sum"]).reset_index()
-        for _, r in grouped.iterrows():
-            val = float(r[feature_name])
-            cnt = int(r["count"])
-            churned = int(r["sum"])
-            rate = round((churned / cnt * 100.0), 2) if cnt > 0 else 0.0
-            buckets_data.append({
-                "bucket_label": f"{feature_name} = {val}",
-                "min_value": val,
-                "max_value": val,
-                "customer_count": cnt,
-                "churned_count": churned,
-                "churn_rate_pct": rate,
-            })
-    else:
-        # Continuous feature: use qcut (or cut with unique fallback)
-        try:
-            df["bucket"] = pd.qcut(df[feature_name], q=num_buckets, duplicates="drop")
-        except Exception:
-            df["bucket"] = pd.cut(df[feature_name], bins=num_buckets)
-
-        grouped = df.groupby("bucket", observed=False)["churn_label"].agg(["count", "sum"]).reset_index()
-        for _, r in grouped.iterrows():
-            interval = r["bucket"]
-            cnt = int(r["count"])
-            churned = int(r["sum"])
-            rate = round((churned / cnt * 100.0), 2) if cnt > 0 else 0.0
-            buckets_data.append({
-                "bucket_label": str(interval),
-                "min_value": round(float(interval.left), 4),
-                "max_value": round(float(interval.right), 4),
-                "customer_count": cnt,
-                "churned_count": churned,
-                "churn_rate_pct": rate,
-            })
-
-    return {
-        "feature": feature_name,
-        "total_customers": total_customers,
-        "buckets": buckets_data,
     }

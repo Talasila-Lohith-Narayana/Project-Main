@@ -24,7 +24,7 @@ import os
 import time
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt, JWTError
 from sqlalchemy import text
@@ -40,6 +40,7 @@ from .config import (
     pwd,
 )
 from .database import engine, get_db
+from .auth import auth
 from .models import Base, AppUser
 
 # Import all domain APIRouters
@@ -167,16 +168,17 @@ app.add_middleware(
 
 # Register all modular routers
 app.include_router(auth_router)
-app.include_router(dashboard_router)
-app.include_router(customers_router)
-app.include_router(orders_router)
-app.include_router(products_router)
-app.include_router(reviews_router)
-app.include_router(interactions_router)
-app.include_router(audit_logs_router)
-app.include_router(predictions_router)
-app.include_router(churn_analytics_router, prefix="/api/analytics")
-app.include_router(campaigns_forecast_router, prefix="/api/analytics")
-app.include_router(cohort_trend_router, prefix="/api/analytics")
-app.include_router(clv_router, prefix="/api/analytics")
-app.include_router(model_evaluation_router, prefix="/api/analytics")
+authenticated_route = [Depends(auth)]
+app.include_router(dashboard_router, dependencies=authenticated_route)
+app.include_router(customers_router, dependencies=authenticated_route)
+app.include_router(orders_router, dependencies=authenticated_route)
+app.include_router(products_router, dependencies=authenticated_route)
+app.include_router(reviews_router, dependencies=authenticated_route)
+app.include_router(interactions_router, dependencies=authenticated_route)
+app.include_router(audit_logs_router, dependencies=authenticated_route)
+app.include_router(predictions_router, dependencies=authenticated_route)
+app.include_router(churn_analytics_router, prefix="/api/analytics", dependencies=authenticated_route)
+app.include_router(campaigns_forecast_router, prefix="/api/analytics", dependencies=authenticated_route)
+app.include_router(cohort_trend_router, prefix="/api/analytics", dependencies=authenticated_route)
+app.include_router(clv_router, prefix="/api/analytics", dependencies=authenticated_route)
+app.include_router(model_evaluation_router, prefix="/api/analytics", dependencies=authenticated_route)

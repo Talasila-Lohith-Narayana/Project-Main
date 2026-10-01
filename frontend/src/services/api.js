@@ -107,18 +107,10 @@ export const dashboardService = {
 
 /** Aggregate customer, value, and cohort analytics endpoints */
 export const analyticsService = {
-  /** Fetch customer counts and average lifetime value by segment */
-  valueBySegment: () => data(api.get("/analytics/clv/by-segment")),
-  /** Fetch a histogram of predicted customer lifetime value */
-  clvDistribution: (params = {}) =>
-    data(api.get("/analytics/clv/distribution", { params })),
   /** Fetch aggregate customer lifetime value metrics */
   clvSummary: () => data(api.get("/analytics/clv/summary")),
   /** Fetch customer counts and lifetime value by value tier */
   valueTiers: () => data(api.get("/analytics/customers/byvaluetier")),
-  /** Fetch cohort retention percentages as a cohort-by-month matrix */
-  cohortRetention: (params = {}) =>
-    data(api.get("/analytics/customers/cohort-retention", { params })),
   /** Fetch one summary row per acquisition cohort */
   cohortSummary: (params = {}) =>
     data(api.get("/analytics/cohort/summary", { params })),
@@ -155,20 +147,9 @@ export const analyticsService = {
   modelPerformance: () => data(api.get("/analytics/model/performance-summary")),
   /** Fetch benchmark metrics for champion and baseline models */
   modelComparison: () => data(api.get("/analytics/model/comparison")),
-  /** Fetch threshold tradeoffs and recommended operating thresholds */
-  modelThresholds: () => data(api.get("/analytics/model/threshold-analysis")),
   /** Fetch experiments comparing class-imbalance strategies */
   modelImbalanceExperiments: (params = {}) =>
     data(api.get("/analytics/model/imbalance-experiments", { params })),
-  /** Fetch descriptive statistics for model features */
-  featureSummary: (params = {}) =>
-    data(api.get("/analytics/features/summary", { params })),
-  /** Fetch a histogram for one model feature */
-  featureDistribution: (params) =>
-    data(api.get("/analytics/features/distribution", { params })),
-  /** Fetch churn rate by buckets for one model feature */
-  churnByFeature: (params) =>
-    data(api.get("/analytics/features/churn-by-feature", { params })),
   /** Fetch aggregate churn rates and counts from stored model predictions */
   churnSummary: (params = {}) =>
     data(api.get("/analytics/churn/summary", { params })),
@@ -178,9 +159,6 @@ export const analyticsService = {
   /** Fetch global mean absolute SHAP importance */
   churnFeatureImportance: (params = {}) =>
     data(api.get("/analytics/churn/feature-importance-global", { params })),
-  /** Score one customer's stored feature row with the churn model */
-  predictCustomer: (customerUniqueId) =>
-    data(api.post("/analytics/predict", { customer_unique_id: customerUniqueId })),
   /** Fetch one customer's stored churn risk-tier record */
   customerRisk: (customerUniqueId) =>
     data(api.get(`/analytics/members/${encodeURIComponent(customerUniqueId)}/risk`)),
@@ -195,8 +173,6 @@ export const analyticsService = {
   /** Fetch stored SHAP values and human-readable reasons for one customer */
   customerExplanation: (customerUniqueId) =>
     data(api.get(`/analytics/customers/${encodeURIComponent(customerUniqueId)}/explanation`)),
-  /** Fetch pipeline data table availability and row counts */
-  analyticsTableStatuses: () => data(api.get("/analytics/data/tables")),
 };
 
 /** Products catalog service endpoints */

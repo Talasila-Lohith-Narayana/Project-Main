@@ -57,13 +57,6 @@ def _trend_response(engine: Engine, p: TrendParams, table: str, model) -> dict:
 # ----------------------------------------------------------------------
 # Cohorts  (fixed paths must be declared before /cohort/{cohort})
 # ----------------------------------------------------------------------
-@router.get("/customers/cohort-retention", response_model=schemas.RetentionMatrixResponse,
-            summary="Cohort retention grid (heatmap)")
-def cohort_retention(r: CohortRange = Depends(), engine: Engine = Depends(get_engine)):
-    df = svc.get_cohorts(engine, r.cohort_from, r.cohort_to)
-    return {"generated_date": svc.generated_date(df), **svc.retention_matrix(df)}
-
-
 def _cohort_list(df, data) -> dict:
     return {"generated_date": svc.generated_date(df), "count": len(data), "data": data}
 

@@ -133,6 +133,28 @@ def _load_cohorts(engine: Engine) -> pd.DataFrame:
     df["label"] = df["cohort"]
     df["cohort"] = cohort_start.dt.strftime("%Y-%m")
     df["_cohort_start"] = cohort_start
+    if "cohort_size" not in df or df["cohort_size"].isna().any():
+        cohort_sizes = _read_sql(
+            engine,
+            """
+            SELECT DATE_FORMAT(first_purchase_at, '%Y-%m') AS cohort,
+                   COUNT(*) AS cohort_size
+            FROM (
+                SELECT c.customer_unique_id,
+                       MIN(o.order_purchase_timestamp) AS first_purchase_at
+                FROM customers c
+                JOIN orders o ON o.customer_id = c.customer_id
+                WHERE o.order_purchase_timestamp IS NOT NULL
+                GROUP BY c.customer_unique_id
+            ) customer_first_purchase
+            GROUP BY DATE_FORMAT(first_purchase_at, '%Y-%m')
+            """,
+        )
+        if "cohort_size" in df:
+            df = df.merge(cohort_sizes, on="cohort", how="left", suffixes=("", "_calculated"))
+            df["cohort_size"] = df["cohort_size"].fillna(df.pop("cohort_size_calculated"))
+        else:
+            df = df.merge(cohort_sizes, on="cohort", how="left")
     # "M10" -> 10, so months sort numerically (text sort would put M10 before M2)
     df["_month_no"] = df["relative_month"].str[1:].astype(int)
     df = df.rename(columns={"relative_month": "month"})
@@ -156,23 +178,6 @@ def get_cohorts(engine: Engine, cohort_from: Optional[str] = None,
 
 def generated_date(df: pd.DataFrame) -> Optional[date]:
     return df["generated_date"].max() if "generated_date" in df and not df.empty else None
-
-
-def retention_matrix(df: pd.DataFrame) -> dict:
-    """Cohort x month grid of retention %. Months a cohort hasn't reached yet
-    stay None (not 0), so recent cohorts aren't shown as losing everyone."""
-    if df.empty:
-        return {"cohorts": [], "labels": [], "months": [], "values": []}
-    # "YYYY-MM" keys sort in date order, so the pivot's sorted index is correct
-    grid = (df.pivot(index="cohort", columns="_month_no", values="retention_rate_pct")
-              .reindex(columns=range(int(df["_month_no"].max()) + 1)))
-    labels = df.drop_duplicates("cohort").set_index("cohort")["label"]
-    return {
-        "cohorts": grid.index.tolist(),
-        "labels": labels.reindex(grid.index).tolist(),
-        "months": [f"M{m}" for m in grid.columns],
-        "values": [[None if pd.isna(v) else float(v) for v in row] for row in grid.to_numpy()],
-    }
 
 
 def cohort_series(df: pd.DataFrame, month_fields: list[str],

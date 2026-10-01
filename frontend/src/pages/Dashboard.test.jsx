@@ -26,13 +26,6 @@ const mockDashboardData = {
 describe("Dashboard Page Orchestrator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(ApiModule.analyticsService, "valueBySegment").mockResolvedValue([]);
-    vi.spyOn(ApiModule.analyticsService, "clvDistribution").mockResolvedValue([]);
-    vi.spyOn(ApiModule.analyticsService, "cohortRetention").mockResolvedValue({
-      cohorts: [],
-      months: [],
-      values: [],
-    });
   });
 
   it("displays loading state initially", () => {

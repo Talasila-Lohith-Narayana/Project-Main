@@ -65,27 +65,6 @@ describe("API Service Layer", () => {
   });
 
   describe("analyticsService", () => {
-    it("fetches customer segment profiles", async () => {
-      await analyticsService.valueBySegment();
-      expect(axios.create().get).toHaveBeenCalledWith("/analytics/clv/by-segment");
-    });
-
-    it("fetches CLV distribution with query parameters", async () => {
-      await analyticsService.clvDistribution({ bins: 10 });
-      expect(axios.create().get).toHaveBeenCalledWith(
-        "/analytics/clv/distribution",
-        { params: { bins: 10 } },
-      );
-    });
-
-    it("fetches cohort retention with range parameters", async () => {
-      await analyticsService.cohortRetention({ cohort_from: "2017-01" });
-      expect(axios.create().get).toHaveBeenCalledWith(
-        "/analytics/customers/cohort-retention",
-        { params: { cohort_from: "2017-01" } },
-      );
-    });
-
     it("calls analytics reporting endpoints", async () => {
       await analyticsService.clvSummary();
       await analyticsService.valueTiers();
@@ -102,21 +81,15 @@ describe("API Service Layer", () => {
       await analyticsService.campaignCustomers("Retention Offer", { page: 2, page_size: 25 });
       await analyticsService.modelPerformance();
       await analyticsService.modelComparison();
-      await analyticsService.modelThresholds();
       await analyticsService.modelImbalanceExperiments();
-      await analyticsService.featureSummary();
-      await analyticsService.featureDistribution({ feature: "avg_review_score", bins: 10 });
-      await analyticsService.churnByFeature({ feature: "avg_review_score", buckets: 5 });
       await analyticsService.churnSummary({ threshold: 0.6 });
       await analyticsService.churnTopFeatures({ limit: 5 });
       await analyticsService.churnFeatureImportance({ limit: 15 });
-      await analyticsService.predictCustomer("unique_123");
       await analyticsService.customerRisk("unique_123");
       await analyticsService.churnLastRefresh();
       await analyticsService.churnProbabilityDistribution();
       await analyticsService.churnReasonCodeSummary();
       await analyticsService.customerExplanation("unique_123");
-      await analyticsService.analyticsTableStatuses();
 
       expect(axios.create().get).toHaveBeenCalledWith("/analytics/clv/summary");
       expect(axios.create().get).toHaveBeenCalledWith("/analytics/customers/byvaluetier");
@@ -142,22 +115,9 @@ describe("API Service Layer", () => {
       );
       expect(axios.create().get).toHaveBeenCalledWith("/analytics/model/performance-summary");
       expect(axios.create().get).toHaveBeenCalledWith("/analytics/model/comparison");
-      expect(axios.create().get).toHaveBeenCalledWith("/analytics/model/threshold-analysis");
       expect(axios.create().get).toHaveBeenCalledWith(
         "/analytics/model/imbalance-experiments",
         { params: {} },
-      );
-      expect(axios.create().get).toHaveBeenCalledWith(
-        "/analytics/features/summary",
-        { params: {} },
-      );
-      expect(axios.create().get).toHaveBeenCalledWith(
-        "/analytics/features/distribution",
-        { params: { feature: "avg_review_score", bins: 10 } },
-      );
-      expect(axios.create().get).toHaveBeenCalledWith(
-        "/analytics/features/churn-by-feature",
-        { params: { feature: "avg_review_score", buckets: 5 } },
       );
       expect(axios.create().get).toHaveBeenCalledWith(
         "/analytics/churn/summary",
@@ -170,10 +130,6 @@ describe("API Service Layer", () => {
       expect(axios.create().get).toHaveBeenCalledWith(
         "/analytics/churn/feature-importance-global",
         { params: { limit: 15 } },
-      );
-      expect(axios.create().post).toHaveBeenCalledWith(
-        "/analytics/predict",
-        { customer_unique_id: "unique_123" },
       );
       expect(axios.create().get).toHaveBeenCalledWith(
         "/analytics/members/unique_123/risk",
@@ -188,7 +144,6 @@ describe("API Service Layer", () => {
       expect(axios.create().get).toHaveBeenCalledWith(
         "/analytics/customers/unique_123/explanation",
       );
-      expect(axios.create().get).toHaveBeenCalledWith("/analytics/data/tables");
       expect(axios.create().post).toHaveBeenCalledWith(
         "/analytics/campaigns/evaluate",
         { customer_unique_id: "unique_123" },

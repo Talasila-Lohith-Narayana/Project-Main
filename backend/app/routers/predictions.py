@@ -138,6 +138,27 @@ def _build_realtime_feature_row(
     }
 
 
+def _build_shap_drivers(
+    shap_values: dict,
+    feature_values: dict | None = None,
+) -> list[dict]:
+    feature_values = feature_values or {}
+    return [
+        {
+            "feature": feature,
+            "label": feature.replace("_", " ").title(),
+            "impact": round(float(impact), 4),
+            "direction": "increases_risk" if float(impact) > 0 else "lowers_risk",
+            "feature_value": feature_values.get(feature),
+        }
+        for feature, impact in sorted(
+            shap_values.items(),
+            key=lambda item: abs(float(item[1])),
+            reverse=True,
+        )
+    ]
+
+
 def _compute_realtime_prediction(db: Session, customer_unique_id: str):
     """
     On-demand feature extraction and live model inference for newly added customers
@@ -329,17 +350,10 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
                 }
                 for code in prediction["reason_codes"]
             ]
-            shap_drivers = [
-                {
-                    "feature": feature,
-                    "label": feature.replace("_", " ").title(),
-                    "impact": round(float(impact), 4),
-                    "direction": (
-                        "increases_risk" if float(impact) > 0 else "lowers_risk"
-                    ),
-                }
-                for feature, impact in prediction["shap_values"].items()
-            ]
+            shap_drivers = _build_shap_drivers(
+                prediction["shap_values"],
+                feature_values,
+            )
             risk_level = (
                 "high"
                 if churn_prob >= 0.70
@@ -425,6 +439,15 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
             "reason_codes": reason_codes_list,
             "shap_drivers": shap_drivers,
         },
+        "feature_values": (
+            {
+                key: value
+                for key, value in feature_values.items()
+                if key != "customer_unique_id"
+            }
+            if has_orders
+            else None
+        ),
         "clv": {
             "predicted_clv": clv_val,
             "value_tier": value_tier,
@@ -469,6 +492,7 @@ def get_customer_predictions(
         SELECT 
             cp.churn_probability,
             cp.shap_values,
+            cp.feature_values,
             cp.reason_codes,
             cp.model_version,
             cp.scored_at,
@@ -511,18 +535,21 @@ def get_customer_predictions(
         except Exception:
             shap_dict = {}
 
-    sorted_factors = sorted(
-        shap_dict.items(), key=lambda item: abs(item[1]), reverse=True
-    )
-    shap_drivers = [
-        {
-            "feature": k,
-            "label": k.replace("_", " ").title(),
-            "impact": v,
-            "direction": "increases_risk" if v > 0 else "lowers_risk",
-        }
-        for k, v in sorted_factors[:6]
-    ]
+    feature_values = {}
+    raw_feature_values = row["feature_values"]
+    if raw_feature_values:
+        try:
+            parsed_values = (
+                json.loads(raw_feature_values)
+                if isinstance(raw_feature_values, str)
+                else raw_feature_values
+            )
+            if isinstance(parsed_values, dict):
+                feature_values = parsed_values
+        except (TypeError, ValueError):
+            feature_values = {}
+
+    shap_drivers = _build_shap_drivers(shap_dict, feature_values)
 
     # 4. Parse Reason codes
     reason_codes_list = []
@@ -558,6 +585,7 @@ def get_customer_predictions(
             "reason_codes": reason_codes_list,
             "shap_drivers": shap_drivers,
         },
+        "feature_values": feature_values or None,
         "clv": {
             "predicted_clv": round(float(row["clv"]), 2) if row["clv"] is not None else None,
             "value_tier": row["value_tier"],
@@ -608,6 +636,11 @@ def rescore_customer_manually(
             {driver["feature"]: driver["impact"]
              for driver in explainability["shap_drivers"]}
         ),
+        "feature_values": (
+            json.dumps(fresh_predictions["feature_values"])
+            if fresh_predictions.get("feature_values") is not None
+            else None
+        ),
         "reason_codes": json.dumps(
             [item["code"] for item in explainability["reason_codes"]]
         ),
@@ -619,6 +652,7 @@ def rescore_customer_manually(
             """UPDATE customer_intelligence.churn_predictions
                SET churn_probability = :churn_probability,
                    shap_values = :shap_values,
+                   feature_values = :feature_values,
                    reason_codes = :reason_codes,
                    model_version = :model_version,
                    scored_at = :scored_at
@@ -631,9 +665,9 @@ def rescore_customer_manually(
             text(
                 """INSERT INTO customer_intelligence.churn_predictions
                        (customer_unique_id, churn_probability, shap_values,
-                        reason_codes, model_version, scored_at)
+                        feature_values, reason_codes, model_version, scored_at)
                    VALUES (:customer_unique_id, :churn_probability, :shap_values,
-                           :reason_codes, :model_version, :scored_at)"""
+                           :feature_values, :reason_codes, :model_version, :scored_at)"""
             ),
             prediction_values,
         )

@@ -6,21 +6,15 @@ from collections import Counter
 from typing import Any
 
 import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError, ProgrammingError
 
 from app.api.churn_analytics import repository as repo
-from app.database import engine
-from app.routers.predictions import REASON_CODE_MESSAGES, get_ml_predictor
+from app.routers.predictions import REASON_CODE_MESSAGES
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Churn Analytics"])
-
-
-class PredictRequest(BaseModel):
-    customer_unique_id: str
 
 
 def _db(fn, *args, **kwargs):
@@ -115,32 +109,6 @@ def global_feature_importance(limit: int = Query(100, ge=1, le=500)) -> dict[str
     return {"scored_customers": len(records), "features": features[:limit]}
 
 
-@router.post("/predict")
-def predict_customer(
-    payload: PredictRequest,
-    predictor=Depends(get_ml_predictor),
-):
-    try:
-        with engine.connect() as connection:
-            features = pd.read_sql(
-                text(
-                    "SELECT * FROM `customer_intelligence`.`features_encoded` "
-                    "WHERE customer_unique_id = :customer_unique_id"
-                ),
-                connection,
-                params={"customer_unique_id": payload.customer_unique_id},
-            )
-    except (OperationalError, ProgrammingError) as exc:
-        logger.exception("Could not load customer features for churn prediction")
-        raise HTTPException(status_code=503, detail="Customer feature data is unavailable.") from exc
-    if features.empty:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Unknown customer_unique_id: {payload.customer_unique_id}",
-        )
-    return predictor.predict(features)[0]
-
-
 @router.get("/members/{customer_unique_id}/risk")
 def member_risk(customer_unique_id: str) -> dict[str, Any]:
     result = _db(repo.risk_for_customer, customer_unique_id)
@@ -226,9 +194,3 @@ def customer_explanation(customer_unique_id: str) -> dict[str, Any]:
         "model_version": row.get("model_version"),
         "scored_at": row.get("scored_at"),
     }
-
-
-@router.get("/data/tables")
-def data_tables() -> dict[str, Any]:
-    tables = _db(repo.table_statuses)
-    return {"table_count": len(tables), "tables": tables}

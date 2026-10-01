@@ -123,28 +123,6 @@ def customers_by_value_tier():
     return records(df)
 
 
-@router.get("/customers/single-vs-repeat")
-def single_vs_repeat():
-    df = q(f"""
-        SELECT CASE WHEN n_orders = 1 THEN 'Single purchase'
-                    ELSE 'Repeat purchase' END AS buyer_type,
-               COUNT(*) AS customers
-        FROM (
-            SELECT {CU_KEY} AS cid,
-                   COUNT(DISTINCT o.{C['orders_order_id']}) AS n_orders
-            FROM {C['orders_table']} o
-            JOIN {C['customers_table']} cu
-              ON cu.{C['cust_order_key']} = o.{C['orders_customer_id']}
-            WHERE o.{C['orders_status']} = 'delivered'
-            GROUP BY {CU_KEY}
-        ) t
-        GROUP BY buyer_type
-    """)
-    total = df["customers"].sum()
-    df["pct_share"] = (df["customers"] / total * 100).round(2) if total else 0
-    return records(df)
-
-
 @router.get("/customers/{customer_id}/clv")
 def customer_clv(customer_id: str):
     df = q(f"""
@@ -160,39 +138,6 @@ def customer_clv(customer_id: str):
     if df.empty:
         raise HTTPException(status_code=404, detail="Customer not found")
     return records(df)[0]
-
-
-@router.get("/clv/distribution")
-def clv_distribution(bins: int = Query(20, ge=5, le=100)):
-    vals = q(f"SELECT {C['clv_value']} AS v FROM {C['clv_table']}")["v"].dropna()
-    if vals.empty:
-        return []
-    # clip top 1% so a few outliers don't flatten the histogram
-    upper = float(vals.quantile(0.99))
-    counts, edges = np.histogram(vals.clip(upper=upper), bins=bins)
-    return [
-        {
-            "bin_start": round(float(edges[i]), 2),
-            "bin_end": round(float(edges[i + 1]), 2),
-            "customers": int(counts[i]),
-        }
-        for i in range(len(counts))
-    ]
-
-
-@router.get("/clv/by-segment")
-def clv_by_segment():
-    df = q(f"""
-        SELECT s.{C['seg_label']} AS segment_label,
-               COUNT(*) AS customers,
-               AVG(c.{C['clv_value']}) AS avg_clv,
-               SUM(c.{C['clv_value']}) AS total_clv
-        FROM {C['clv_table']} c
-        JOIN {C['seg_table']} s ON s.{C['seg_customer_id']} = c.{C['clv_customer_id']}
-        GROUP BY s.{C['seg_label']}
-        ORDER BY avg_clv DESC
-    """)
-    return records(df)
 
 
 # --------------------------------------------------------------------------
@@ -285,4 +230,3 @@ def customer_delivery_performance(customer_id: str):
         },
         "deliveries": records(df.head(10)),
     }
-

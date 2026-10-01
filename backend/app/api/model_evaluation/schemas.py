@@ -58,33 +58,6 @@ class ModelComparisonResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# /model/threshold-analysis
-# ---------------------------------------------------------------------------
-
-class ThresholdSweepPoint(BaseModel):
-    threshold: float
-    precision: float
-    recall: float
-    f1: float
-    balanced_accuracy: float
-
-
-class BestThresholdItem(BaseModel):
-    metric: str
-    best_threshold_logreg: Optional[float] = None
-    best_score_logreg: Optional[float] = None
-    best_threshold_lgbm: Optional[float] = None
-    best_score_lgbm: Optional[float] = None
-    better: Optional[str] = None
-
-
-class ThresholdAnalysisResponse(BaseModel):
-    recommended_model: str = "LightGBM"
-    sweep_curve: List[ThresholdSweepPoint]
-    best_thresholds: List[BestThresholdItem]
-
-
-# ---------------------------------------------------------------------------
 # /model/version
 # ---------------------------------------------------------------------------
 
@@ -130,6 +103,7 @@ class ImbalanceStrategyRecord(BaseModel):
     retained_recall: Optional[str] = None
     retained_precision: Optional[str] = None
     churn_recall: Optional[str] = None
+    churn_precision: Optional[float] = None
     roc_auc: Optional[float] = None
     pr_auc: Optional[float] = None
     tn: Optional[int] = None
@@ -162,63 +136,3 @@ class ChurnDefinitionResponse(BaseModel):
     exclude_censored_customers: bool
     definition_rule: str
     counts: ChurnCounts
-
-
-# ---------------------------------------------------------------------------
-# /features/summary
-# ---------------------------------------------------------------------------
-
-class FeatureStats(BaseModel):
-    feature: str
-    count: int
-    null_count: int
-    mean: Optional[float] = None
-    std: Optional[float] = None
-    min: Optional[float] = None
-    p25: Optional[float] = None
-    median: Optional[float] = None
-    p75: Optional[float] = None
-    max: Optional[float] = None
-    iqr: Optional[float] = None
-
-
-class FeaturesSummaryResponse(BaseModel):
-    total_records: int
-    features: List[FeatureStats]
-
-
-# ---------------------------------------------------------------------------
-# /features/distribution?feature=
-# ---------------------------------------------------------------------------
-
-class HistogramBin(BaseModel):
-    bin_start: float
-    bin_end: float
-    count: int
-    density: float
-
-
-class FeatureDistributionResponse(BaseModel):
-    feature: str
-    total_count: int
-    null_count: int
-    bins: List[HistogramBin]
-
-
-# ---------------------------------------------------------------------------
-# /features/churn-by-feature?feature=
-# ---------------------------------------------------------------------------
-
-class FeatureChurnBucket(BaseModel):
-    bucket_label: str
-    min_value: Optional[float] = None
-    max_value: Optional[float] = None
-    customer_count: int
-    churned_count: int
-    churn_rate_pct: float
-
-
-class ChurnByFeatureResponse(BaseModel):
-    feature: str
-    total_customers: int
-    buckets: List[FeatureChurnBucket]

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { BarChart3 } from "lucide-react";
 import AnalyticsPanel from "../components/analytics/AnalyticsPanel";
 import { Page } from "../components/States";
@@ -257,6 +257,8 @@ function ChurnDefinition({ data }) {
 }
 
 export default function Analytics() {
+  const [view, setView] = useState("value");
+
   return (
     <Page>
       <div className="analyticsDashboardPage">
@@ -265,99 +267,150 @@ export default function Analytics() {
           <div>
             <p className="eyebrow">CUSTOMER INTELLIGENCE</p>
             <h1>Analytics</h1>
-            <p>Explore customer value, retention, delivery, campaigns, and model diagnostics.</p>
+            <p>Explore customer value, retention, campaign reach, and model diagnostics.</p>
           </div>
         </header>
 
-        <section className="analyticsPageSection" aria-labelledby="analytics-value-heading">
-          <h2 id="analytics-value-heading">Customer value and retention</h2>
-          <div className="grid2 analyticsPageGrid">
-            <AnalyticsPanel
-              title="Lifetime value overview"
-              sub="Predicted value across customers"
-              load={analyticsService.clvSummary}
-            >
-              {(data) => <ClvOverview data={data} />}
-            </AnalyticsPanel>
-            <AnalyticsPanel
-              title="Value tiers"
-              sub="Customer distribution by predicted value tier"
-              load={analyticsService.valueTiers}
-            >
-              {(data) => <ValueTierOverview data={data} />}
-            </AnalyticsPanel>
-            <AnalyticsPanel
-              title="Delivery performance"
-              sub="Delivered order speed and on-time rate"
-              load={analyticsService.deliveryPerformance}
-            >
-              {(data) => <DeliveryOverview data={data} />}
-            </AnalyticsPanel>
-          </div>
-          <AnalyticsPanel
-            title="Acquisition cohort summary"
-            sub="Retention and repeat purchasing by first-purchase month"
-            load={analyticsService.cohortSummary}
+        <div className="tabs modelTabs" role="tablist" aria-label="Analytics sections">
+          <button
+            type="button"
+            role="tab"
+            className={view === "value" ? "active" : ""}
+            aria-selected={view === "value"}
+            onClick={() => setView("value")}
           >
-            {(data) => <CohortOverview data={data} />}
-          </AnalyticsPanel>
-        </section>
+            Customer value and retention
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className={view === "campaigns" ? "active" : ""}
+            aria-selected={view === "campaigns"}
+            onClick={() => setView("campaigns")}
+          >
+            Campaigns
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className={view === "cohorts" ? "active" : ""}
+            aria-selected={view === "cohorts"}
+            onClick={() => setView("cohorts")}
+          >
+            Cohort summary
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className={view === "model" ? "active" : ""}
+            aria-selected={view === "model"}
+            onClick={() => setView("model")}
+          >
+            Model diagnostics
+          </button>
+        </div>
 
-        <section className="analyticsPageSection" aria-labelledby="analytics-campaign-heading">
-          <h2 id="analytics-campaign-heading">Campaigns</h2>
-          <div className="grid2 analyticsPageGrid">
-            <AnalyticsPanel
-              title="Active campaign reach"
-              sub="Current campaign count, targeting volume, and priority customers"
-              load={analyticsService.activeCampaigns}
-            >
-              {(data) => (
-                <>
-                  <div className="analyticsMetrics analyticsMetricsCompact">
-                    <Metric label="Active campaigns" value={number.format(data.active_campaigns || 0)} />
-                    <Metric label="Customers targeted" value={number.format(data.customers_targeted || 0)} />
-                    <Metric label="High priority" value={number.format(data.high_priority_customers || 0)} />
-                  </div>
-                  <CampaignOverview data={data} />
-                </>
-              )}
-            </AnalyticsPanel>
-            <AnalyticsPanel
-              title="Campaign allocation by segment"
-              sub="Campaign targeting distribution across customer segments"
-              load={analyticsService.campaignsBySegment}
-            >
-              {(data) => <CampaignSegmentOverview data={data} />}
-            </AnalyticsPanel>
-          </div>
-        </section>
+        {view === "value" && (
+          <section className="analyticsPageSection" aria-labelledby="analytics-value-heading">
+            <h2 id="analytics-value-heading">Customer value and retention</h2>
+            <div className="grid2 analyticsPageGrid">
+              <AnalyticsPanel
+                title="Lifetime value overview"
+                sub="Predicted value across customers"
+                load={analyticsService.clvSummary}
+              >
+                {(data) => <ClvOverview data={data} />}
+              </AnalyticsPanel>
+              <AnalyticsPanel
+                title="Value tiers"
+                sub="Customer distribution by predicted value tier"
+                load={analyticsService.valueTiers}
+              >
+                {(data) => <ValueTierOverview data={data} />}
+              </AnalyticsPanel>
+              <AnalyticsPanel
+                title="Delivery performance"
+                sub="Delivered order speed and on-time rate"
+                load={analyticsService.deliveryPerformance}
+              >
+                {(data) => <DeliveryOverview data={data} />}
+              </AnalyticsPanel>
+            </div>
+          </section>
+        )}
 
-        <section className="analyticsPageSection" aria-labelledby="analytics-model-heading">
-          <h2 id="analytics-model-heading">Model diagnostics</h2>
-          <div className="grid2 analyticsPageGrid">
+        {view === "cohorts" && (
+          <section className="analyticsPageSection" aria-labelledby="analytics-cohort-heading">
+            <h2 id="analytics-cohort-heading">Cohort summary</h2>
             <AnalyticsPanel
-              title="Active model"
-              sub="Current model metadata and inference features"
-              load={analyticsService.modelVersion}
+              title="Acquisition cohort summary"
+              sub="Retention and repeat purchasing by first-purchase month"
+              load={analyticsService.cohortSummary}
             >
-              {(data) => <ModelOverview data={data} />}
+              {(data) => <CohortOverview data={data} />}
             </AnalyticsPanel>
-            <AnalyticsPanel
-              title="Calibration quality"
-              sub="Test-set probability calibration before and after calibration"
-              load={analyticsService.modelCalibration}
-            >
-              {(data) => <CalibrationOverview data={data} />}
-            </AnalyticsPanel>
-            <AnalyticsPanel
-              title="Churn definition"
-              sub="How churn labels and censored customers are defined"
-              load={analyticsService.churnDefinition}
-            >
-              {(data) => <ChurnDefinition data={data} />}
-            </AnalyticsPanel>
-          </div>
-        </section>
+          </section>
+        )}
+
+        {view === "campaigns" && (
+          <section className="analyticsPageSection" aria-labelledby="analytics-campaign-heading">
+            <h2 id="analytics-campaign-heading">Campaigns</h2>
+            <div className="grid2 analyticsPageGrid">
+              <AnalyticsPanel
+                title="Active campaign reach"
+                sub="Current campaign count, targeting volume, and priority customers"
+                load={analyticsService.activeCampaigns}
+              >
+                {(data) => (
+                  <>
+                    <div className="analyticsMetrics analyticsMetricsCompact">
+                      <Metric label="Active campaigns" value={number.format(data.active_campaigns || 0)} />
+                      <Metric label="Customers targeted" value={number.format(data.customers_targeted || 0)} />
+                      <Metric label="High priority" value={number.format(data.high_priority_customers || 0)} />
+                    </div>
+                    <CampaignOverview data={data} />
+                  </>
+                )}
+              </AnalyticsPanel>
+              <AnalyticsPanel
+                title="Campaign allocation by segment"
+                sub="Campaign targeting distribution across customer segments"
+                load={analyticsService.campaignsBySegment}
+              >
+                {(data) => <CampaignSegmentOverview data={data} />}
+              </AnalyticsPanel>
+            </div>
+          </section>
+        )}
+
+        {view === "model" && (
+          <section className="analyticsPageSection" aria-labelledby="analytics-model-heading">
+            <h2 id="analytics-model-heading">Model diagnostics</h2>
+            <div className="grid2 analyticsPageGrid">
+              <AnalyticsPanel
+                title="Active model"
+                sub="Current model metadata and inference features"
+                load={analyticsService.modelVersion}
+              >
+                {(data) => <ModelOverview data={data} />}
+              </AnalyticsPanel>
+              <AnalyticsPanel
+                title="Calibration quality"
+                sub="Test-set probability calibration before and after calibration"
+                load={analyticsService.modelCalibration}
+              >
+                {(data) => <CalibrationOverview data={data} />}
+              </AnalyticsPanel>
+              <AnalyticsPanel
+                title="Churn definition"
+                sub="How churn labels and censored customers are defined"
+                load={analyticsService.churnDefinition}
+              >
+                {(data) => <ChurnDefinition data={data} />}
+              </AnalyticsPanel>
+            </div>
+          </section>
+        )}
       </div>
     </Page>
   );

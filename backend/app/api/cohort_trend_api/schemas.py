@@ -84,15 +84,6 @@ class NewVsRepeatResponse(TrendResponse):
 # ----------------------------------------------------------------------
 # Cohorts  (cohort = "2017-03", label = "Mar 2017", month = "M0", "M1", ...)
 # ----------------------------------------------------------------------
-class RetentionMatrixResponse(BaseModel):
-    """Heatmap-ready: values[i][j] = retention % of cohorts[i] in months[j]."""
-    generated_date: Optional[date] = None
-    cohorts: list[str]
-    labels: list[str]
-    months: list[str]
-    values: list[list[Optional[float]]]         # None = cohort too recent for that month
-
-
 class ChurnMonth(BaseModel):
     month: str
     monthly_churn_rate_pct: Optional[float] = None
@@ -152,7 +143,7 @@ class CohortRepeatResponse(CohortListResponse):
 class CohortSummaryRow(BaseModel):
     cohort: str
     label: str
-    cohort_size: Optional[int] = None           # filled once Person 4 adds the column
+    cohort_size: Optional[int] = None           # derived from first purchases when absent in the source table
     months_observed: int
     m1_retention_pct: Optional[float] = None
     m3_retention_pct: Optional[float] = None

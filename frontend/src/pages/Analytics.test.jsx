@@ -29,7 +29,7 @@ describe("Analytics page", () => {
         return {
           cohort: `${year}-${String(monthNumber).padStart(2, "0")}`,
           label: date.toLocaleString("en-US", { month: "short", year: "numeric" }),
-          cohort_size: null,
+          cohort_size: 42,
           months_observed: 10 - index,
           m1_retention_pct: 7.5,
           m3_retention_pct: null,
@@ -85,14 +85,25 @@ describe("Analytics page", () => {
 
     expect(await screen.findByText((content) => content.includes("294,45"))).toBeInTheDocument();
     expect(screen.getByText("High value")).toBeInTheDocument();
-    expect(screen.getByText("Aug 2018")).toBeInTheDocument();
-    expect(screen.getByText("Nov 2017")).toBeInTheDocument();
-    expect(screen.getByText("All 10 acquisition months · newest first")).toBeInTheDocument();
-    expect(screen.getByText("12.5 days")).toBeInTheDocument();
-    expect(screen.getByText("Priority Recovery")).toBeInTheDocument();
-    expect(screen.getByText("LightGBM Classifier")).toBeInTheDocument();
-    expect(screen.getByText(/Selected method: isotonic/)).toBeInTheDocument();
-    expect(screen.getByText("No repeat purchase within 180 days.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Cohort summary" }));
+    expect(await screen.findByText("Aug 2018")).toBeInTheDocument();
+    expect(await screen.findByText("Nov 2017")).toBeInTheDocument();
+    expect(await screen.findByText("All 10 acquisition months · newest first")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getAllByRole("cell", { name: "42" })).toHaveLength(10);
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "Customer value and retention" }));
+    expect(await screen.findByText("12.5 days")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Campaigns" }));
+    expect(await screen.findByText("Priority Recovery")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Model diagnostics" }));
+    expect(await screen.findByText("LightGBM Classifier")).toBeInTheDocument();
+    expect(await screen.findByText(/Selected method: isotonic/)).toBeInTheDocument();
+    expect(await screen.findByText("No repeat purchase within 180 days.")).toBeInTheDocument();
   });
 
   it("keeps working panels visible and retries a failed analytics endpoint", async () => {
@@ -116,13 +127,16 @@ describe("Analytics page", () => {
 
     render(<Analytics />);
 
+    fireEvent.click(screen.getByRole("tab", { name: "Campaigns" }));
     expect(await screen.findByText("Campaign service unavailable")).toBeInTheDocument();
-    expect(screen.getByText("Value tiers")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry Active campaign reach" }));
 
     await waitFor(() => {
       expect(activeCampaigns).toHaveBeenCalledTimes(2);
       expect(screen.getByText("No active campaigns were returned.")).toBeInTheDocument();
     });
+
+    fireEvent.click(screen.getByRole("tab", { name: "Customer value and retention" }));
+    expect(screen.getByText("Value tiers")).toBeInTheDocument();
   });
 });

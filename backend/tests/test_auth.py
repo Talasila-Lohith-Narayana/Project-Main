@@ -7,15 +7,6 @@ from jose import jwt
 from app.config import ADMIN_USERNAME, ADMIN_PASSWORD, VIEWER_USERNAME, VIEWER_PASSWORD, SECRET, ALGO
 
 
-def test_health_check(client):
-    """Verifies that the /api/health endpoint returns status ok and database connected."""
-    response = client.get("/api/health")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "ok"
-    assert data["database"] == "connected"
-
-
 def test_login_admin_success(client):
     """Verifies that the admin user can authenticate and receives a valid token."""
     response = client.post(
@@ -95,4 +86,41 @@ def test_protected_route_expired_token(client):
         "/api/dashboard/summary",
         headers={"Authorization": f"Bearer {expired_token}"},
     )
+    assert response.status_code == 401
+
+
+def test_all_api_operations_except_login_require_authentication(client):
+    """Every documented API operation except login declares bearer auth and rejects anonymous calls."""
+    from app.main import app
+
+    operations = [
+        (method, path, operation)
+        for path, path_item in app.openapi()["paths"].items()
+        for method, operation in path_item.items()
+        if method in {"get", "post", "put", "patch", "delete", "options", "head"}
+    ]
+    login = ("post", "/api/auth/login")
+
+    assert len(operations) == 54
+    removed_paths = {
+        "/api/health",
+        "/api/analytics/clv/by-segment",
+        "/api/analytics/clv/distribution",
+        "/api/analytics/customers/cohort-retention",
+        "/api/analytics/customers/single-vs-repeat",
+        "/api/analytics/model/threshold-analysis",
+        "/api/analytics/features/summary",
+        "/api/analytics/features/distribution",
+        "/api/analytics/features/churn-by-feature",
+        "/api/analytics/predict",
+        "/api/analytics/data/tables",
+    }
+    assert removed_paths.isdisjoint(app.openapi()["paths"])
+    for method, path, operation in operations:
+        if (method, path) == login:
+            assert not operation.get("security")
+        else:
+            assert operation.get("security")
+
+    response = client.get("/api/analytics/churn/summary")
     assert response.status_code == 401

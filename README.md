@@ -59,7 +59,6 @@ npm run dev
 
 ## API endpoints
 - POST `/api/auth/login`
-- GET `/api/health`
 - GET `/api/dashboard/summary`
 - GET `/api/customers`
 - GET `/api/customers/{customer_id}`

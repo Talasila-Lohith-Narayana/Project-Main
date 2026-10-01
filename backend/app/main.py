@@ -24,7 +24,7 @@ import os
 import time
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt, JWTError
 from sqlalchemy import text
@@ -40,6 +40,7 @@ from .config import (
     pwd,
 )
 from .database import engine, get_db
+from .auth import auth
 from .models import Base, AppUser
 
 # Import all domain APIRouters
@@ -51,6 +52,15 @@ from .routers.products import router as products_router
 from .routers.reviews import router as reviews_router
 from .routers.interactions import router as interactions_router
 from .routers.audit_logs import router as audit_logs_router
+from .routers.predictions import router as predictions_router
+from .api.churn_analytics.router import router as churn_analytics_router
+
+# Analytics routers are mounted beneath a dedicated prefix so their paths do
+# not overlap the existing customer/dashboard APIs.
+from .api.campaigns_forecast.router import router as campaigns_forecast_router
+from .api.cohort_trend_api.routers import router as cohort_trend_router
+from .api.clv_delivery_payments.clv_delivery_endpoints import router as clv_router
+from .api.model_evaluation.router import router as model_evaluation_router
 
 
 # ------------------------------------------------------------------------------
@@ -60,86 +70,10 @@ from .routers.audit_logs import router as audit_logs_router
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(engine)
     db = next(get_db())
-    
-    # Ensure customer zip code column supports 6-digit zip codes
-    try:
-        db.execute(text("ALTER TABLE customers MODIFY customer_zip_code_prefix VARCHAR(10) NOT NULL"))
-        db.commit()
-    except SQLAlchemyError:
-        db.rollback()
 
-    # 1. Ensure user roles column exists
-    try:
-        db.execute(
-            text(
-                "ALTER TABLE ci_users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'viewer'"
-            )
-        )
-        db.commit()
-    except SQLAlchemyError:
-        db.rollback()
-
-    # 2. Initialize customer metrics cache table for fast analytics queries
-    try:
-        db.execute(
-            text(
-                """CREATE TABLE IF NOT EXISTS customer_metrics_cache (
-                    customer_id CHAR(32) PRIMARY KEY,
-                    customer_unique_id CHAR(32),
-                    recency_days INT NOT NULL DEFAULT 0,
-                    frequency INT NOT NULL DEFAULT 0,
-                    monetary_total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-                    avg_review_score DECIMAL(3,2) NOT NULL DEFAULT 0.00,
-                    segment VARCHAR(30) NOT NULL DEFAULT 'New / Developing',
-                    INDEX idx_unique (customer_unique_id),
-                    INDEX idx_monetary (monetary_total),
-                    INDEX idx_recency (recency_days),
-                    INDEX idx_freq (frequency),
-                    INDEX idx_score (avg_review_score),
-                    INDEX idx_segment (segment)
-                ) ENGINE=InnoDB"""
-            )
-        )
-        db.commit()
-        cached_count = db.execute(text("SELECT COUNT(*) FROM customer_metrics_cache")).scalar() or 0
-        if cached_count == 0:
-            db.execute(
-                text(
-                    """REPLACE INTO customer_metrics_cache (customer_id, customer_unique_id, recency_days, frequency, monetary_total, avg_review_score, segment)
-                    SELECT 
-                        c.customer_id,
-                        c.customer_unique_id,
-                        COALESCE(u.recency_days, 0) AS recency_days,
-                        COALESCE(u.frequency, 0) AS frequency,
-                        COALESCE(u.monetary_total, 0) AS monetary_total,
-                        COALESCE(u.avg_review_score, 0) AS avg_review_score,
-                        CASE 
-                            WHEN COALESCE(u.monetary_total,0)>=1000 AND COALESCE(u.frequency,0)>=3 THEN 'Champions'
-                            WHEN COALESCE(u.recency_days,0)<=90 AND COALESCE(u.frequency,0)>=2 THEN 'Engaged'
-                            WHEN COALESCE(u.recency_days,0)>180 AND COALESCE(u.monetary_total,0)>=200 THEN 'At Risk'
-                            ELSE 'New / Developing' 
-                        END AS segment
-                    FROM customers c
-                    LEFT JOIN (
-                        SELECT 
-                            c2.customer_unique_id,
-                            DATEDIFF((SELECT MAX(order_purchase_timestamp) FROM orders), MAX(o.order_purchase_timestamp)) AS recency_days,
-                            COUNT(DISTINCT o.order_id) AS frequency,
-                            COALESCE(SUM(oi.price + oi.freight_value), 0) AS monetary_total,
-                            COALESCE(AVG(r.review_score), 0) AS avg_review_score
-                        FROM customers c2
-                        JOIN orders o ON o.customer_id = c2.customer_id
-                        LEFT JOIN order_items oi ON oi.order_id = o.order_id
-                        LEFT JOIN order_reviews r ON r.order_id = o.order_id
-                        GROUP BY c2.customer_unique_id
-                    ) u ON u.customer_unique_id = c.customer_unique_id"""
-                )
-            )
-            db.commit()
-    except SQLAlchemyError:
-        db.rollback()
-
-    # 3. Create default Admin user if not present
+    # Default users are checked without running table migrations or cache rebuilds.
+    # Those operations belong in a separate maintenance task because they can
+    # block startup behind long-running database queries.
     user = db.query(AppUser).filter_by(username=ADMIN_USERNAME).first()
     if not user:
         db.add(
@@ -170,7 +104,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Customer Sphere API", version="2.0", lifespan=lifespan)
+app = FastAPI(title="Customer Sphere API", lifespan=lifespan)
 
 # Configure structured request logger
 logger = logging.getLogger("customer_sphere")
@@ -234,10 +168,17 @@ app.add_middleware(
 
 # Register all modular routers
 app.include_router(auth_router)
-app.include_router(dashboard_router)
-app.include_router(customers_router)
-app.include_router(orders_router)
-app.include_router(products_router)
-app.include_router(reviews_router)
-app.include_router(interactions_router)
-app.include_router(audit_logs_router)
+authenticated_route = [Depends(auth)]
+app.include_router(dashboard_router, dependencies=authenticated_route)
+app.include_router(customers_router, dependencies=authenticated_route)
+app.include_router(orders_router, dependencies=authenticated_route)
+app.include_router(products_router, dependencies=authenticated_route)
+app.include_router(reviews_router, dependencies=authenticated_route)
+app.include_router(interactions_router, dependencies=authenticated_route)
+app.include_router(audit_logs_router, dependencies=authenticated_route)
+app.include_router(predictions_router, dependencies=authenticated_route)
+app.include_router(churn_analytics_router, prefix="/api/analytics", dependencies=authenticated_route)
+app.include_router(campaigns_forecast_router, prefix="/api/analytics", dependencies=authenticated_route)
+app.include_router(cohort_trend_router, prefix="/api/analytics", dependencies=authenticated_route)
+app.include_router(clv_router, prefix="/api/analytics", dependencies=authenticated_route)
+app.include_router(model_evaluation_router, prefix="/api/analytics", dependencies=authenticated_route)

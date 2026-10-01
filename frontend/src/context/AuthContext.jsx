@@ -105,7 +105,7 @@ export function AuthProvider({ children }) {
    * Authenticate and add a new profile to active sessions
    */
   const loginAndSwitch = async (credentials) => {
-    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api"}/auth/login`, {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api"}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credentials),
@@ -146,4 +146,3 @@ export function AuthProvider({ children }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
-

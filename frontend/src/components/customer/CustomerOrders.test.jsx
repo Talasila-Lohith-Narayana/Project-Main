@@ -83,6 +83,29 @@ describe("CustomerOrders Component", () => {
     expect(screen.queryByRole("button", { name: /edit/i })).not.toBeInTheDocument();
   });
 
+  it("selects individual orders and deletes them in bulk for admins", () => {
+    const onBulkDelete = vi.fn();
+    render(
+      <CustomerOrders
+        items={mockOrders}
+        isAdmin={true}
+        onAddOrder={vi.fn()}
+        onEditOrder={vi.fn()}
+        onBulkDelete={onBulkDelete}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /select order ord_abc/i }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /select order ord_xyz/i }));
+    expect(screen.getByRole("button", { name: /delete 2 selected/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /delete 2 selected/i }));
+    expect(onBulkDelete).toHaveBeenCalledWith(
+      ["ord_abc123456789", "ord_xyz987"],
+      expect.any(Function),
+    );
+  });
+
   it("renders empty state message when order history is empty or omitted", () => {
     const { rerender } = render(
       <CustomerOrders

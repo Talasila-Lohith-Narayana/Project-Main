@@ -31,7 +31,8 @@ import os
 from datetime import datetime, timedelta, date, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
+from pydantic import BaseModel, Field
 from ..auth import auth, admin_auth
 from ..database import get_db
 from ..models import AuditLog
@@ -39,6 +40,10 @@ from ..schemas import OrderIn
 from ..utils import rows
 
 router = APIRouter(tags=["orders"])
+
+
+class BulkOrderDeleteIn(BaseModel):
+    order_ids: list[str] = Field(min_length=1, max_length=100)
 
 # ------------------------------------------------------------------------------
 # 1. Fetch Customer Order History
@@ -49,6 +54,18 @@ def orders(cid: str, db: Session = Depends(get_db), _: str = Depends(auth)):
     Returns order transaction history for a specific customer.
     UI Component: 'Order history' table on `Customer.jsx`.
     """
+    customer = db.execute(
+        text(
+            """SELECT customer_unique_id
+            FROM customers
+            WHERE customer_unique_id = :id OR customer_id = :id
+            LIMIT 1"""
+        ),
+        {"id": cid},
+    ).mappings().first()
+    if not customer:
+        raise HTTPException(404, "Customer not found")
+
     rs = db.execute(
         text(
             """SELECT 
@@ -68,11 +85,11 @@ def orders(cid: str, db: Session = Depends(get_db), _: str = Depends(auth)):
             LEFT JOIN order_items oi ON oi.order_id = o.order_id 
             LEFT JOIN products p ON p.product_id = oi.product_id
             LEFT JOIN order_payments op ON op.order_id = o.order_id
-            WHERE c.customer_unique_id = :id OR c.customer_id = :id 
+            WHERE c.customer_unique_id = :unique_id
             GROUP BY o.order_id, o.order_status, o.order_purchase_timestamp, o.order_delivered_customer_date, o.order_estimated_delivery_date 
             ORDER BY o.order_purchase_timestamp DESC LIMIT 50"""
         ),
-        {"id": cid},
+        {"unique_id": customer["customer_unique_id"]},
     ).fetchall()
     return {"items": rows(rs)}
 
@@ -535,6 +552,113 @@ def update_order(
 # ------------------------------------------------------------------------------
 # 4. Delete Order (Admin Only)
 # ------------------------------------------------------------------------------
+@router.post("/api/customers/{cid}/orders/bulk-delete")
+def bulk_delete_orders(
+    cid: str,
+    payload: BulkOrderDeleteIn,
+    db: Session = Depends(get_db),
+    u: dict = Depends(admin_auth),
+):
+    """Deletes selected orders for one customer in a single transaction."""
+    customer = db.execute(
+        text(
+            """SELECT customer_id, customer_unique_id
+            FROM customers
+            WHERE customer_unique_id=:id OR customer_id=:id
+            LIMIT 1"""
+        ),
+        {"id": cid},
+    ).mappings().first()
+    if not customer:
+        raise HTTPException(404, "Customer not found")
+
+    order_ids = list(dict.fromkeys(payload.order_ids))
+    owned_ids = db.execute(
+        text(
+            """SELECT o.order_id
+            FROM orders o
+            JOIN customers c ON c.customer_id = o.customer_id
+            WHERE c.customer_unique_id=:uid AND o.order_id IN :order_ids"""
+        ).bindparams(bindparam("order_ids", expanding=True)),
+        {"uid": customer["customer_unique_id"], "order_ids": order_ids},
+    ).scalars().all()
+    if len(owned_ids) != len(order_ids):
+        raise HTTPException(400, "One or more selected orders do not belong to this customer")
+
+    db.execute(
+        text("DELETE FROM order_reviews WHERE order_id IN :order_ids").bindparams(
+            bindparam("order_ids", expanding=True)
+        ),
+        {"order_ids": order_ids},
+    )
+    db.execute(
+        text("DELETE FROM order_items WHERE order_id IN :order_ids").bindparams(
+            bindparam("order_ids", expanding=True)
+        ),
+        {"order_ids": order_ids},
+    )
+    db.execute(
+        text("DELETE FROM order_payments WHERE order_id IN :order_ids").bindparams(
+            bindparam("order_ids", expanding=True)
+        ),
+        {"order_ids": order_ids},
+    )
+    db.execute(
+        text("DELETE FROM orders WHERE order_id IN :order_ids").bindparams(
+            bindparam("order_ids", expanding=True)
+        ),
+        {"order_ids": order_ids},
+    )
+
+    agg = db.execute(
+        text(
+            """SELECT COUNT(DISTINCT o.order_id) AS freq,
+                COALESCE(SUM(oi.price + oi.freight_value), 0) AS mon_tot,
+                MAX(o.order_purchase_timestamp) AS latest_ts
+            FROM customers c
+            JOIN orders o ON o.customer_id = c.customer_id
+            LEFT JOIN order_items oi ON oi.order_id = o.order_id
+            WHERE c.customer_unique_id=:uid"""
+        ),
+        {"uid": customer["customer_unique_id"]},
+    ).fetchone()
+    freq = agg[0] or 0
+    monetary_total = float(agg[1] or 0)
+    latest_ts = agg[2]
+    recency = max(0, (datetime(2018, 9, 30) - latest_ts).days) if latest_ts else 0
+    avg_score = db.execute(
+        text(
+            """SELECT COALESCE(AVG(r.review_score), 0)
+            FROM customers c
+            JOIN orders o ON o.customer_id = c.customer_id
+            JOIN order_reviews r ON r.order_id = o.order_id
+            WHERE c.customer_unique_id=:uid"""
+        ),
+        {"uid": customer["customer_unique_id"]},
+    ).scalar() or 0.0
+    db.execute(
+        text(
+            """UPDATE customer_metrics_cache
+            SET frequency=:f, monetary_total=:m, recency_days=:r, avg_review_score=:score
+            WHERE customer_id IN (
+                SELECT customer_id FROM customers WHERE customer_unique_id=:uid
+            ) OR customer_unique_id=:uid"""
+        ),
+        {"f": freq, "m": monetary_total, "r": recency, "score": float(avg_score), "uid": customer["customer_unique_id"]},
+    )
+    db.add(
+        AuditLog(
+            customer_id=customer["customer_unique_id"],
+            action="Deleted orders",
+            performed_by=u.get("sub", "admin"),
+            details=f"Deleted {len(order_ids)} orders: {', '.join(order_ids)}.",
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        )
+    )
+    db.commit()
+    return {"deleted": True, "order_ids": order_ids, "count": len(order_ids)}
+
+
 @router.delete("/api/customers/{cid}/orders/{order_id}")
 def delete_order(
     cid: str,

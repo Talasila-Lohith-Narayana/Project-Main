@@ -98,8 +98,8 @@ describe("DashboardKpiCards Component", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/products?sort=price_desc");
 
     // Repeat Rate
-    fireEvent.click(screen.getByTitle("Click to jump: Champions"));
-    expect(mockNavigate).toHaveBeenCalledWith("/customers?segment=Champions");
+    fireEvent.click(screen.getByTitle("Click to jump: Repeat customers"));
+    expect(mockNavigate).toHaveBeenCalledWith("/customers?activity=active&min_orders=2");
   });
 
   it("handles empty or default kpi props gracefully", () => {

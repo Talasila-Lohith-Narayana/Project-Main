@@ -15,7 +15,7 @@ WHAT PART OF THE UI HANDLES THIS:
    - Top KPI Cards: Total Customers (96k+), Total Orders (99k+), Total Revenue (R$ 16.0M),
      Average Rating (4.1★), Repeat Customer Rate, Average Order Value (AOV), Avg Delivery Speed.
    - Monthly Revenue & Order Volume Area Chart.
-   - Customer Segmentation Donut Chart (Champions, Engaged, At Risk, New).
+   - Customer Segmentation Chart with ML labels and churn probabilities.
    - Top Product Categories Bar Chart.
    - Regional Revenue by Brazilian State Map / Chart.
    - Payment Methods Breakdown (Credit Card, Boleto, Voucher, Debit).
@@ -217,12 +217,20 @@ def dashboard(
     if time_filter_orders:
         seg = db.execute(
             text(
-                f"""SELECT c.segment, COUNT(DISTINCT c.customer_unique_id) as count 
+                f"""SELECT rt.risk_tier AS segment,
+                COUNT(DISTINCT c.customer_unique_id) as count,
+                ROUND(COALESCE(AVG(cp.churn_probability) * 100, 0), 2) AS churn_percentage
                 FROM customer_metrics_cache c
                 JOIN customers cust ON cust.customer_unique_id = c.customer_unique_id
                 JOIN orders o ON o.customer_id = cust.customer_id
+                JOIN customer_intelligence.customer_risk_tiers rt
+                    ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                       c.customer_unique_id COLLATE utf8mb4_unicode_ci
+                JOIN customer_intelligence.churn_predictions cp
+                    ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                       c.customer_unique_id COLLATE utf8mb4_unicode_ci
                 {time_filter_orders}
-                GROUP BY c.segment 
+                GROUP BY rt.risk_tier
                 ORDER BY count DESC"""
             ),
             params,
@@ -230,9 +238,23 @@ def dashboard(
     else:
         seg = db.execute(
             text(
-                """SELECT segment, COUNT(*) as count 
-                FROM (SELECT customer_unique_id, segment FROM customer_metrics_cache GROUP BY customer_unique_id, segment) t 
-                GROUP BY segment 
+                """SELECT segment, COUNT(*) AS count,
+                ROUND(COALESCE(AVG(churn_probability) * 100, 0), 2) AS churn_percentage
+                FROM (
+                    SELECT c.customer_unique_id,
+                        rt.risk_tier AS segment,
+                        cp.churn_probability
+                    FROM customer_metrics_cache c
+                    JOIN customer_intelligence.customer_risk_tiers rt
+                        ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                           c.customer_unique_id COLLATE utf8mb4_unicode_ci
+                    JOIN customer_intelligence.churn_predictions cp
+                        ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                           c.customer_unique_id COLLATE utf8mb4_unicode_ci
+                    GROUP BY c.customer_unique_id, rt.risk_tier,
+                        cp.churn_probability
+                ) t
+                GROUP BY segment
                 ORDER BY count DESC"""
             )
         ).fetchall()
@@ -387,24 +409,20 @@ def dashboard(
         params,
     ).fetchall()
 
-    # 9. Churn Risk Summary (computed from customer_metrics_cache)
+    # 9. Churn Risk Summary from ML model probabilities
     churn_risk_rows = db.execute(
         text(
             """SELECT
-                SUM(CASE WHEN churn_score >= 51 THEN 1 ELSE 0 END) as high,
-                SUM(CASE WHEN churn_score BETWEEN 21 AND 50 THEN 1 ELSE 0 END) as medium,
-                SUM(CASE WHEN churn_score <= 20 THEN 1 ELSE 0 END) as low
+                SUM(CASE WHEN cp.churn_probability >= 0.70 THEN 1 ELSE 0 END) as high,
+                SUM(CASE WHEN cp.churn_probability >= 0.30 AND cp.churn_probability < 0.70 THEN 1 ELSE 0 END) as medium,
+                SUM(CASE WHEN cp.churn_probability < 0.30 THEN 1 ELSE 0 END) as low
             FROM (
-                SELECT customer_unique_id,
-                    (CASE WHEN recency_days > 180 THEN 30 WHEN recency_days > 120 THEN 15 ELSE 0 END)
-                    + (CASE WHEN frequency = 1 THEN 25 ELSE 0 END)
-                    + (CASE WHEN avg_review_score > 0 AND avg_review_score < 3.0 THEN 20 ELSE 0 END)
-                    + (CASE WHEN monetary_total < 50 THEN 10 ELSE 0 END)
-                    + (CASE WHEN segment = 'At Risk' THEN 20 ELSE 0 END)
-                    AS churn_score
+                SELECT DISTINCT customer_unique_id
                 FROM customer_metrics_cache
-                GROUP BY customer_unique_id, recency_days, frequency, avg_review_score, monetary_total, segment
-            ) scored"""
+            ) scored
+            JOIN customer_intelligence.churn_predictions cp
+              ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                 scored.customer_unique_id COLLATE utf8mb4_unicode_ci"""
         )
     ).fetchone()
     churn_risk_summary = {

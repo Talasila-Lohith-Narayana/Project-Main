@@ -32,7 +32,7 @@ const mockCustomersList = {
       customer_unique_id: "uid_111111",
       customer_city: "Sao Paulo",
       customer_state: "SP",
-      segment: "Champions",
+      segment: "High Risk",
       monetary_total: 1200,
       frequency: 3,
       avg_review_score: 5,
@@ -43,7 +43,7 @@ const mockCustomersList = {
       customer_unique_id: "uid_222222",
       customer_city: "Rio de Janeiro",
       customer_state: "RJ",
-      segment: "Engaged",
+      segment: "High Risk",
       monetary_total: 450,
       frequency: 2,
       avg_review_score: 4,
@@ -124,7 +124,7 @@ describe("Customers Directory Page", () => {
     const listSpy = vi.spyOn(ApiModule.customerService, "list").mockResolvedValue(mockCustomersList);
 
     render(
-      <MemoryRouter initialEntries={["/customers?state=SP&segment=Champions&activity=active&rating=5&sort=spend-desc"]}>
+      <MemoryRouter initialEntries={["/customers?state=SP&segment=High%20Risk&activity=active&rating=5&sort=spend-desc"]}>
         <Routes>
           <Route path="/customers" element={<Customers />} />
         </Routes>
@@ -134,7 +134,7 @@ describe("Customers Directory Page", () => {
     await waitFor(() => {
       expect(listSpy).toHaveBeenCalledWith(expect.objectContaining({
         state: "SP",
-        segment: "Champions",
+        segment: "High Risk",
         activity: "active",
         rating: "5",
         sort_by: "spend",
@@ -355,14 +355,14 @@ describe("Customers Directory Page", () => {
     expect(screen.getByRole("heading", { name: /Update Segment/i })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Target Segment/i), {
-      target: { value: "Champions" },
+      target: { value: "High Risk" },
     });
     fireEvent.click(screen.getByRole("button", { name: /Apply to Selected/i }));
 
     await waitFor(() => {
       expect(bulkSegmentSpy).toHaveBeenCalledWith({
         customer_unique_ids: ["uid_111111"],
-        segment: "Champions",
+        segment: "High Risk",
       });
     });
 

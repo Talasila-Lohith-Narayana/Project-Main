@@ -6,7 +6,7 @@
  * WHAT THIS FILE DOES (Plain English):
  * ------------------------------------
  * This is the advanced filter popup for the Customers directory. It allows filtering
- * customers by State (e.g. SP, RJ), Segment (Champions, Engaged, At Risk, New),
+ * customers by State (e.g. SP, RJ), Segment (ML customer segments),
  * Activity status (has orders vs no orders), Minimum spend, and Star ratings.
  * 
  * WHAT PART OF THE UI HANDLES THIS:
@@ -255,4 +255,3 @@ export default function FilterModal({
     </div>
   );
 }
-

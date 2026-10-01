@@ -42,10 +42,27 @@ class Login(BaseModel):
 # ------------------------------------------------------------------------------
 class CustomerIn(BaseModel):
     customer_unique_id: str = Field(min_length=1, max_length=32, description="Unique 32-character customer hash")
-    customer_zip_code_prefix: int = Field(ge=0, le=999999, description="Up to 6-digit postal code prefix")
+    customer_zip_code_prefix: str = Field(
+        min_length=1,
+        max_length=6,
+        pattern=r"^[0-9]{1,6}$",
+        description="Up to 6-digit postal code prefix",
+    )
     customer_city: str = Field(min_length=1, max_length=100, description="City name")
     customer_state: str = Field(min_length=2, max_length=2, description="2-letter Brazilian state code (e.g. SP, RJ)")
     segment: str | None = Field(default=None, description="Optional RFM customer segment")
+
+    @field_validator("customer_zip_code_prefix", mode="before")
+    @classmethod
+    def clean_postal_prefix(cls, value):
+        if isinstance(value, int) and not isinstance(value, bool):
+            value = str(value)
+        if not isinstance(value, str):
+            raise ValueError("Postal code prefix must contain 1 to 6 digits")
+        value = value.strip()
+        if not 1 <= len(value) <= 6 or not value.isascii() or not value.isdigit():
+            raise ValueError("Postal code prefix must contain 1 to 6 digits")
+        return value
 
     @field_validator("customer_unique_id", "customer_city", "customer_state")
     @classmethod
@@ -60,7 +77,11 @@ class CustomerIn(BaseModel):
     def clean_segment(cls, v):
         if v is not None:
             v = v.strip()
-            allowed = ["Champions", "Engaged", "At Risk", "New / Developing"]
+            allowed = [
+                "High Risk",
+                "Medium Risk",
+                "Low Risk",
+            ]
             if v and v not in allowed:
                 raise ValueError(f"Segment must be one of: {', '.join(allowed)}")
         return v

@@ -116,8 +116,8 @@ export default function DashboardKpiCards({ kpis = {}, repeatRate, navigate, com
       badgeText: "Multi-order retention",
       badgeColor: "purple",
       theme: "purple",
-      onClick: () => navigate("/customers?segment=Champions"),
-      linkHint: "Champions",
+      onClick: () => navigate("/customers?activity=active&min_orders=2"),
+      linkHint: "Repeat customers",
     },
   ];
 
@@ -185,4 +185,3 @@ export default function DashboardKpiCards({ kpis = {}, repeatRate, navigate, com
     </div>
   );
 }
-

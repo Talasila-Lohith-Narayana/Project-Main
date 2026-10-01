@@ -33,6 +33,7 @@ import FilterModal from "../components/FilterModal";
 import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { SEGMENT_COLORS } from "../components/dashboard/dashboardConstants";
 
 // Reference data for filters and sorts (All 27 Brazilian States & Federal District)
 const states = [
@@ -40,7 +41,12 @@ const states = [
   "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
   "RO", "RR", "RS", "SC", "SE", "SP", "TO"
 ];
-const segments = ["", "Champions", "Engaged", "At Risk", "New / Developing"];
+const segments = [
+  "",
+  "High Risk",
+  "Medium Risk",
+  "Low Risk",
+];
 const activityOptions = [
   ["", "All activity"],
   ["active", "Has orders"],
@@ -112,7 +118,7 @@ export default function Customers() {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkModal, setShowBulkModal] = useState(false);
-  const [bulkSegment, setBulkSegment] = useState("Champions");
+  const [bulkSegment, setBulkSegment] = useState("Low Risk");
   const [bulkBusy, setBulkBusy] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const sortMenuRef = useRef(null);
@@ -164,6 +170,7 @@ export default function Customers() {
         segment,
         activity,
         rating: ratings.length ? ratings.join(",") : undefined,
+        churn_risk: churnRisk.length ? churnRisk.join(",") : undefined,
         max_recency: maxRecency || undefined,
         min_spend: minSpend || undefined,
         min_orders: minOrders || undefined,
@@ -653,10 +660,14 @@ export default function Customers() {
                     </td>
                     <td>
                       <em>
-                        {customer.churn_risk_level && (
+                      {customer.segment && (
                           <span
-                            className={`churnDot ${customer.churn_risk_level}`}
-                            title={`Churn risk: ${customer.churn_risk_level} (${customer.churn_risk_score}pts)`}
+                            className="churnDot"
+                            style={{
+                            background: SEGMENT_COLORS[customer.segment] || "#94a3b8",
+                            boxShadow: `0 0 6px ${(SEGMENT_COLORS[customer.segment] || "#94a3b8")}66`,
+                            }}
+                          title={`Segment: ${customer.segment}`}
                           />
                         )}
                         {customer.segment}
@@ -763,10 +774,9 @@ export default function Customers() {
                 onChange={(e) => setBulkSegment(e.target.value)}
                 style={{ width: "100%", marginTop: 4 }}
               >
-                <option value="Champions">Champions (High Spend & Frequency)</option>
-                <option value="Engaged">Engaged (Recent & Active)</option>
-                <option value="At Risk">At Risk (Lapsing / Churn Risk)</option>
-                <option value="New / Developing">New / Developing</option>
+                <option value="High Risk">High Risk</option>
+                <option value="Medium Risk">Medium Risk</option>
+                <option value="Low Risk">Low Risk</option>
               </select>
             </label>
             <div className="actions" style={{ marginTop: 18 }}>

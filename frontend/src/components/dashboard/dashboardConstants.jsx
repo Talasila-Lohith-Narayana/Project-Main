@@ -29,10 +29,17 @@ export const COMPARE_OPTIONS = [
 
 
 export const SEGMENT_COLORS = {
-  Champions: "#10b981",       // Vibrant Emerald Green (Top tier)
-  Engaged: "#0ea5e9",         // Sky Blue (Loyal/Engaged)
-  "At Risk": "#f43f5e",        // Rose / Crimson Red (High risk)
-  "New / Developing": "#8b5cf6", // Vibrant Indigo / Violet (New potential)
+  "High Risk": "#f43f5e",
+  "Medium Risk": "#f59e0b",
+  "Low Risk": "#10b981",
+};
+
+export const getSegmentChurnColor = (churnPercentage) => {
+  const percentage = Number(churnPercentage);
+  if (!Number.isFinite(percentage)) return "#94a3b8";
+  if (percentage < 30) return "#16a34a";
+  if (percentage < 70) return "#f59e0b";
+  return "#dc2626";
 };
 
 export const PAYMENT_ICONS = {
@@ -64,7 +71,9 @@ export const SegmentBarTooltip = ({ active, payload }) => {
     const dataPoint = payload[0].payload;
     const segmentName = dataPoint.segment;
     const count = Number(dataPoint.count || 0);
-    const color = SEGMENT_COLORS[segmentName] || "#38bdf8";
+    const color = getSegmentChurnColor(
+      dataPoint.churn_percentage ?? dataPoint.churnPercentage,
+    );
 
     return (
       <div
@@ -88,6 +97,12 @@ export const SegmentBarTooltip = ({ active, payload }) => {
         <div style={{ marginTop: 4, display: "flex", justifyContent: "space-between", color: "#94a3b8", fontSize: "12px" }}>
           <span>Customer count:</span>
           <b style={{ color: "#38bdf8", fontFamily: "Space Grotesk" }}>{count.toLocaleString("en-US")}</b>
+        </div>
+        <div style={{ marginTop: 4, display: "flex", justifyContent: "space-between", color: "#94a3b8", fontSize: "12px" }}>
+          <span>Average churn:</span>
+          <b style={{ color, fontFamily: "Space Grotesk" }}>
+            {Number(dataPoint.churn_percentage || 0).toFixed(1)}%
+          </b>
         </div>
       </div>
     );

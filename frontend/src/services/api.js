@@ -20,7 +20,7 @@ import axios from "axios";
 
 // Create Axios client pointing to the backend API base URL
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api",
 });
 
 // Request Interceptor: Attach JWT Bearer token from localStorage to every outgoing request
@@ -105,6 +105,76 @@ export const dashboardService = {
   },
 };
 
+/** Aggregate customer, value, and cohort analytics endpoints */
+export const analyticsService = {
+  /** Fetch aggregate customer lifetime value metrics */
+  clvSummary: () => data(api.get("/analytics/clv/summary")),
+  /** Fetch customer counts and lifetime value by value tier */
+  valueTiers: () => data(api.get("/analytics/customers/byvaluetier")),
+  /** Fetch one summary row per acquisition cohort */
+  cohortSummary: (params = {}) =>
+    data(api.get("/analytics/cohort/summary", { params })),
+  /** Fetch active campaigns and customer targeting counts */
+  activeCampaigns: () => data(api.get("/analytics/campaigns/active")),
+  /** Fetch campaign allocation by customer segment */
+  campaignsBySegment: () => data(api.get("/analytics/campaigns/by-segment")),
+  /** Fetch delivery KPIs and churn comparison by delivery status */
+  deliveryPerformance: () => data(api.get("/analytics/delivery/performance")),
+  /** Fetch active model version and configured features */
+  modelVersion: () => data(api.get("/analytics/model/version")),
+  /** Fetch model calibration metrics before and after calibration */
+  modelCalibration: () => data(api.get("/analytics/model/calibration")),
+  /** Fetch churn definition and retained/churned/censored counts */
+  churnDefinition: () => data(api.get("/analytics/churn/definition")),
+  /** Fetch CLV, value tier, segment, and churn data for one customer unique ID */
+  customerClv: (customerUniqueId) =>
+    data(api.get(`/analytics/customers/${customerUniqueId}/clv`)),
+  /** Fetch the stored or rules-based campaign recommendation for one customer */
+  customerCampaign: (customerUniqueId) =>
+    data(api.post("/analytics/campaigns/evaluate", {
+      customer_unique_id: customerUniqueId,
+    })),
+  /** Fetch delivered-order details for one customer unique ID */
+  customerDelivery: (customerUniqueId) =>
+    data(api.get(`/analytics/customers/${customerUniqueId}/delivery`)),
+  /** Fetch customers targeted by one campaign */
+  campaignCustomers: (campaignName, params = {}) =>
+    data(api.get(
+      `/analytics/campaigns/${encodeURIComponent(campaignName)}/customers`,
+      { params },
+    )),
+  /** Fetch model test-set performance metrics */
+  modelPerformance: () => data(api.get("/analytics/model/performance-summary")),
+  /** Fetch benchmark metrics for champion and baseline models */
+  modelComparison: () => data(api.get("/analytics/model/comparison")),
+  /** Fetch experiments comparing class-imbalance strategies */
+  modelImbalanceExperiments: (params = {}) =>
+    data(api.get("/analytics/model/imbalance-experiments", { params })),
+  /** Fetch aggregate churn rates and counts from stored model predictions */
+  churnSummary: (params = {}) =>
+    data(api.get("/analytics/churn/summary", { params })),
+  /** Fetch globally aggregated positive SHAP drivers */
+  churnTopFeatures: (params = {}) =>
+    data(api.get("/analytics/churn/top-features", { params })),
+  /** Fetch global mean absolute SHAP importance */
+  churnFeatureImportance: (params = {}) =>
+    data(api.get("/analytics/churn/feature-importance-global", { params })),
+  /** Fetch one customer's stored churn risk-tier record */
+  customerRisk: (customerUniqueId) =>
+    data(api.get(`/analytics/members/${encodeURIComponent(customerUniqueId)}/risk`)),
+  /** Fetch when stored churn predictions were most recently scored */
+  churnLastRefresh: () => data(api.get("/analytics/data/last-refresh")),
+  /** Fetch the distribution of stored churn probabilities */
+  churnProbabilityDistribution: () =>
+    data(api.get("/analytics/churn/probability-distribution")),
+  /** Fetch counts and definitions for stored churn reason codes */
+  churnReasonCodeSummary: () =>
+    data(api.get("/analytics/churn/reason-codes/summary")),
+  /** Fetch stored SHAP values and human-readable reasons for one customer */
+  customerExplanation: (customerUniqueId) =>
+    data(api.get(`/analytics/customers/${encodeURIComponent(customerUniqueId)}/explanation`)),
+};
+
 /** Products catalog service endpoints */
 export const productsService = {
   /** Fetch catalog products with filters, sorting and pagination */
@@ -161,6 +231,8 @@ export const customerService = {
   /** Delete an order and its associated reviews and items */
   removeOrder: (id, orderId) =>
     data(api.delete(`/customers/${id}/orders/${orderId}`)),
+  removeOrders: (id, orderIds) =>
+    data(api.post(`/customers/${id}/orders/bulk-delete`, { order_ids: orderIds })),
   /** Bulk update segment for multiple customers */
   bulkSegmentUpdate: (payload) =>
     data(api.post("/customers/bulk-segment", payload)),
@@ -176,3 +248,10 @@ export const customerService = {
   globalAuditLogs: (params) => data(api.get("/audit-logs", { params })),
 };
 
+/** AI Intelligence & Machine Learning endpoints */
+export const predictionService = {
+  /** Fetch complete ML insights (Churn, SHAP, CLV, AI Segment, Recommendations) */
+  get: (idOrUniqueId) => data(api.get(`/predictions/${idOrUniqueId}`)),
+  /** Manually trigger model scoring for a customer */
+  rescore: (idOrUniqueId) => data(api.post(`/predictions/${idOrUniqueId}/rescore`)),
+};

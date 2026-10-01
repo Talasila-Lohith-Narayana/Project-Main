@@ -6,7 +6,7 @@ import CustomerOverview from "./CustomerOverview";
 describe("CustomerOverview Component", () => {
   const mockCustomer = {
     customer_id: "cust_123",
-    segment: "Champions",
+    segment: "High Risk",
     has_order_history: true,
     monetary_total: 1200.5,
     monetary_avg: 400.17,
@@ -44,8 +44,8 @@ describe("CustomerOverview Component", () => {
     expect(screen.getByText("Tenure")).toBeInTheDocument();
     expect(screen.getByText("Weekend ratio")).toBeInTheDocument();
 
-    // Projected CLV for Champions is 1.4 * monetary_total (1200.5 * 1.4 = 1680.70)
-    expect(screen.getByText("R$ 1,680.70")).toBeInTheDocument();
+    // Projected CLV is based on the customer's realized monetary total.
+    expect(screen.getByText("R$ 1,200.50")).toBeInTheDocument();
     expect(screen.getByText("145 days")).toBeInTheDocument();
     expect(screen.getByText("33.3%")).toBeInTheDocument();
   });

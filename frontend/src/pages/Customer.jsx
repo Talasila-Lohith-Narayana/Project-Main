@@ -40,9 +40,11 @@ import {
   Trash2,
   TrendingUp,
   WalletCards,
+  BrainCircuit,
+  RefreshCw,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { customerService } from "../services/api";
+import { customerService, predictionService } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import InteractionModal from "../components/InteractionModal";
 import OrderModal from "../components/OrderModal";
@@ -59,6 +61,8 @@ import CustomerOrders from "../components/customer/CustomerOrders";
 import CustomerReviews from "../components/customer/CustomerReviews";
 import CustomerInteractions from "../components/customer/CustomerInteractions";
 import CustomerAuditLogs from "../components/customer/CustomerAuditLogs";
+import CustomerAnalytics from "../components/customer/CustomerAnalytics";
+import CustomerAiInsights from "../components/customer/CustomerAiInsights";
 
 export default function Customer() {
   const { id } = useParams();
@@ -76,12 +80,49 @@ export default function Customer() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [editingInteraction, setEditingInteraction] = useState(null);
+  const [rescoreLoading, setRescoreLoading] = useState(false);
+  const [bulkOrderDeleteLoading, setBulkOrderDeleteLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const handleManualRescore = async () => {
+    setRescoreLoading(true);
+    try {
+      const freshPredictions = await predictionService.rescore(id);
+      setData((prev) => ({
+        ...prev,
+        predictions: freshPredictions,
+      }));
+      toast.success("AI Model executed successfully! Predictions updated.");
+      setTab("ai-insights");
+    } catch (err) {
+      toast.error(err.message || "Failed to execute AI model.");
+    } finally {
+      setRescoreLoading(false);
+    }
+  };
+
+  const handleBulkOrderDelete = async (orderIds, clearSelection) => {
+    if (!window.confirm(`Delete ${orderIds.length} selected order${orderIds.length === 1 ? "" : "s"}? This cannot be undone.`)) {
+      return;
+    }
+    setBulkOrderDeleteLoading(true);
+    try {
+      await customerService.removeOrders(id, orderIds);
+      clearSelection();
+      toast.success(`${orderIds.length} order${orderIds.length === 1 ? "" : "s"} deleted successfully.`);
+      await load();
+      setTab("orders");
+    } catch (err) {
+      toast.error(err.message || "Failed to delete selected orders.");
+    } finally {
+      setBulkOrderDeleteLoading(false);
+    }
+  };
 
   const load = async () => {
     setError("");
     try {
-      const [detail, orders, products, reviews, interactions, auditLogs] =
+      const [detail, orders, products, reviews, interactions, auditLogs, predictions] =
         await Promise.all([
           customerService.detail(id),
           customerService.orders(id),
@@ -89,6 +130,7 @@ export default function Customer() {
           customerService.reviews(id),
           customerService.interactions(id),
           customerService.auditLogs(id),
+          predictionService.get(id).catch(() => null),
         ]);
       setData({
         detail,
@@ -97,6 +139,7 @@ export default function Customer() {
         reviews: reviews.items,
         interactions,
         auditLogs: auditLogs.items,
+        predictions,
       });
     } catch (requestError) {
       setError(requestError.message);
@@ -138,24 +181,27 @@ export default function Customer() {
     );
 
   const customer = data.detail;
+  const predictions = data.predictions;
 
-  // Use backend computed Customer Lifetime Value (CLV) with client-side fallback
-  const segmentMultipliers = {
-    Champions: 1.4,
-    Engaged: 1.25,
-    "New / Developing": 1.1,
-    "At Risk": 1.02,
-  };
-  const multiplier = segmentMultipliers[customer.segment] || 1.1;
+  const mlClv = predictions?.clv?.predicted_clv;
   const realizedSpend = Number(customer.monetary_total || 0);
   const estimatedClv =
-    customer.customer_lifetime_value != null
+    mlClv != null
+      ? Number(mlClv)
+      : customer.customer_lifetime_value != null
       ? Number(customer.customer_lifetime_value)
-      : realizedSpend * multiplier;
+      : realizedSpend;
+
+  const mlSegmentLabel =
+    typeof predictions?.segmentation?.segment_label === "string"
+      ? predictions.segmentation.segment_label.trim()
+      : "";
+  const activeSegment =
+    mlSegmentLabel || customer.segment || "ML segment unavailable";
 
   const features = [
     [
-      "CLV (Lifetime Value)",
+      "CLV (ML Predicted)",
       `R$ ${estimatedClv.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       WalletCards,
       "emerald",
@@ -188,7 +234,7 @@ export default function Customer() {
       <div className="profile">
         <div className="heroAvatar">{customer.customer_city?.[0]}</div>
         <div className="profileText">
-          <span>CONSUMER PROFILE · {customer.segment}</span>
+          <span>CONSUMER PROFILE · {activeSegment}</span>
           <h1>{customer.customer_unique_id}</h1>
           <p>
             <MapPin size={14} /> {customer.customer_city},{" "}
@@ -220,27 +266,60 @@ export default function Customer() {
         ))}
       </div>
 
-      <div className="tabs">
-        {[
-          ["overview", "Overview", TrendingUp],
-          ["products", "Products", Package],
-          ["orders", "Orders", ShoppingBag],
-          ["reviews", "Reviews", MessageSquare],
-          ["activity", "Activity", Activity],
-          ["audit", "Audit Log", History],
-        ].map(([key, label, Icon]) => (
-          <button
-            key={key}
-            className={tab === key ? "active" : ""}
-            onClick={() => setTab(key)}
-          >
-            <Icon size={15} />
-            {label}
-          </button>
-        ))}
+      <div className="tabs" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          {[
+            ["overview", "Overview", TrendingUp],
+            ["ai-insights", "AI Insights", BrainCircuit],
+            ["products", "Products", Package],
+            ["orders", "Orders", ShoppingBag],
+            ["reviews", "Reviews", MessageSquare],
+            ["activity", "Activity", Activity],
+            ["audit", "Audit Log", History],
+          ].map(([key, label, Icon]) => (
+            <button
+              key={key}
+              className={tab === key ? "active" : ""}
+              onClick={() => setTab(key)}
+            >
+              <Icon size={15} />
+              {label}
+            </button>
+          ))}
+        </div>
+        <button
+          className="btn secondary"
+          onClick={handleManualRescore}
+          disabled={rescoreLoading}
+          title="Run calibrated LightGBM model manually to generate fresh predictions"
+          style={{
+            marginRight: 6,
+            marginBottom: 4,
+            padding: "5px 12px",
+            fontSize: 12,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <RefreshCw size={13} className={rescoreLoading ? "spin" : ""} style={{ color: "#6366f1" }} />
+          {rescoreLoading ? "Scoring..." : "Run AI Model"}
+        </button>
       </div>
 
-      {tab === "overview" && <CustomerOverview customer={customer} />}
+      {tab === "overview" && (
+        <>
+          <CustomerOverview customer={customer} predictions={data.predictions} />
+          <CustomerAnalytics customerUniqueId={customer.customer_unique_id} />
+        </>
+      )}
+      {tab === "ai-insights" && (
+        <CustomerAiInsights
+          predictions={data.predictions}
+          onRescore={handleManualRescore}
+          rescoreLoading={rescoreLoading}
+        />
+      )}
       {tab === "products" && <CustomerProducts items={data.products} />}
       {tab === "orders" && (
         <CustomerOrders
@@ -248,6 +327,8 @@ export default function Customer() {
           isAdmin={isAdmin}
           onAddOrder={() => setShowAddOrder(true)}
           onEditOrder={(order) => setEditingOrder(order)}
+          onBulkDelete={handleBulkOrderDelete}
+          bulkDeleteLoading={bulkOrderDeleteLoading}
         />
       )}
       {tab === "reviews" && (

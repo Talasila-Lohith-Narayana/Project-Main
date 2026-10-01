@@ -32,14 +32,13 @@ const initialForm = {
   customer_zip_code_prefix: "",
   customer_city: "",
   customer_state: "SP",
-  segment: "New / Developing",
+  segment: "Low Risk",
 };
 
 const SEGMENT_OPTIONS = [
-  "Champions",
-  "Engaged",
-  "At Risk",
-  "New / Developing",
+  "High Risk",
+  "Medium Risk",
+  "Low Risk",
 ];
 
 export default function CustomerModal({ customer, close, save }) {
@@ -48,10 +47,10 @@ export default function CustomerModal({ customer, close, save }) {
     customer
       ? {
         customer_unique_id: customer.customer_unique_id || "",
-        customer_zip_code_prefix: customer.customer_zip_code_prefix ?? "",
+        customer_zip_code_prefix: String(customer.customer_zip_code_prefix ?? ""),
         customer_city: customer.customer_city || "",
         customer_state: customer.customer_state || "SP",
-        segment: customer.segment || "New / Developing",
+        segment: customer.segment || "Low Risk",
       }
       : initialForm,
   );
@@ -79,12 +78,8 @@ export default function CustomerModal({ customer, close, save }) {
       setError("Customer Unique ID is too short (minimum 5 characters).");
       return;
     }
-    if (form.customer_zip_code_prefix === "" || isNaN(Number(form.customer_zip_code_prefix))) {
+    if (!/^[0-9]{1,6}$/.test(form.customer_zip_code_prefix)) {
       setError("Please enter a valid numeric ZIP code (e.g. 01310).");
-      return;
-    }
-    if (Number(form.customer_zip_code_prefix) < 0 || Number(form.customer_zip_code_prefix) > 999999) {
-      setError("ZIP code must be between 0 and 999999.");
       return;
     }
     if (!cleanCity) {
@@ -103,7 +98,7 @@ export default function CustomerModal({ customer, close, save }) {
         customer_unique_id: form.customer_unique_id.trim(),
         customer_city: form.customer_city.trim(),
         customer_state: cleanState,
-        customer_zip_code_prefix: Number(form.customer_zip_code_prefix),
+        customer_zip_code_prefix: form.customer_zip_code_prefix,
         segment: form.segment || undefined,
       });
     } catch (requestError) {
@@ -135,7 +130,7 @@ export default function CustomerModal({ customer, close, save }) {
 
         {customer && (
           <label>
-            RFM Customer Segment
+            ML Customer Segment
             <select
               value={form.segment}
               onChange={(event) => update("segment", event.target.value)}
@@ -152,9 +147,10 @@ export default function CustomerModal({ customer, close, save }) {
         <label>
           ZIP code
           <input
-            type="number"
-            min="0"
-            max="999999"
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            pattern="[0-9]{1,6}"
             value={form.customer_zip_code_prefix}
             onChange={(event) =>
               update("customer_zip_code_prefix", event.target.value)
@@ -202,4 +198,3 @@ export default function CustomerModal({ customer, close, save }) {
     </div>
   );
 }
-

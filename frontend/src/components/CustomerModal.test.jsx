@@ -6,10 +6,10 @@ import CustomerModal from "./CustomerModal";
 describe("CustomerModal Component", () => {
   const mockCustomer = {
     customer_unique_id: "uid_abcdef12345",
-    customer_zip_code_prefix: 13010,
+    customer_zip_code_prefix: "13010",
     customer_city: "Campinas",
     customer_state: "SP",
-    segment: "Champions",
+    segment: "High Risk",
   };
 
   it("pre-fills form inputs in edit mode", () => {
@@ -50,7 +50,7 @@ describe("CustomerModal Component", () => {
     // Out-of-bounds zip
     fireEvent.change(screen.getByLabelText(/ZIP code/i), { target: { value: "1000000" } });
     fireEvent.submit(form);
-    expect(screen.getByText(/ZIP code must be between 0 and 999999/i)).toBeInTheDocument();
+    expect(screen.getByText(/Please enter a valid numeric ZIP code/i)).toBeInTheDocument();
 
     // Valid zip, missing city
     fireEvent.change(screen.getByLabelText(/ZIP code/i), { target: { value: "13010" } });
@@ -70,9 +70,13 @@ describe("CustomerModal Component", () => {
 
     render(<CustomerModal customer={mockCustomer} close={mockClose} save={mockSave} />);
 
+    fireEvent.change(screen.getByLabelText(/ZIP code/i), {
+      target: { value: "01000" },
+    });
+
     // Change segment
-    fireEvent.change(screen.getByLabelText(/RFM Customer Segment/i), {
-      target: { value: "Engaged" },
+    fireEvent.change(screen.getByLabelText(/ML Customer Segment/i), {
+      target: { value: "High Risk" },
     });
 
     const submitBtn = screen.getByRole("button", { name: /save changes/i });
@@ -81,10 +85,10 @@ describe("CustomerModal Component", () => {
     await waitFor(() => {
       expect(mockSave).toHaveBeenCalledWith({
         customer_unique_id: "uid_abcdef12345",
-        customer_zip_code_prefix: 13010,
+        customer_zip_code_prefix: "01000",
         customer_city: "Campinas",
         customer_state: "SP",
-        segment: "Engaged",
+        segment: "High Risk",
       });
     });
   });

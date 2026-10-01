@@ -8,8 +8,12 @@ export const PAYMENT_ICONS = {
   debit_card: "🏧",
 };
 
-export default function CustomerOverview({ customer }) {
+export default function CustomerOverview({ customer, predictions }) {
   const hasHistory = customer.has_order_history !== false;
+  const mlSegmentLabel =
+    typeof predictions?.segmentation?.segment_label === "string"
+      ? predictions.segmentation.segment_label.trim()
+      : "";
 
   // Use dynamic top categories if provided, otherwise check static cat_shares
   let preferences = [];
@@ -48,10 +52,13 @@ export default function CustomerOverview({ customer }) {
       ? `R$ ${Number(customer.avg_order_value_per_day_active).toFixed(2)}`
       : "N/A";
 
+  const mlPredictedClv = predictions?.clv?.predicted_clv;
   const clvDisplay =
-    hasHistory && customer.monetary_total != null
-      ? `R$ ${(Number(customer.monetary_total) * (customer.segment === "Champions" ? 1.4 : customer.segment === "Engaged" ? 1.25 : 1.1)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-      : "N/A";
+    mlPredictedClv != null
+    ? `R$ ${Number(mlPredictedClv).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : hasHistory && customer.monetary_total != null
+    ? `R$ ${Number(customer.monetary_total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : "N/A";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 17 }}>
@@ -70,8 +77,21 @@ export default function CustomerOverview({ customer }) {
                 <b>{value}</b>
               </div>
             ))}
-            {/* Churn Risk Badge */}
-            {customer.churn_risk_level && (
+            {/* Churn Risk Badge (Rule-Based + ML Calibrated) */}
+            {predictions?.has_ml_data ? (
+              <div>
+                <span>AI Churn Risk (ML)</span>
+                <b>
+                  <span
+                    className={`churnBadge ${predictions.churn.risk_level}`}
+                    style={{ fontWeight: 600 }}
+                  >
+                    {predictions.churn.risk_level === "high" ? "🔴" : predictions.churn.risk_level === "medium" ? "🟡" : "🟢"}{" "}
+                    {predictions.churn.percentage}% ({predictions.churn.risk_level})
+                  </span>
+                </b>
+              </div>
+            ) : customer.churn_risk_level ? (
               <div>
                 <span>Churn Risk</span>
                 <b>
@@ -80,6 +100,12 @@ export default function CustomerOverview({ customer }) {
                     {customer.churn_risk_level} ({customer.churn_risk_score}pts)
                   </span>
                 </b>
+              </div>
+            ) : null}
+            {mlSegmentLabel && (
+              <div>
+                <span>ML Segment</span>
+                <b style={{ color: "#4f46e5" }}>{mlSegmentLabel}</b>
               </div>
             )}
           </div>

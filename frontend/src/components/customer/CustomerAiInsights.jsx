@@ -2,6 +2,13 @@ import React from "react";
 import { BrainCircuit, AlertTriangle, TrendingUp, Sparkles, RefreshCw } from "lucide-react";
 import { Panel } from "../States";
 
+function formatScoreTime(value) {
+  if (!value) return "Time unavailable";
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Time unavailable" : date.toLocaleString();
+}
+
 export default function CustomerAiInsights({ predictions, onRescore, rescoreLoading }) {
   if (!predictions || !predictions.has_ml_data) {
     return (
@@ -38,16 +45,21 @@ export default function CustomerAiInsights({ predictions, onRescore, rescoreLoad
   const { churn, explainability, clv, segmentation, recommendation } = predictions;
 
   const riskBadgeClass = `aiBadge ${churn?.risk_level || "neutral"}`;
+  const scoreSource = predictions.is_realtime_score
+    ? "Live score"
+    : "Saved pipeline score (may not reflect latest activity)";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 17 }}>
-      {/* Top Action Bar with Manual Rescore Button */}
-      {onRescore && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 2px" }}>
-          <span style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: predictions.is_realtime_score ? "#38bdf8" : "#10b981", display: "inline-block" }}></span>
-            {predictions.is_realtime_score ? "Live On-The-Fly Inference" : "Synchronized from ML Pipeline"}
-          </span>
+      {/* Score source and timestamp are relevant even when manual rescoring is unavailable. */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "0 2px" }}>
+        <div style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: predictions.is_realtime_score ? "#38bdf8" : "#10b981", display: "inline-block" }}></span>
+          <span>{scoreSource}</span>
+          <span aria-hidden="true">·</span>
+          <span>Scored: {formatScoreTime(churn?.scored_at)}</span>
+        </div>
+        {onRescore && (
           <button
             className="btn secondary"
             onClick={onRescore}
@@ -57,8 +69,8 @@ export default function CustomerAiInsights({ predictions, onRescore, rescoreLoad
             <RefreshCw size={13} className={rescoreLoading ? "spin" : ""} />
             {rescoreLoading ? "Running Model..." : "Run AI Model Manually"}
           </button>
-        </div>
-      )}
+        )}
+      </div>
       {/* Top 3 KPI Metric Cards for AI (Fully Dark-Mode Ready) */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
         {/* Churn Prediction Card */}
@@ -128,7 +140,7 @@ export default function CustomerAiInsights({ predictions, onRescore, rescoreLoad
         {/* SHAP Feature Contribution */}
         <Panel
           title="Feature Impact (SHAP Analysis)"
-          sub="Specific behavioral metrics influencing the churn prediction"
+          sub="▲ pushes the model output toward higher churn; ▼ pushes it lower. SHAP values are contributions, not percentage points, and bar lengths are visual guides."
         >
           {explainability?.shap_drivers && explainability.shap_drivers.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -138,7 +150,16 @@ export default function CustomerAiInsights({ predictions, onRescore, rescoreLoad
                 return (
                   <div key={driver.feature} className="shapRow">
                     <div className="shapHeader">
-                      <span className="shapLabel">{driver.label}</span>
+                      <span>
+                        <span className="shapLabel">{driver.label}</span>
+                        <small style={{ display: "block", color: "var(--text-muted)", marginTop: 3 }}>
+                          Model input: {driver.feature_value == null
+                            ? "unavailable — run the model to capture it"
+                            : Number.isFinite(Number(driver.feature_value))
+                              ? Number(driver.feature_value).toFixed(4)
+                              : String(driver.feature_value)}
+                        </small>
+                      </span>
                       <span className={isRisk ? "shapImpactRisk" : "shapImpactSafe"}>
                         {isRisk ? "▲ Increases Churn" : "▼ Decreases Churn"} ({driver.impact > 0 ? `+${driver.impact}` : driver.impact})
                       </span>

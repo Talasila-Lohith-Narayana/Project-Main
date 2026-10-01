@@ -1,6 +1,6 @@
 import math
 
-from app.routers.predictions import _build_realtime_feature_row
+from app.routers.predictions import _build_realtime_feature_row, _build_shap_drivers
 
 
 def test_realtime_feature_row_matches_training_transformations():
@@ -78,3 +78,15 @@ def test_realtime_feature_row_marks_missing_review_comment_as_zero():
     )
 
     assert feature_row["has_review_comment"] == 0
+
+
+def test_shap_drivers_include_all_features_and_their_model_inputs():
+    shap_values = {f"feature_{index}": index / 10 for index in range(13)}
+    feature_values = {feature: index for index, feature in enumerate(shap_values)}
+
+    drivers = _build_shap_drivers(shap_values, feature_values)
+
+    assert len(drivers) == 13
+    assert drivers[0]["feature"] == "feature_12"
+    assert drivers[0]["feature_value"] == 12
+    assert {driver["feature"] for driver in drivers} == set(shap_values)

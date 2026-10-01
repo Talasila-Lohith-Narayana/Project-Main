@@ -104,7 +104,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Customer Sphere API", version="2.0", lifespan=lifespan)
+app = FastAPI(title="Customer Sphere API", lifespan=lifespan)
 
 # Configure structured request logger
 logger = logging.getLogger("customer_sphere")

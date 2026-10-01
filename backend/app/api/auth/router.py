@@ -1,30 +1,15 @@
-"""
-================================================================================
-AUTHENTICATION ROUTER (routers/auth.py)
-================================================================================
-
-WHAT THIS FILE DOES (Plain English):
-------------------------------------
-Handles logging into the application.
-When you enter your username and password on the login screen and click "Sign In",
-this file checks if your credentials match and issues a secure 8-hour access pass (JWT token).
-
-WHAT PART OF THE UI HANDLES THIS:
----------------------------------
-1. Login Screen (/login):
-   - The "Sign In" button sends data to `/api/auth/login`.
-   - On success, saves your role (Administrator or Analyst) and takes you to the Dashboard.
-================================================================================
-"""
+"""Authentication endpoints for login and administrator-managed user accounts."""
 
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from jose import jwt
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.core.config import SECRET, ALGO, pwd
+from app.core.auth import admin_auth, auth
 from app.core.database import get_db
 from app.models import AppUser
-from app.schemas import Login
+from app.schemas import Login, UserCreate, UserSummary, UserUpdate, UserUpdateResult
 
 router = APIRouter(tags=["auth"])
 
@@ -53,3 +38,130 @@ def login(x: Login, db: Session = Depends(get_db)):
         "username": u.username,
         "role": u.role,
     }
+
+
+@router.get("/api/auth/users", response_model=list[UserSummary])
+def list_users(
+    db: Session = Depends(get_db),
+    _: dict = Depends(admin_auth),
+):
+    users = db.query(AppUser).order_by(AppUser.username).all()
+    return [{"username": user.username, "role": user.role} for user in users]
+
+
+@router.get("/api/auth/profiles", response_model=list[UserSummary])
+def list_profiles(
+    db: Session = Depends(get_db),
+    _: dict = Depends(auth),
+):
+    users = db.query(AppUser).order_by(AppUser.username).all()
+    return [{"username": user.username, "role": user.role} for user in users]
+
+
+@router.post(
+    "/api/auth/users",
+    response_model=UserSummary,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_user(
+    data: UserCreate,
+    db: Session = Depends(get_db),
+    _: dict = Depends(admin_auth),
+):
+    if db.query(AppUser).filter_by(username=data.username).first():
+        raise HTTPException(status_code=409, detail="A user with this username already exists.")
+
+    user = AppUser(
+        username=data.username,
+        password_hash=pwd.hash(data.password),
+        role=data.role,
+    )
+    db.add(user)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="A user with this username already exists.",
+        ) from exc
+    db.refresh(user)
+    return {"username": user.username, "role": user.role}
+
+
+@router.patch("/api/auth/users/{username}", response_model=UserUpdateResult)
+def update_user(
+    username: str,
+    data: UserUpdate,
+    db: Session = Depends(get_db),
+    requester: dict = Depends(admin_auth),
+):
+    user = db.query(AppUser).filter_by(username=username).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    renamed_username = data.username is not None and data.username != username
+    if renamed_username:
+        existing_user = db.query(AppUser).filter_by(username=data.username).first()
+        if existing_user is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="A user with this username already exists.",
+            )
+        user.username = data.username
+
+    if data.password is not None:
+        user.password_hash = pwd.hash(data.password)
+
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="A user with this username already exists.",
+        ) from exc
+    db.refresh(user)
+
+    access_token = None
+    if renamed_username and requester.get("sub") == username:
+        access_token = jwt.encode(
+            {
+                "sub": user.username,
+                "role": requester["role"],
+                "exp": requester["exp"],
+            },
+            SECRET,
+            algorithm=ALGO,
+        )
+    return {
+        "username": user.username,
+        "role": user.role,
+        "access_token": access_token,
+    }
+
+
+@router.delete("/api/auth/users/{username}", response_model=UserSummary)
+def delete_user(
+    username: str,
+    db: Session = Depends(get_db),
+    requester: dict = Depends(admin_auth),
+):
+    user = db.query(AppUser).filter_by(username=username).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found.")
+    if requester.get("sub") == username:
+        raise HTTPException(
+            status_code=409,
+            detail="You cannot delete the account you are currently using.",
+        )
+    if user.role == "admin" and db.query(AppUser).filter_by(role="admin").count() <= 1:
+        raise HTTPException(
+            status_code=409,
+            detail="The last administrator account cannot be deleted.",
+        )
+
+    deleted_user = {"username": user.username, "role": user.role}
+    db.delete(user)
+    db.commit()
+    return deleted_user

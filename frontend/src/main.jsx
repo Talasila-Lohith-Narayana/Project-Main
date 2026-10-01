@@ -42,6 +42,7 @@ const Products = lazy(() => import("./pages/Products"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Campaigns = lazy(() => import("./pages/Campaigns"));
 const Model = lazy(() => import("./pages/Model"));
+const Users = lazy(() => import("./pages/Users"));
 const Login = lazy(() => import("./pages/Login"));
 
 function App() {
@@ -65,6 +66,7 @@ function App() {
                     <Route path="analytics" element={<Analytics />} />
                     <Route path="campaigns" element={<Campaigns />} />
                     <Route path="model" element={<Model />} />
+                    <Route path="users" element={<Users />} />
                   </Route>
                 </Route>
 

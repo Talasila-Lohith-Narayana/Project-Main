@@ -41,6 +41,17 @@ function TestConsumer() {
       <button onClick={() => auth.switchToAccount("admin_user")}>
         Switch To Admin
       </button>
+      <button
+        onClick={() =>
+          auth.updateCurrentSession({
+            username: "renamed_admin",
+            role: "admin",
+            access_token: "jwt_renamed",
+          })
+        }
+      >
+        Update Current Account
+      </button>
     </div>
   );
 }
@@ -95,6 +106,34 @@ describe("AuthContext and AuthProvider", () => {
     expect(localStorage.getItem("ci_token")).toBe("jwt_123");
     expect(localStorage.getItem("ci_user")).toBe("admin_user");
     expect(localStorage.getItem("ci_role")).toBe("admin");
+  });
+
+  it("updates the active username and refreshed access token", () => {
+    render(
+      <AuthProvider>
+        <TestConsumer />
+      </AuthProvider>
+    );
+
+    act(() => {
+      screen.getByText("Login Admin").click();
+    });
+    act(() => {
+      screen.getByText("Update Current Account").click();
+    });
+
+    expect(screen.getByTestId("user").textContent).toBe("renamed_admin");
+    expect(localStorage.getItem("ci_user")).toBe("renamed_admin");
+    expect(localStorage.getItem("ci_token")).toBe("jwt_renamed");
+    expect(JSON.parse(localStorage.getItem("ci_accounts"))).toEqual({
+      renamed_admin: {
+        username: "renamed_admin",
+        role: "admin",
+        access_token: "jwt_renamed",
+      },
+    });
+    expect(screen.getByTestId("isAdmin").textContent).toBe("yes");
+    expect(screen.getByTestId("isAuth").textContent).toBe("yes");
   });
 
   it("switches to another active account successfully", () => {

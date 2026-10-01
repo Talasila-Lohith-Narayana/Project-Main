@@ -29,11 +29,7 @@ export default function Login() {
   const { isAuthenticated, login } = useAuth();
   const navigate = useNavigate();
 
-  // Pre-filled with default administrative credentials for ease of evaluation
-  const [form, setForm] = useState({
-    username: "admin",
-    password: "admin123@qwe#",
-  });
+  const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -78,7 +74,7 @@ export default function Login() {
       </section>
 
       {/* Sign-In Card Right Column */}
-      <form className="loginCard" onSubmit={submit}>
+      <form className="loginCard" onSubmit={submit} autoComplete="off">
         <div className="brandIcon dark">
           <Sparkles />
         </div>
@@ -90,6 +86,7 @@ export default function Login() {
         <label>
           Username
           <input
+            autoComplete="off"
             value={form.username}
             onChange={(event) =>
               setForm({ ...form, username: event.target.value })
@@ -100,6 +97,7 @@ export default function Login() {
           Password
           <input
             type="password"
+            autoComplete="off"
             value={form.password}
             onChange={(event) =>
               setForm({ ...form, password: event.target.value })
@@ -115,4 +113,3 @@ export default function Login() {
     </div>
   );
 }
-

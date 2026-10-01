@@ -173,31 +173,50 @@ export default function Campaigns() {
                 title="Campaign audience"
                 sub={selectedCampaign}
                 load={loadCampaignCustomers}
+                preserveDataOnRefresh
               >
                 {(data) => (
-                    <>
-                      <CampaignCustomers data={data} navigate={navigate} />
-                      <div className="analyticsPagination">
+                  <>
+                    <CampaignCustomers data={data} navigate={navigate} />
+                    <div className="pager campaignAudiencePager">
+                      <div className="pagerInfo">
+                        <span>
+                          Page <strong>{page}</strong> of{" "}
+                          <strong>
+                            {Math.max(1, Math.ceil(data.total / data.page_size))}
+                          </strong>
+                        </span>
+                        <span className="pagerDivider">•</span>
+                        <span className="pagerTotal">
+                          <strong>{number.format(data.total)}</strong>{" "}
+                          {data.total === 1 ? "targeted customer" : "targeted customers"}
+                        </span>
+                      </div>
+                      <div className="pagerControls">
                         <button
                           type="button"
-                          className="btn ghost"
                           disabled={page <= 1}
                           onClick={() => setPage((current) => current - 1)}
+                          aria-label="Previous page"
+                          title="Previous page"
                         >
-                          Previous
+                          ‹
                         </button>
                         <button
                           type="button"
-                          className="btn ghost"
-                          disabled={!data.items || page * data.page_size >= data.total}
+                          disabled={
+                            page >= Math.ceil(data.total / data.page_size)
+                          }
                           onClick={() => setPage((current) => current + 1)}
+                          aria-label="Next page"
+                          title="Next page"
                         >
-                          Next
+                          ›
                         </button>
                       </div>
-                    </>
-                  )
-                }
+                    </div>
+                  </>
+                )}
               </AnalyticsPanel>
             </div>
           ) : (

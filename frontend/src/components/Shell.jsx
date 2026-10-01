@@ -22,11 +22,12 @@
  * ================================================================================
  */
 
-import React, { useState, useEffect } from "react";
-import { Activity, BarChart3, ChevronLeft, ChevronRight, History, KeyRound, LayoutDashboard, Lock, LogOut, Megaphone, Moon, Package, RefreshCw, Shield, Sparkles, Sun, UserCheck, UserPlus, Users, X } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Activity, BarChart3, ChevronLeft, ChevronRight, History, KeyRound, LayoutDashboard, LogOut, Megaphone, Moon, Package, RefreshCw, Sparkles, Sun, UserPlus, Users, X } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { authService } from "../services/api";
 import AuditLogModal from "./AuditLogModal";
 
 export default function Shell() {
@@ -35,6 +36,9 @@ export default function Shell() {
   const navigate = useNavigate();
   const [switching, setSwitching] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
+  const [profiles, setProfiles] = useState([]);
+  const [profilesLoading, setProfilesLoading] = useState(true);
+  const [profilesError, setProfilesError] = useState("");
 
   // Sidebar collapse/minimize state with localStorage persistence
   const [collapsed, setCollapsed] = useState(() => {
@@ -61,6 +65,31 @@ export default function Shell() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
+  const loadProfiles = useCallback(async () => {
+    setProfilesLoading(true);
+    setProfilesError("");
+    try {
+      const availableProfiles = await authService.profiles();
+      if (!Array.isArray(availableProfiles)) {
+        throw new Error("The server returned an invalid user list.");
+      }
+      setProfiles(availableProfiles);
+    } catch (error) {
+      setProfilesError(error.message || "Unable to load users.");
+    } finally {
+      setProfilesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadProfiles();
+  }, [loadProfiles, user]);
+
+  useEffect(() => {
+    window.addEventListener("profiles-updated", loadProfiles);
+    return () => window.removeEventListener("profiles-updated", loadProfiles);
+  }, [loadProfiles]);
+
   // Handles user sign out and redirection to the login view
   const signOut = () => {
     logoutAll();
@@ -69,6 +98,7 @@ export default function Shell() {
 
   // Handles clicking a profile switch button
   const handleProfileClick = async (target) => {
+    if (!target) return;
     if (target === user) return;
     setLoginError("");
 
@@ -112,6 +142,56 @@ export default function Shell() {
 
   // Human-readable role indicator
   const roleLabel = isAdmin ? "Administrator" : (role === "viewer" ? "Analyst" : role || "User");
+  const targetRoleLabel =
+    profiles.find((profile) => profile.username === targetUsername)?.role === "admin"
+      ? "Administrator"
+      : "Viewer";
+
+  const profileSwitcher = (
+    <div className={`profileSwitcher ${collapsed ? "compact" : ""}`}>
+      {!collapsed && (
+        <div className="profileSwitcherHeading">
+          <span>Switch Profile</span>
+          {switching && (
+            <RefreshCw
+              size={10}
+              className="spin"
+              style={{ animation: "spin 1s linear infinite" }}
+            />
+          )}
+        </div>
+      )}
+      <select
+        aria-label="Switch profile"
+        title="Switch profile"
+        value=""
+        disabled={profilesLoading || switching}
+        onChange={(event) => {
+          const selectedUsername = event.target.value;
+          void handleProfileClick(selectedUsername);
+        }}
+      >
+        <option value="">
+          {profilesLoading ? "Loading users..." : "Choose a user..."}
+        </option>
+        {profiles.map((profile) => (
+          <option key={profile.username} value={profile.username}>
+            {profile.username} — {profile.role === "admin" ? "Administrator" : "Viewer"}
+            {profile.username === user ? " (current)" : ""}
+          </option>
+        ))}
+      </select>
+      {profilesError && (
+        <button
+          type="button"
+          className="profileSwitcherError"
+          onClick={() => void loadProfiles()}
+        >
+          Could not load users. Retry.
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className={`shell ${collapsed ? "sidebarCollapsed" : ""}`}>
@@ -165,6 +245,12 @@ export default function Shell() {
           <Activity size={17} />
           {!collapsed && <span>Model</span>}
         </NavLink>
+        {isAdmin && (
+          <NavLink to="/users" title="User management">
+            <UserPlus size={17} />
+            {!collapsed && <span>Users</span>}
+          </NavLink>
+        )}
         
         {/* Workspace Admin Data Changes Button */}
         <button
@@ -207,105 +293,7 @@ export default function Shell() {
             )}
           </div>
 
-          {/* Quick Profile Switcher */}
-          {!collapsed ? (
-            <div
-              style={{
-                background: "#161f2e",
-                borderRadius: 8,
-                padding: "8px",
-                marginBottom: 12,
-                border: "1px solid #24334a",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
-                  marginBottom: 6,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <span>Switch Profile</span>
-                {switching && <RefreshCw size={10} className="spin" style={{ animation: "spin 1s linear infinite" }} />}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
-                <button
-                  type="button"
-                  onClick={() => handleProfileClick("admin")}
-                  disabled={switching}
-                  title={user === "admin" ? "Active profile" : accounts?.["admin"] ? "Switch to logged-in Admin session" : "Authenticate & switch to Admin"}
-                  style={{
-                    background: user === "admin" ? "#2563eb" : "#1e293b",
-                    color: user === "admin" ? "#fff" : "#94a3b8",
-                    border: "none",
-                    borderRadius: 6,
-                    padding: "6px 4px",
-                    fontSize: 11,
-                    fontWeight: user === "admin" ? 600 : 400,
-                    cursor: user === "admin" ? "default" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 4,
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <Shield size={12} /> Admin {!accounts?.["admin"] && user !== "admin" && <Lock size={9} style={{ opacity: 0.7 }} />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleProfileClick("analyst")}
-                  disabled={switching}
-                  title={user === "analyst" ? "Active profile" : accounts?.["analyst"] ? "Switch to logged-in Analyst session" : "Authenticate & switch to Analyst"}
-                  style={{
-                    background: user === "analyst" ? "#0284c7" : "#1e293b",
-                    color: user === "analyst" ? "#fff" : "#94a3b8",
-                    border: "none",
-                    borderRadius: 6,
-                    padding: "6px 4px",
-                    fontSize: 11,
-                    fontWeight: user === "analyst" ? 600 : 400,
-                    cursor: user === "analyst" ? "default" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 4,
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <UserCheck size={12} /> Analyst {!accounts?.["analyst"] && user !== "analyst" && <Lock size={9} style={{ opacity: 0.7 }} />}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
-              <button
-                type="button"
-                onClick={() => handleProfileClick(user === "admin" ? "analyst" : "admin")}
-                disabled={switching}
-                title={`Switch to ${user === "admin" ? "Analyst" : "Admin"}`}
-                style={{
-                  background: "#161f2e",
-                  border: "1px solid #24334a",
-                  color: "#94a3b8",
-                  borderRadius: 8,
-                  padding: "8px 0",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                }}
-              >
-                {user === "admin" ? <Shield size={14} color="#38bdf8" /> : <UserCheck size={14} color="#38bdf8" />}
-              </button>
-            </div>
-          )}
+          {profileSwitcher}
 
           <button onClick={signOut} title="Sign out" className="sideSignOutBtn">
             <LogOut size={16} />
@@ -329,8 +317,8 @@ export default function Shell() {
                   width: 36,
                   height: 36,
                   borderRadius: "50%",
-                  background: targetUsername === "admin" ? "#dbeafe" : "#e0f2fe",
-                  color: targetUsername === "admin" ? "#1d4ed8" : "#0369a1",
+                  background: targetRoleLabel === "Administrator" ? "#dbeafe" : "#e0f2fe",
+                  color: targetRoleLabel === "Administrator" ? "#1d4ed8" : "#0369a1",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -341,7 +329,7 @@ export default function Shell() {
               <div>
                 <p className="eyebrow" style={{ margin: 0 }}>SECURITY VERIFICATION</p>
                 <h2 style={{ margin: 0, fontSize: 18 }}>
-                  Sign in as {targetUsername === "admin" ? "Administrator" : "Analyst"}
+                  Sign in as {targetRoleLabel}
                 </h2>
               </div>
             </div>

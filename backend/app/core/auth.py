@@ -28,29 +28,44 @@ WHAT PART OF THE UI USES THIS:
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+from app.models import AppUser
 from .config import SECRET, ALGO
 
 # Extract bearer token from HTTP request header
 security = HTTPBearer()
 
-def auth(c: HTTPAuthorizationCredentials = Depends(security)):
+def auth(
+    c: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+):
     """
     Standard Login Check:
     Verifies that the user has a valid active login token.
     Used by ALL read and write endpoints across the app.
     """
     try:
-        return jwt.decode(c.credentials, SECRET, algorithms=[ALGO])
+        payload = jwt.decode(c.credentials, SECRET, algorithms=[ALGO])
     except (JWTError, KeyError):
         raise HTTPException(401, "Invalid or expired token. Please log in again.")
 
-def admin_auth(c: HTTPAuthorizationCredentials = Depends(security)):
+    user = (
+        db.query(AppUser)
+        .filter_by(username=payload.get("sub"), role=payload.get("role"))
+        .first()
+    )
+    if user is None:
+        raise HTTPException(401, "Invalid or expired token. Please log in again.")
+    return payload
+
+
+def admin_auth(user: dict = Depends(auth)):
     """
     Administrator Privilege Check:
     Verifies that the logged-in user has the 'admin' role.
     Used by ALL mutation buttons (Create, Edit, Delete, Bulk actions).
     """
-    user = auth(c)
     if user.get("role") != "admin":
         raise HTTPException(403, "Admin authorization required to modify data.")
     return user

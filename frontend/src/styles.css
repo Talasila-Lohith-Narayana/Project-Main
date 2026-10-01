@@ -971,6 +971,59 @@ button {
   font-weight: 700;
 }
 
+.profileSwitcher {
+  margin-bottom: 12px;
+  padding: 8px;
+  border: 1px solid #24334a;
+  border-radius: 8px;
+  background: #161f2e;
+}
+
+.profileSwitcherHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.profileSwitcher select {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #1e293b;
+  color: #e2e8f0;
+  font-size: 11px;
+}
+
+.profileSwitcher select:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.profileSwitcherError {
+  margin-top: 6px;
+  padding: 0;
+  color: #fca5a5 !important;
+  font-size: 10px !important;
+  text-align: left;
+}
+
+.profileSwitcher.compact {
+  padding: 5px;
+}
+
+.profileSwitcher.compact select {
+  padding: 7px 2px;
+  font-size: 9px;
+}
+
 .sideBottom button {
   border: 0;
   background: none;
@@ -2906,6 +2959,12 @@ em {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 12px;
+}
+
+.analyticsPanelRefreshing {
+  margin: 0 0 10px;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 .analyticsPagination .btn:disabled {
@@ -4882,4 +4941,153 @@ em {
 
 [data-theme="dark"] .retentionTitle {
   color: #f1f5f9;
+}
+
+.userManagementTabs {
+  margin-top: 6px;
+  margin-bottom: 20px;
+}
+
+.userManagementPanel {
+  min-width: 0;
+}
+
+.userCreateForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+}
+
+.userCreateForm label {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.userCreateForm > button {
+  align-self: end;
+  justify-self: start;
+  min-height: 40px;
+}
+
+.userCreateForm input,
+.userCreateForm select {
+  width: 100%;
+  padding: 10px 11px;
+  color: var(--text-main);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+}
+
+.userCreateForm label small {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.userTableWrap {
+  width: 100%;
+  overflow: visible;
+}
+
+.userTable {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.userTable th:first-child,
+.userTable td:first-child {
+  width: 45%;
+}
+
+.userTable th:nth-child(2),
+.userTable td:nth-child(2) {
+  width: calc(55% - 80px);
+}
+
+.userTable th:last-child,
+.userTable td:last-child {
+  width: 80px;
+}
+
+.userTable th,
+.userTable td {
+  padding: 10px 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+
+.userTable th {
+  background: var(--table-head-bg);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.userTableName,
+.userRoleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.userTableName {
+  min-width: 0;
+  color: var(--text-main);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.userTableName svg {
+  flex: 0 0 auto;
+}
+
+.userActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.userTable .userEditButton,
+.userTable .userDeleteButton {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  padding: 0;
+}
+
+.userRoleBadge {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: normal;
+}
+
+.userRoleBadge.admin {
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+[data-theme="dark"] .userRoleBadge {
+  background: #172554;
+  color: #bfdbfe;
+}
+
+[data-theme="dark"] .userRoleBadge.admin {
+  background: #2e1065;
+  color: #ddd6fe;
+}
+
+@media (max-width: 900px) {
+  .userCreateForm {
+    grid-template-columns: 1fr;
+  }
 }

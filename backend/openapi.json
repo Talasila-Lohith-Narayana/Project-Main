@@ -2,29 +2,9 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Customer Sphere API",
-    "version": "2.0"
+    "version": "0.1.0"
   },
   "paths": {
-    "/api/health": {
-      "get": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Health",
-        "description": "Checks database connection health.\nUI Connection status tag: '\u25cf Connected'.",
-        "operationId": "health_api_health_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/auth/login": {
       "post": {
         "tags": [
@@ -65,13 +45,219 @@
         }
       }
     },
+    "/api/auth/users": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "List Users",
+        "operationId": "list_users_api_auth_users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserSummary"
+                  },
+                  "type": "array",
+                  "title": "Response List Users Api Auth Users Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Create User",
+        "operationId": "create_user_api_auth_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSummary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/profiles": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "List Profiles",
+        "operationId": "list_profiles_api_auth_profiles_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserSummary"
+                  },
+                  "type": "array",
+                  "title": "Response List Profiles Api Auth Profiles Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/users/{username}": {
+      "patch": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Update User",
+        "operationId": "update_user_api_auth_users__username__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Username"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserUpdateResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Delete User",
+        "operationId": "delete_user_api_auth_users__username__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Username"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSummary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dashboard/summary": {
       "get": {
         "tags": [
           "dashboard"
         ],
         "summary": "Dashboard",
-        "description": "Computes all aggregated executive metrics for the primary Dashboard view,\nwith optional timeframe horizon filtering ('all', '2018', '2017', '2016', 'l6m', 'l30d', 'custom')\nand custom start_date / end_date range.\nUI Component: `Dashboard.jsx`.",
+        "description": "Computes all aggregated executive metrics for the primary Dashboard view,\nwith optional timeframe horizon filtering ('all', '2018', '2017', '2016', 'l6m', 'l30d', 'custom')\nand custom start_date / end_date range.\nSupports period-over-period comparison via the 'compare_to' parameter.\nUI Component: `Dashboard.jsx`.",
         "operationId": "dashboard_api_dashboard_summary_get",
         "security": [
           {
@@ -79,6 +265,107 @@
           }
         ],
         "parameters": [
+          {
+            "name": "timeframe",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all",
+              "title": "Timeframe"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "End Date"
+            }
+          },
+          {
+            "name": "compare_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Compare To"
+            }
+          },
+          {
+            "name": "compare_start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Compare Start Date"
+            }
+          },
+          {
+            "name": "compare_end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Compare End Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/geo/state/{state_code}": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "State Detail",
+        "description": "Returns deep-dive geographic analytics for a specific Brazilian state,\nincluding top cities, top product categories, delivery speed, and CSAT rating.\nUI Component: `DashboardGeoHeatmap.jsx`.",
+        "operationId": "state_detail_api_dashboard_geo_state__state_code__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "state_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "State Code"
+            }
+          },
           {
             "name": "timeframe",
             "in": "query",
@@ -256,6 +543,16 @@
               "type": "string",
               "default": "",
               "title": "Rating"
+            }
+          },
+          {
+            "name": "churn_risk",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Churn Risk"
             }
           },
           {
@@ -448,6 +745,16 @@
               "type": "string",
               "default": "",
               "title": "Activity"
+            }
+          },
+          {
+            "name": "churn_risk",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Churn Risk"
             }
           },
           {
@@ -993,6 +1300,62 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/customers/{cid}/orders/bulk-delete": {
+      "post": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Bulk Delete Orders",
+        "description": "Deletes selected orders for one customer in a single transaction.",
+        "operationId": "bulk_delete_orders_api_customers__cid__orders_bulk_delete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Cid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkOrderDeleteIn"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1779,10 +2142,1095 @@
           }
         }
       }
+    },
+    "/api/predictions/{customer_id_or_unique_id}": {
+      "get": {
+        "tags": [
+          "AI Predictions"
+        ],
+        "summary": "Get Customer Predictions",
+        "description": "Fetch comprehensive AI intelligence for a customer by customer_id or customer_unique_id.\nIf no precomputed offline row is found, automatically scores the customer on-the-fly.",
+        "operationId": "get_customer_predictions_api_predictions__customer_id_or_unique_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "customer_id_or_unique_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id Or Unique Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/predictions/{customer_id_or_unique_id}/rescore": {
+      "post": {
+        "tags": [
+          "AI Predictions"
+        ],
+        "summary": "Rescore Customer Manually",
+        "description": "Manually force re-runs the ML prediction model for a customer and returns the fresh score.\nUI Trigger: 'Run AI Model' button.",
+        "operationId": "rescore_customer_manually_api_predictions__customer_id_or_unique_id__rescore_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "customer_id_or_unique_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id Or Unique Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/churn/summary": {
+      "get": {
+        "tags": [
+          "Churn Analytics"
+        ],
+        "summary": "Churn Summary",
+        "operationId": "churn_summary_api_analytics_churn_summary_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "threshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 1,
+              "minimum": 0,
+              "default": 0.5,
+              "title": "Threshold"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Churn Summary Api Analytics Churn Summary Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/churn/top-features": {
+      "get": {
+        "tags": [
+          "Churn Analytics"
+        ],
+        "summary": "Churn Top Features",
+        "operationId": "churn_top_features_api_analytics_churn_top_features_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Churn Top Features Api Analytics Churn Top Features Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/churn/feature-importance-global": {
+      "get": {
+        "tags": [
+          "Churn Analytics"
+        ],
+        "summary": "Global Feature Importance",
+        "operationId": "global_feature_importance_api_analytics_churn_feature_importance_global_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Global Feature Importance Api Analytics Churn Feature Importance Global Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/members/{customer_unique_id}/risk": {
+      "get": {
+        "tags": [
+          "Churn Analytics"
+        ],
+        "summary": "Member Risk",
+        "operationId": "member_risk_api_analytics_members__customer_unique_id__risk_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "customer_unique_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Unique Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Member Risk Api Analytics Members  Customer Unique Id  Risk Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/data/last-refresh": {
+      "get": {
+        "tags": [
+          "Churn Analytics"
+        ],
+        "summary": "Data Last Refresh",
+        "operationId": "data_last_refresh_api_analytics_data_last_refresh_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Data Last Refresh Api Analytics Data Last Refresh Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/churn/probability-distribution": {
+      "get": {
+        "tags": [
+          "Churn Analytics"
+        ],
+        "summary": "Probability Distribution",
+        "operationId": "probability_distribution_api_analytics_churn_probability_distribution_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Probability Distribution Api Analytics Churn Probability Distribution Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/churn/reason-codes/summary": {
+      "get": {
+        "tags": [
+          "Churn Analytics"
+        ],
+        "summary": "Reason Codes Summary",
+        "operationId": "reason_codes_summary_api_analytics_churn_reason_codes_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Reason Codes Summary Api Analytics Churn Reason Codes Summary Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/customers/{customer_unique_id}/explanation": {
+      "get": {
+        "tags": [
+          "Churn Analytics"
+        ],
+        "summary": "Customer Explanation",
+        "operationId": "customer_explanation_api_analytics_customers__customer_unique_id__explanation_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "customer_unique_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Unique Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Customer Explanation Api Analytics Customers  Customer Unique Id  Explanation Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/campaigns/active": {
+      "get": {
+        "tags": [
+          "Campaigns, churn correlations & forecasting"
+        ],
+        "summary": "Campaigns Active",
+        "operationId": "campaigns_active_api_analytics_campaigns_active_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActiveCampaignsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/campaigns/by-segment": {
+      "get": {
+        "tags": [
+          "Campaigns, churn correlations & forecasting"
+        ],
+        "summary": "Campaigns By Segment",
+        "description": "Which campaigns each customer segment is getting, with counts (for a stacked bar / table).",
+        "operationId": "campaigns_by_segment_api_analytics_campaigns_by_segment_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SegmentCampaignsRow"
+                  },
+                  "type": "array",
+                  "title": "Response Campaigns By Segment Api Analytics Campaigns By Segment Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/campaigns/{campaign_name}/customers": {
+      "get": {
+        "tags": [
+          "Campaigns, churn correlations & forecasting"
+        ],
+        "summary": "Campaign Customers",
+        "description": "Customers targeted by one campaign (highest churn probability first) for drill-down.",
+        "operationId": "campaign_customers_api_analytics_campaigns__campaign_name__customers_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "campaign_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Campaign Name"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignCustomersResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/campaigns/evaluate": {
+      "post": {
+        "tags": [
+          "Campaigns, churn correlations & forecasting"
+        ],
+        "summary": "Campaigns Evaluate",
+        "description": "Suggest a campaign (and why) for one customer.\n\n- With `customer_unique_id`: returns the stored recommendation; if the customer isn't\n  in the table but a full profile was also sent, falls back to the rulebook.\n- With `risk_tier` + `segment_label` + `value_tier`: applies the YAML rulebook directly\n  (useful for \"what if\" checks from the dashboard).",
+        "operationId": "campaigns_evaluate_api_analytics_campaigns_evaluate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/cohort/summary": {
+      "get": {
+        "tags": [
+          "Trends & Cohorts"
+        ],
+        "summary": "One summary row per cohort",
+        "operationId": "cohort_summary_api_analytics_cohort_summary_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cohort_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "First cohort, e.g. 2017-01",
+              "title": "Cohort From"
+            },
+            "description": "First cohort, e.g. 2017-01"
+          },
+          {
+            "name": "cohort_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Last cohort, e.g. 2017-12",
+              "title": "Cohort To"
+            },
+            "description": "Last cohort, e.g. 2017-12"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CohortSummaryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/clv/summary": {
+      "get": {
+        "tags": [
+          "CLV, Delivery & Payments"
+        ],
+        "summary": "Clv Summary",
+        "operationId": "clv_summary_api_analytics_clv_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/customers/byvaluetier": {
+      "get": {
+        "tags": [
+          "CLV, Delivery & Payments"
+        ],
+        "summary": "Customers By Value Tier",
+        "operationId": "customers_by_value_tier_api_analytics_customers_byvaluetier_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/customers/{customer_id}/clv": {
+      "get": {
+        "tags": [
+          "CLV, Delivery & Payments"
+        ],
+        "summary": "Customer Clv",
+        "operationId": "customer_clv_api_analytics_customers__customer_id__clv_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/delivery/performance": {
+      "get": {
+        "tags": [
+          "CLV, Delivery & Payments"
+        ],
+        "summary": "Delivery Performance",
+        "description": "Overall delivery KPIs plus churn probability for on-time vs late customers.",
+        "operationId": "delivery_performance_api_analytics_delivery_performance_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/customers/{customer_id}/delivery": {
+      "get": {
+        "tags": [
+          "CLV, Delivery & Payments"
+        ],
+        "summary": "Customer Delivery Performance",
+        "description": "Return delivery outcomes for one customer_unique_id.",
+        "operationId": "customer_delivery_performance_api_analytics_customers__customer_id__delivery_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/model/performance-summary": {
+      "get": {
+        "tags": [
+          "Model Evaluation"
+        ],
+        "summary": "Get performance metrics for the active champion model",
+        "description": "Retrieve test-set metrics (ROC-AUC, PR-AUC, F1, Precision, Recall, confusion matrix) for champion model.",
+        "operationId": "get_performance_summary_api_analytics_model_performance_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/model/comparison": {
+      "get": {
+        "tags": [
+          "Model Evaluation"
+        ],
+        "summary": "Compare champion and benchmark models",
+        "description": "Benchmark table comparing Logistic Regression vs LightGBM across all key metrics.",
+        "operationId": "get_comparison_api_analytics_model_comparison_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelComparisonResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/model/version": {
+      "get": {
+        "tags": [
+          "Model Evaluation"
+        ],
+        "summary": "Get active model metadata, parameters, and artifact path",
+        "description": "Active model architecture, hyperparameters, features used, operating point, and artifact location.",
+        "operationId": "get_version_api_analytics_model_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelVersionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/model/calibration": {
+      "get": {
+        "tags": [
+          "Model Evaluation"
+        ],
+        "summary": "Calibration comparison and Expected Calibration Error (ECE)",
+        "description": "Probability calibration diagnostics: Brier score, log loss, ECE, and MCE comparison across methods.",
+        "operationId": "get_calibration_api_analytics_model_calibration_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalibrationResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/model/imbalance-experiments": {
+      "get": {
+        "tags": [
+          "Experiments"
+        ],
+        "summary": "Benchmark results across class imbalance handling strategies",
+        "description": "Results of class-weighting, undersampling, and oversampling strategies.",
+        "operationId": "get_imbalance_experiments_api_analytics_model_imbalance_experiments_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "model",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Model family: 'lightgbm' or 'logistic_regression'",
+              "default": "lightgbm",
+              "title": "Model"
+            },
+            "description": "Model family: 'lightgbm' or 'logistic_regression'"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImbalanceExperimentsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/churn/definition": {
+      "get": {
+        "tags": [
+          "Churn Definitions"
+        ],
+        "summary": "Churn definition criteria, observation window, and customer counts",
+        "description": "How churn is defined (return window, reference date) and retained vs churned vs censored customer counts.",
+        "operationId": "get_churn_definition_api_analytics_churn_definition_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChurnDefinitionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
     "schemas": {
+      "ActiveCampaign": {
+        "properties": {
+          "campaign_name": {
+            "type": "string",
+            "title": "Campaign Name"
+          },
+          "campaign_priority": {
+            "type": "integer",
+            "title": "Campaign Priority"
+          },
+          "customer_count": {
+            "type": "integer",
+            "title": "Customer Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "campaign_name",
+          "campaign_priority",
+          "customer_count"
+        ],
+        "title": "ActiveCampaign"
+      },
+      "ActiveCampaignsResponse": {
+        "properties": {
+          "active_campaigns": {
+            "type": "integer",
+            "title": "Active Campaigns"
+          },
+          "customers_targeted": {
+            "type": "integer",
+            "title": "Customers Targeted"
+          },
+          "high_priority_customers": {
+            "type": "integer",
+            "title": "High Priority Customers"
+          },
+          "campaigns": {
+            "items": {
+              "$ref": "#/components/schemas/ActiveCampaign"
+            },
+            "type": "array",
+            "title": "Campaigns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "active_campaigns",
+          "customers_targeted",
+          "high_priority_customers",
+          "campaigns"
+        ],
+        "title": "ActiveCampaignsResponse"
+      },
       "BulkDeleteIn": {
         "properties": {
           "customer_unique_ids": {
@@ -1798,6 +3246,24 @@
           "customer_unique_ids"
         ],
         "title": "BulkDeleteIn"
+      },
+      "BulkOrderDeleteIn": {
+        "properties": {
+          "order_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Order Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "order_ids"
+        ],
+        "title": "BulkOrderDeleteIn"
       },
       "BulkSegmentUpdateIn": {
         "properties": {
@@ -1819,6 +3285,407 @@
           "segment"
         ],
         "title": "BulkSegmentUpdateIn"
+      },
+      "CalibrationMethodMetrics": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "brier_score": {
+            "type": "number",
+            "title": "Brier Score"
+          },
+          "log_loss": {
+            "type": "number",
+            "title": "Log Loss"
+          },
+          "ece": {
+            "type": "number",
+            "title": "Ece"
+          },
+          "mce": {
+            "type": "number",
+            "title": "Mce"
+          }
+        },
+        "type": "object",
+        "required": [
+          "method",
+          "brier_score",
+          "log_loss",
+          "ece",
+          "mce"
+        ],
+        "title": "CalibrationMethodMetrics"
+      },
+      "CalibrationResponse": {
+        "properties": {
+          "model_name": {
+            "type": "string",
+            "title": "Model Name",
+            "default": "LightGBM"
+          },
+          "selected_method": {
+            "type": "string",
+            "title": "Selected Method"
+          },
+          "calibration_comparison": {
+            "items": {
+              "$ref": "#/components/schemas/CalibrationMethodMetrics"
+            },
+            "type": "array",
+            "title": "Calibration Comparison"
+          },
+          "test_calibration_before": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Test Calibration Before"
+          },
+          "test_calibration_after": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Test Calibration After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "selected_method",
+          "calibration_comparison"
+        ],
+        "title": "CalibrationResponse"
+      },
+      "CampaignCustomer": {
+        "properties": {
+          "customer_unique_id": {
+            "type": "string",
+            "title": "Customer Unique Id"
+          },
+          "risk_tier": {
+            "type": "string",
+            "title": "Risk Tier"
+          },
+          "segment_label": {
+            "type": "string",
+            "title": "Segment Label"
+          },
+          "value_tier": {
+            "type": "string",
+            "title": "Value Tier"
+          },
+          "campaign_name": {
+            "type": "string",
+            "title": "Campaign Name"
+          },
+          "campaign_priority": {
+            "type": "integer",
+            "title": "Campaign Priority"
+          },
+          "reason_code": {
+            "type": "string",
+            "title": "Reason Code"
+          },
+          "churn_probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Churn Probability"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_unique_id",
+          "risk_tier",
+          "segment_label",
+          "value_tier",
+          "campaign_name",
+          "campaign_priority",
+          "reason_code"
+        ],
+        "title": "CampaignCustomer"
+      },
+      "CampaignCustomersResponse": {
+        "properties": {
+          "campaign_name": {
+            "type": "string",
+            "title": "Campaign Name"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CampaignCustomer"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "campaign_name",
+          "total",
+          "page",
+          "page_size",
+          "items"
+        ],
+        "title": "CampaignCustomersResponse"
+      },
+      "ChurnCounts": {
+        "properties": {
+          "retained": {
+            "type": "integer",
+            "title": "Retained"
+          },
+          "churned": {
+            "type": "integer",
+            "title": "Churned"
+          },
+          "censored": {
+            "type": "integer",
+            "title": "Censored"
+          },
+          "total_customers": {
+            "type": "integer",
+            "title": "Total Customers"
+          },
+          "churn_rate_uncensored_pct": {
+            "type": "number",
+            "title": "Churn Rate Uncensored Pct"
+          },
+          "churn_rate_total_pct": {
+            "type": "number",
+            "title": "Churn Rate Total Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "retained",
+          "churned",
+          "censored",
+          "total_customers",
+          "churn_rate_uncensored_pct",
+          "churn_rate_total_pct"
+        ],
+        "title": "ChurnCounts"
+      },
+      "ChurnDefinitionResponse": {
+        "properties": {
+          "reference_date": {
+            "type": "string",
+            "title": "Reference Date"
+          },
+          "return_window_days": {
+            "type": "integer",
+            "title": "Return Window Days"
+          },
+          "exclude_censored_customers": {
+            "type": "boolean",
+            "title": "Exclude Censored Customers"
+          },
+          "definition_rule": {
+            "type": "string",
+            "title": "Definition Rule"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/ChurnCounts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reference_date",
+          "return_window_days",
+          "exclude_censored_customers",
+          "definition_rule",
+          "counts"
+        ],
+        "title": "ChurnDefinitionResponse"
+      },
+      "CohortSummaryResponse": {
+        "properties": {
+          "generated_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated Date"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CohortSummaryRow"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "data"
+        ],
+        "title": "CohortSummaryResponse"
+      },
+      "CohortSummaryRow": {
+        "properties": {
+          "cohort": {
+            "type": "string",
+            "title": "Cohort"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "cohort_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cohort Size"
+          },
+          "months_observed": {
+            "type": "integer",
+            "title": "Months Observed"
+          },
+          "m1_retention_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "M1 Retention Pct"
+          },
+          "m3_retention_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "M3 Retention Pct"
+          },
+          "final_churn_rate_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Churn Rate Pct"
+          },
+          "cumulative_repeat_purchase_rate_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cumulative Repeat Purchase Rate Pct"
+          },
+          "cumulative_average_revenue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cumulative Average Revenue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cohort",
+          "label",
+          "months_observed"
+        ],
+        "title": "CohortSummaryRow"
+      },
+      "ConfusionMatrixSchema": {
+        "properties": {
+          "tn": {
+            "type": "integer",
+            "title": "Tn",
+            "description": "True Negatives"
+          },
+          "fp": {
+            "type": "integer",
+            "title": "Fp",
+            "description": "False Positives"
+          },
+          "fn": {
+            "type": "integer",
+            "title": "Fn",
+            "description": "False Negatives"
+          },
+          "tp": {
+            "type": "integer",
+            "title": "Tp",
+            "description": "True Positives"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tn",
+          "fp",
+          "fn",
+          "tp"
+        ],
+        "title": "ConfusionMatrixSchema"
       },
       "CustomerIn": {
         "properties": {
@@ -1873,6 +3740,122 @@
         ],
         "title": "CustomerIn"
       },
+      "EvaluateRequest": {
+        "properties": {
+          "customer_unique_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Unique Id"
+          },
+          "risk_tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Tier"
+          },
+          "segment_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment Label"
+          },
+          "value_tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Tier"
+          }
+        },
+        "type": "object",
+        "title": "EvaluateRequest",
+        "description": "Either a customer_unique_id, or all of risk_tier + segment_label + value_tier."
+      },
+      "EvaluateResponse": {
+        "properties": {
+          "customer_unique_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customer Unique Id"
+          },
+          "risk_tier": {
+            "type": "string",
+            "title": "Risk Tier"
+          },
+          "segment_label": {
+            "type": "string",
+            "title": "Segment Label"
+          },
+          "value_tier": {
+            "type": "string",
+            "title": "Value Tier"
+          },
+          "campaign_name": {
+            "type": "string",
+            "title": "Campaign Name"
+          },
+          "campaign_priority": {
+            "type": "integer",
+            "title": "Campaign Priority"
+          },
+          "reason_code": {
+            "type": "string",
+            "title": "Reason Code"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "matched_explicit_rule": {
+            "type": "boolean",
+            "title": "Matched Explicit Rule"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_unique_id",
+          "risk_tier",
+          "segment_label",
+          "value_tier",
+          "campaign_name",
+          "campaign_priority",
+          "reason_code",
+          "reason",
+          "matched_explicit_rule",
+          "source"
+        ],
+        "title": "EvaluateResponse"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1885,6 +3868,172 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "ImbalanceExperimentsResponse": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "strategies": {
+            "items": {
+              "$ref": "#/components/schemas/ImbalanceStrategyRecord"
+            },
+            "type": "array",
+            "title": "Strategies"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "strategies"
+        ],
+        "title": "ImbalanceExperimentsResponse"
+      },
+      "ImbalanceStrategyRecord": {
+        "properties": {
+          "strategy": {
+            "type": "string",
+            "title": "Strategy"
+          },
+          "tuned_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tuned Threshold"
+          },
+          "balanced_accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balanced Accuracy"
+          },
+          "retained_recall": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retained Recall"
+          },
+          "retained_precision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retained Precision"
+          },
+          "churn_recall": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Churn Recall"
+          },
+          "churn_precision": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Churn Precision"
+          },
+          "roc_auc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roc Auc"
+          },
+          "pr_auc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pr Auc"
+          },
+          "tn": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tn"
+          },
+          "fp": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fp"
+          },
+          "fn": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fn"
+          },
+          "tp": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "strategy"
+        ],
+        "title": "ImbalanceStrategyRecord"
       },
       "InteractionIn": {
         "properties": {
@@ -1941,6 +4090,159 @@
           "password"
         ],
         "title": "Login"
+      },
+      "ModelComparisonResponse": {
+        "properties": {
+          "comparison_table": {
+            "items": {
+              "$ref": "#/components/schemas/ModelMetricComparisonRow"
+            },
+            "type": "array",
+            "title": "Comparison Table"
+          },
+          "summary_winner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Winner"
+          },
+          "best_thresholds": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Thresholds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "comparison_table"
+        ],
+        "title": "ModelComparisonResponse"
+      },
+      "ModelMetricComparisonRow": {
+        "properties": {
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "logistic_regression": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logistic Regression"
+          },
+          "lightgbm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lightgbm"
+          },
+          "better": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Better"
+          }
+        },
+        "type": "object",
+        "required": [
+          "metric"
+        ],
+        "title": "ModelMetricComparisonRow"
+      },
+      "ModelVersionResponse": {
+        "properties": {
+          "model_name": {
+            "type": "string",
+            "title": "Model Name"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Features"
+          },
+          "features_count": {
+            "type": "integer",
+            "title": "Features Count"
+          },
+          "operating_point": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Operating Point"
+          },
+          "positive_class": {
+            "type": "integer",
+            "title": "Positive Class"
+          },
+          "best_hyperparameters": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Hyperparameters"
+          },
+          "artifact_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model_name",
+          "timestamp",
+          "features",
+          "features_count",
+          "operating_point",
+          "positive_class"
+        ],
+        "title": "ModelVersionResponse"
       },
       "OrderIn": {
         "properties": {
@@ -2104,6 +4406,188 @@
         ],
         "title": "OrderItemIn"
       },
+      "PerformanceMetricsSchema": {
+        "properties": {
+          "accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accuracy"
+          },
+          "balanced_accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balanced Accuracy"
+          },
+          "precision": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precision"
+          },
+          "recall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recall"
+          },
+          "f1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "F1"
+          },
+          "f2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "F2"
+          },
+          "roc_auc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roc Auc"
+          },
+          "pr_auc": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pr Auc"
+          },
+          "log_loss": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Log Loss"
+          },
+          "lift": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lift"
+          },
+          "confusion_matrix": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConfusionMatrixSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold"
+          }
+        },
+        "type": "object",
+        "title": "PerformanceMetricsSchema"
+      },
+      "PerformanceSummaryResponse": {
+        "properties": {
+          "model_name": {
+            "type": "string",
+            "title": "Model Name"
+          },
+          "version_or_timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Or Timestamp"
+          },
+          "split_evaluated": {
+            "type": "string",
+            "title": "Split Evaluated",
+            "default": "test"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/PerformanceMetricsSchema"
+          },
+          "operating_point": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operating Point"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model_name",
+          "metrics"
+        ],
+        "title": "PerformanceSummaryResponse"
+      },
       "ReviewIn": {
         "properties": {
           "review_score": {
@@ -2169,6 +4653,181 @@
           "review_score"
         ],
         "title": "ReviewIn"
+      },
+      "SegmentCampaign": {
+        "properties": {
+          "campaign_name": {
+            "type": "string",
+            "title": "Campaign Name"
+          },
+          "campaign_priority": {
+            "type": "integer",
+            "title": "Campaign Priority"
+          },
+          "reason_code": {
+            "type": "string",
+            "title": "Reason Code"
+          },
+          "customer_count": {
+            "type": "integer",
+            "title": "Customer Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "campaign_name",
+          "campaign_priority",
+          "reason_code",
+          "customer_count"
+        ],
+        "title": "SegmentCampaign"
+      },
+      "SegmentCampaignsRow": {
+        "properties": {
+          "segment_label": {
+            "type": "string",
+            "title": "Segment Label"
+          },
+          "total_customers": {
+            "type": "integer",
+            "title": "Total Customers"
+          },
+          "campaigns": {
+            "items": {
+              "$ref": "#/components/schemas/SegmentCampaign"
+            },
+            "type": "array",
+            "title": "Campaigns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "segment_label",
+          "total_customers",
+          "campaigns"
+        ],
+        "title": "SegmentCampaignsRow"
+      },
+      "UserCreate": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Username",
+            "description": "Login username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Password",
+            "description": "Initial password"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "viewer"
+            ],
+            "title": "Role",
+            "description": "Account access role",
+            "default": "viewer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "UserCreate"
+      },
+      "UserSummary": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "viewer"
+            ],
+            "title": "Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "role"
+        ],
+        "title": "UserSummary"
+      },
+      "UserUpdate": {
+        "properties": {
+          "username": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "title": "UserUpdate"
+      },
+      "UserUpdateResult": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "viewer"
+            ],
+            "title": "Role"
+          },
+          "access_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "role"
+        ],
+        "title": "UserUpdateResult"
       },
       "ValidationError": {
         "properties": {

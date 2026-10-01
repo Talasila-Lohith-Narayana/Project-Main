@@ -57,6 +57,30 @@ export function AuthProvider({ children }) {
     setRole(session.role);
   };
 
+  const updateCurrentSession = (session) => {
+    const updatedAccounts = { ...accounts };
+    if (user && user !== session.username) {
+      delete updatedAccounts[user];
+    }
+    const updatedSession = {
+      ...(updatedAccounts[session.username] || {}),
+      access_token: session.access_token || token,
+      username: session.username,
+      role: session.role,
+    };
+    updatedAccounts[session.username] = updatedSession;
+    localStorage.setItem("ci_accounts", JSON.stringify(updatedAccounts));
+    localStorage.setItem("ci_user", session.username);
+    if (session.access_token) {
+      localStorage.setItem("ci_token", session.access_token);
+      setToken(session.access_token);
+    }
+    localStorage.setItem("ci_role", session.role);
+    setAccounts(updatedAccounts);
+    setUser(session.username);
+    setRole(session.role);
+  };
+
   /**
    * Clears user session credentials from state and localStorage on logout
    */
@@ -128,6 +152,7 @@ export function AuthProvider({ children }) {
         accounts,
         isAdmin: role === "admin",
         login,
+        updateCurrentSession,
         logout,
         logoutAll,
         switchToAccount,

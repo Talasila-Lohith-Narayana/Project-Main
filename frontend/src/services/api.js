@@ -90,6 +90,18 @@ const data = (request) => request.then((response) => response.data);
 export const authService = {
   /** Login with username and password, returns JWT access_token */
   login: (credentials) => data(api.post("/auth/login", credentials)),
+  /** Fetch account names and roles available in the profile switcher */
+  profiles: () => data(api.get("/auth/profiles")),
+};
+
+/** Administrator-managed application accounts */
+export const userService = {
+  list: () => data(api.get("/auth/users")),
+  create: (user) => data(api.post("/auth/users", user)),
+  update: (username, changes) =>
+    data(api.patch(`/auth/users/${encodeURIComponent(username)}`, changes)),
+  delete: (username) =>
+    data(api.delete(`/auth/users/${encodeURIComponent(username)}`)),
 };
 
 /** Executive dashboard analytics endpoints */

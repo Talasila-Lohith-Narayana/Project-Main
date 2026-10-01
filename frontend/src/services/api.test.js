@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import axios from "axios";
 import {
   authService,
+  userService,
   dashboardService,
   analyticsService,
   productsService,
@@ -49,6 +50,34 @@ describe("API Service Layer", () => {
       const creds = { username: "admin", password: "password123" };
       const res = await authService.login(creds);
       expect(res).toEqual({ success: true });
+    });
+
+    it("fetches the available profile directory", async () => {
+      await authService.profiles();
+      expect(axios.create().get).toHaveBeenCalledWith("/auth/profiles");
+    });
+  });
+
+  describe("userService", () => {
+    it("lists users and creates a user", async () => {
+      const user = { username: "new_viewer", password: "password123", role: "viewer" };
+      await userService.list();
+      await userService.create(user);
+      await userService.update("old_username", {
+        username: "new_username",
+        password: "updated-password",
+      });
+      await userService.delete("new_username");
+
+      expect(axios.create().get).toHaveBeenCalledWith("/auth/users");
+      expect(axios.create().post).toHaveBeenCalledWith("/auth/users", user);
+      expect(axios.create().patch).toHaveBeenCalledWith(
+        "/auth/users/old_username",
+        { username: "new_username", password: "updated-password" },
+      );
+      expect(axios.create().delete).toHaveBeenCalledWith(
+        "/auth/users/new_username",
+      );
     });
   });
 

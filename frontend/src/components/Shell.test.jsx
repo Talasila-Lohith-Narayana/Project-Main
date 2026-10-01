@@ -5,6 +5,11 @@ import { MemoryRouter } from "react-router-dom";
 import Shell from "./Shell";
 import * as AuthContextModule from "../context/AuthContext";
 import * as ThemeContextModule from "../context/ThemeContext";
+import { authService } from "../services/api";
+
+vi.mock("../services/api", () => ({
+  authService: { profiles: vi.fn() },
+}));
 
 describe("Shell Navigation & Layout Component", () => {
   const mockLogout = vi.fn();
@@ -16,6 +21,11 @@ describe("Shell Navigation & Layout Component", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    authService.profiles.mockResolvedValue([
+      { username: "admin", role: "admin" },
+      { username: "analyst", role: "viewer" },
+      { username: "new_user", role: "viewer" },
+    ]);
     vi.spyOn(AuthContextModule, "useAuth").mockReturnValue({
       user: "admin",
       role: "admin",
@@ -50,6 +60,28 @@ describe("Shell Navigation & Layout Component", () => {
     expect(screen.getByText("Analytics")).toBeInTheDocument();
     expect(screen.getByText("Campaigns")).toBeInTheDocument();
     expect(screen.getByText("Model")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Users/i })).toHaveAttribute("href", "/users");
+  });
+
+  it("hides user management navigation from viewers", () => {
+    vi.spyOn(AuthContextModule, "useAuth").mockReturnValue({
+      user: "analyst",
+      role: "viewer",
+      accounts: {},
+      isAdmin: false,
+      logout: mockLogout,
+      logoutAll: mockLogoutAll,
+      switchToAccount: mockSwitchToAccount,
+      loginAndSwitch: mockLoginAndSwitch,
+    });
+
+    render(
+      <MemoryRouter>
+        <Shell />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("link", { name: /Users/i })).not.toBeInTheDocument();
   });
 
   it("displays logged-in user profile badge and role indicator", () => {
@@ -120,7 +152,7 @@ describe("Shell Navigation & Layout Component", () => {
     expect(screen.getByTitle("Expand sidebar")).toBeInTheDocument();
   });
 
-  it("switches directly to an already authenticated session", () => {
+  it("switches directly to an already authenticated session", async () => {
     vi.spyOn(AuthContextModule, "useAuth").mockReturnValue({
       user: "admin",
       role: "admin",
@@ -141,8 +173,10 @@ describe("Shell Navigation & Layout Component", () => {
       </MemoryRouter>
     );
 
-    const analystBtn = screen.getByTitle(/Switch to logged-in Analyst session/i);
-    fireEvent.click(analystBtn);
+    await screen.findByRole("option", { name: /analyst — Viewer/i });
+    fireEvent.change(screen.getByRole("combobox", { name: "Switch profile" }), {
+      target: { value: "analyst" },
+    });
 
     expect(mockSwitchToAccount).toHaveBeenCalledWith("analyst");
   });
@@ -156,10 +190,12 @@ describe("Shell Navigation & Layout Component", () => {
       </MemoryRouter>
     );
 
-    const analystBtn = screen.getByTitle(/Authenticate & switch to Analyst/i);
-    fireEvent.click(analystBtn);
+    await screen.findByRole("option", { name: /analyst — Viewer/i });
+    fireEvent.change(screen.getByRole("combobox", { name: "Switch profile" }), {
+      target: { value: "analyst" },
+    });
 
-    expect(screen.getByRole("heading", { name: /sign in as analyst/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /sign in as viewer/i })).toBeInTheDocument();
 
     const passwordInput = screen.getByPlaceholderText(/Enter password for analyst/i);
     fireEvent.change(passwordInput, { target: { value: "pass123" } });
@@ -183,7 +219,10 @@ describe("Shell Navigation & Layout Component", () => {
       </MemoryRouter>
     );
 
-    fireEvent.click(screen.getByTitle(/Authenticate & switch to Analyst/i));
+    await screen.findByRole("option", { name: /analyst — Viewer/i });
+    fireEvent.change(screen.getByRole("combobox", { name: "Switch profile" }), {
+      target: { value: "analyst" },
+    });
 
     const passwordInput = screen.getByPlaceholderText(/Enter password for analyst/i);
     fireEvent.change(passwordInput, { target: { value: "wrongpass" } });
@@ -196,10 +235,10 @@ describe("Shell Navigation & Layout Component", () => {
 
     // Close modal via Cancel button
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(screen.queryByRole("heading", { name: /sign in as analyst/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /sign in as viewer/i })).not.toBeInTheDocument();
   });
 
-  it("switches profile from collapsed sidebar icon", () => {
+  it("keeps the profile selector available when the sidebar is collapsed", async () => {
     render(
       <MemoryRouter>
         <Shell />
@@ -209,14 +248,21 @@ describe("Shell Navigation & Layout Component", () => {
     // Minimize sidebar
     fireEvent.click(screen.getByTitle("Minimize sidebar"));
 
-    // Click profile switch button in collapsed mode
-    const collapsedSwitchBtn = screen.getByTitle("Switch to Analyst");
-    fireEvent.click(collapsedSwitchBtn);
+    const selector = screen.getByRole("combobox", { name: "Switch profile" });
+    expect(selector).toBeInTheDocument();
+    await screen.findByRole("option", { name: /new_user — Viewer/i });
+    fireEvent.change(selector, { target: { value: "new_user" } });
+    expect(screen.getByRole("heading", { name: /sign in as viewer/i })).toBeInTheDocument();
+  });
 
-    expect(screen.getByRole("heading", { name: /sign in as analyst/i })).toBeInTheDocument();
+  it("shows all available user accounts in the profile dropdown", async () => {
+    render(
+      <MemoryRouter>
+        <Shell />
+      </MemoryRouter>
+    );
 
-    // Close via close X button
-    fireEvent.click(document.querySelector(".modalBg button.close"));
-    expect(screen.queryByRole("heading", { name: /sign in as analyst/i })).not.toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /new_user — Viewer/i })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /admin — Administrator/i })).toBeInTheDocument();
   });
 });

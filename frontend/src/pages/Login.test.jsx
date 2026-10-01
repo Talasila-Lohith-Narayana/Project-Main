@@ -34,8 +34,12 @@ describe("Login Page Component", () => {
     );
 
     expect(screen.getByRole("heading", { name: /sign in/i })).toBeInTheDocument();
-    expect(screen.getByDisplayValue("admin")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("admin123@qwe#")).toBeInTheDocument();
+    expect(screen.getByLabelText("Username")).toHaveValue("");
+    expect(screen.getByLabelText("Username")).toHaveAttribute("autocomplete", "off");
+    expect(screen.getByLabelText("Password")).toHaveValue("");
+    expect(screen.getByLabelText("Password")).toHaveAttribute("autocomplete", "off");
+    expect(screen.getByRole("button", { name: /continue/i }).closest("form"))
+      .toHaveAttribute("autocomplete", "off");
     expect(screen.getByRole("button", { name: /continue/i })).toBeInTheDocument();
   });
 
@@ -46,8 +50,12 @@ describe("Login Page Component", () => {
       </MemoryRouter>
     );
 
-    const passwordInput = screen.getByDisplayValue("admin123@qwe#");
-    fireEvent.change(passwordInput, { target: { value: "123" } });
+    fireEvent.change(screen.getByLabelText("Username"), {
+      target: { value: "admin" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "123" },
+    });
 
     const submitBtn = screen.getByRole("button", { name: /continue/i });
     fireEvent.click(submitBtn);
@@ -70,6 +78,12 @@ describe("Login Page Component", () => {
       </MemoryRouter>
     );
 
+    fireEvent.change(screen.getByLabelText("Username"), {
+      target: { value: "admin" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "secure-password" },
+    });
     const submitBtn = screen.getByRole("button", { name: /continue/i });
     fireEvent.click(submitBtn);
 
@@ -94,6 +108,12 @@ describe("Login Page Component", () => {
       </MemoryRouter>
     );
 
+    fireEvent.change(screen.getByLabelText("Username"), {
+      target: { value: "admin" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "secure-password" },
+    });
     const submitBtn = screen.getByRole("button", { name: /continue/i });
     fireEvent.click(submitBtn);
 

@@ -27,7 +27,9 @@ WHAT PART OF THE UI USES THIS:
 """
 
 from datetime import datetime, date
-from pydantic import BaseModel, Field, field_validator
+from typing import Literal
+
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 # ------------------------------------------------------------------------------
 # 1. User Login Form Blueprint
@@ -35,6 +37,53 @@ from pydantic import BaseModel, Field, field_validator
 class Login(BaseModel):
     username: str = Field(min_length=3, max_length=80, description="Login username")
     password: str = Field(min_length=6, max_length=128, description="Login password")
+
+
+class UserCreate(BaseModel):
+    username: str = Field(min_length=3, max_length=80, description="Login username")
+    password: str = Field(min_length=8, max_length=128, description="Initial password")
+    role: Literal["admin", "viewer"] = Field(
+        default="viewer",
+        description="Account access role",
+    )
+
+    @field_validator("username")
+    @classmethod
+    def clean_username(cls, value):
+        value = value.strip()
+        if not 3 <= len(value) <= 80:
+            raise ValueError("Username must contain between 3 and 80 characters")
+        return value
+
+
+class UserSummary(BaseModel):
+    username: str
+    role: Literal["admin", "viewer"]
+
+
+class UserUpdateResult(UserSummary):
+    access_token: str | None = None
+
+
+class UserUpdate(BaseModel):
+    username: str | None = Field(default=None, min_length=3, max_length=80)
+    password: str | None = Field(default=None, min_length=8, max_length=128)
+
+    @field_validator("username")
+    @classmethod
+    def clean_updated_username(cls, value):
+        if value is None:
+            return value
+        value = value.strip()
+        if not 3 <= len(value) <= 80:
+            raise ValueError("Username must contain between 3 and 80 characters")
+        return value
+
+    @model_validator(mode="after")
+    def require_update(self):
+        if self.username is None and self.password is None:
+            raise ValueError("Provide a new username, password, or both")
+        return self
 
 
 # ------------------------------------------------------------------------------

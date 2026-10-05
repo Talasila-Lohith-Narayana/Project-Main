@@ -90,3 +90,27 @@ def test_shap_drivers_include_all_features_and_their_model_inputs():
     assert drivers[0]["feature"] == "feature_12"
     assert drivers[0]["feature_value"] == 12
     assert {driver["feature"] for driver in drivers} == set(shap_values)
+
+
+def test_realtime_feature_row_uses_default_freight_ratio_when_total_value_is_zero():
+    feature_row = _build_realtime_feature_row(
+        "new-customer",
+        {"total_spend": 0, "total_freight": 0, "avg_product_weight": 0},
+        {"avg_installments": 1, "used_debit_card": 1},
+        {"avg_review_score": 4.2, "has_bad_review": 0, "has_review_comment": 0},
+        {"avg_delivery_days": 9, "avg_delivery_delay_days": -6, "is_delayed": 0},
+        {"category_frequency": 0, "city_state_frequency": 0},
+    )
+
+    assert feature_row["monetary_value"] == 0.0
+    assert feature_row["freight_ratio"] == 0.15
+    assert feature_row["preferred_payment_type_debit_card"] == 1
+
+
+def test_shap_drivers_mark_zero_impact_as_lowering_risk():
+    drivers = _build_shap_drivers({"positive": 0.4, "neutral": 0, "negative": -0.2})
+
+    assert drivers[0]["feature"] == "positive"
+    assert drivers[-1]["feature"] == "neutral"
+    assert drivers[-1]["direction"] == "lowers_risk"
+    assert drivers[-1]["feature_value"] is None

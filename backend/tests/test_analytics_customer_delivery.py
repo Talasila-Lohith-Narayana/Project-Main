@@ -61,3 +61,20 @@ def test_customer_delivery_returns_404_for_unknown_customer(monkeypatch):
         delivery_api.customer_delivery_performance("unknown")
 
     assert error.value.status_code == 404
+
+
+def test_customer_delivery_reports_all_orders_as_on_time(monkeypatch):
+    orders = pd.DataFrame([{
+        "order_id": "order_1",
+        "purchased_at": pd.Timestamp("2018-01-01"),
+        "delivered_at": pd.Timestamp("2018-01-05"),
+        "estimated_delivery_at": pd.Timestamp("2018-01-05"),
+        "delivery_days": 4,
+        "delivery_status": "On time",
+    }])
+    monkeypatch.setattr(delivery_api, "q", lambda *_args, **_kwargs: orders)
+
+    result = delivery_api.customer_delivery_performance("unique_123")
+
+    assert result["summary"]["on_time_pct"] == 100.0
+    assert result["summary"]["late_pct"] == 0.0

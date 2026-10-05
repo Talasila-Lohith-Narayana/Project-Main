@@ -1,7 +1,7 @@
 import io
 import csv
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -23,8 +23,8 @@ def get_products_catalog(
     min_rating: float = None,
     min_units: int = None,
     sort: str = "items_desc",
-    page: int = 1,
-    limit: int = 15,
+    page: int = Query(1, ge=1),
+    limit: int = Query(15, ge=1),
     db: Session = Depends(get_db),
     _: str = Depends(auth),
 ):

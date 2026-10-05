@@ -43,3 +43,11 @@ def test_imbalance_experiments_returns_none_when_precision_is_undefined(monkeypa
     result = services.get_imbalance_experiments()
 
     assert result["strategies"][0]["churn_precision"] is None
+
+
+def test_imbalance_experiments_returns_empty_strategies_for_missing_report(monkeypatch, tmp_path):
+    monkeypatch.setattr(services, "REPORTS_DIR", tmp_path)
+
+    result = services.get_imbalance_experiments()
+
+    assert result["strategies"] == []

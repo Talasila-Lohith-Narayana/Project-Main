@@ -143,3 +143,25 @@ def test_export_customers_csv(client, admin_headers):
     assert response.status_code == 200
     assert "text/csv" in response.headers["content-type"]
     assert "Customer Unique ID" in response.text
+
+
+def test_customers_reject_invalid_pagination(client, admin_headers):
+    response = client.get("/api/customers?page=0&page_size=0", headers=admin_headers)
+
+    assert response.status_code == 422
+
+
+def test_customer_creation_rejects_invalid_postal_prefix():
+    invalid_values = ["", "12A4", "1234567", True]
+
+    for value in invalid_values:
+        try:
+            CustomerIn(
+                customer_unique_id="customer",
+                customer_city="São Paulo",
+                customer_state="SP",
+                customer_zip_code_prefix=value,
+            )
+        except ValueError:
+            continue
+        raise AssertionError(f"Expected invalid postal prefix to fail: {value!r}")

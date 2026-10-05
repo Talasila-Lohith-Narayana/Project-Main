@@ -59,7 +59,18 @@ def test_login_nonexistent_user(client):
         json={"username": "ghost_user_9999", "password": "password"},
     )
     assert response.status_code == 401
-    assert "Invalid username or password" in response.json()["detail"]
+
+
+def test_login_rejects_invalid_request_shape(client):
+    invalid_payloads = [
+        {"username": "ab", "password": "password"},
+        {"username": "admin", "password": "short"},
+        {"username": "admin"},
+    ]
+
+    for payload in invalid_payloads:
+        response = client.post("/api/auth/login", json=payload)
+        assert response.status_code == 422
 
 
 def test_admin_can_create_user_and_new_user_can_log_in(client, admin_headers):

@@ -69,3 +69,9 @@ def test_audit_logs(client, admin_headers):
     customer_logs_res = client.get(f"/api/customers/{cid}/audit-logs", headers=admin_headers)
     assert customer_logs_res.status_code == 200
     assert "items" in customer_logs_res.json()
+
+
+def test_customer_orders_require_authentication(client):
+    response = client.get("/api/customers/unknown/orders")
+
+    assert response.status_code == 401

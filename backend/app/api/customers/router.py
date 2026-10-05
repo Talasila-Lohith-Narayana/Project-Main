@@ -2,7 +2,7 @@ import os
 import io
 import csv
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -42,8 +42,8 @@ def customers(
     churn_risk: str = "",
     sort_by: str | None = None,
     sort_dir: str | None = None,
-    page: int = 1,
-    page_size: int = 12,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(12, ge=1),
     db: Session = Depends(get_db),
     _: str = Depends(auth),
 ):

@@ -41,3 +41,15 @@ def test_export_products_csv(client, admin_headers):
     assert response.status_code == 200
     assert "text/csv" in response.headers["content-type"]
     assert "product_id" in response.text
+
+
+def test_products_reject_invalid_pagination(client, admin_headers):
+    response = client.get("/api/products?page=0&limit=0", headers=admin_headers)
+
+    assert response.status_code == 422
+
+
+def test_products_require_authentication(client):
+    response = client.get("/api/products")
+
+    assert response.status_code == 401

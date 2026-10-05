@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from app.core.artifact_paths import (
-    DEFAULT_CUSTOMER_INTELLIGENCE_ROOT,
     get_customer_intelligence_root,
     get_models_dir,
     get_outputs_dir,
@@ -9,15 +8,18 @@ from app.core.artifact_paths import (
 )
 
 
-def test_artifact_paths_default_to_customer_intelligence_outputs(monkeypatch):
+def test_artifact_paths_require_configured_root(monkeypatch):
     monkeypatch.delenv("CUSTOMER_INTELLIGENCE_ROOT", raising=False)
     monkeypatch.delenv("CUSTOMER_INTELLIGENCE_OUTPUTS_DIR", raising=False)
 
-    expected_outputs = DEFAULT_CUSTOMER_INTELLIGENCE_ROOT / "outputs"
-    assert get_customer_intelligence_root() == DEFAULT_CUSTOMER_INTELLIGENCE_ROOT
-    assert get_outputs_dir() == expected_outputs
-    assert get_reports_dir() == expected_outputs / "reports"
-    assert get_models_dir() == expected_outputs / "models"
+    try:
+        get_customer_intelligence_root()
+    except RuntimeError as exc:
+        assert str(exc) == (
+            "CUSTOMER_INTELLIGENCE_ROOT must be set in the environment or .env file."
+        )
+    else:
+        raise AssertionError("Expected missing root configuration to raise RuntimeError")
 
 
 def test_artifact_paths_support_configured_root_and_outputs_override(monkeypatch, tmp_path):

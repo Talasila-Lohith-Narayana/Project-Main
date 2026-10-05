@@ -4,16 +4,14 @@ import os
 from pathlib import Path
 
 
-DEFAULT_CUSTOMER_INTELLIGENCE_ROOT = Path(
-    "/Users/teja/Desktop/untitled folder/customer-intelligence-platform"
-)
-
-
 def get_customer_intelligence_root() -> Path:
     """Return the configured Customer Intelligence source project directory."""
-    return Path(
-        os.getenv("CUSTOMER_INTELLIGENCE_ROOT", str(DEFAULT_CUSTOMER_INTELLIGENCE_ROOT))
-    ).expanduser()
+    configured_root = os.getenv("CUSTOMER_INTELLIGENCE_ROOT")
+    if not configured_root:
+        raise RuntimeError(
+            "CUSTOMER_INTELLIGENCE_ROOT must be set in the environment or .env file."
+        )
+    return Path(configured_root).expanduser()
 
 
 def get_outputs_dir() -> Path:

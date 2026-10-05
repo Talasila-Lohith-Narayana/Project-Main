@@ -101,6 +101,20 @@ def test_only_admin_can_manage_users(client, viewer_headers):
     ).status_code == 403
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/analytics/churn/summary",
+        "/api/analytics/campaigns/active",
+        "/api/analytics/cohort/summary",
+        "/api/analytics/clv/summary",
+        "/api/analytics/model/version",
+    ],
+)
+def test_only_admin_can_view_analytics_and_model_details(client, viewer_headers, path):
+    assert client.get(path, headers=viewer_headers).status_code == 403
+
+
 def test_authenticated_users_can_list_profiles_but_anonymous_users_cannot(
     client,
     admin_headers,

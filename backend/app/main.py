@@ -16,7 +16,7 @@ from .core.config import (
     pwd,
 )
 from .core.database import engine, get_db
-from .core.auth import auth
+from .core.auth import admin_auth, auth
 from .models import Base, AppUser
 
 # Import all domain API routers
@@ -145,6 +145,7 @@ app.add_middleware(
 # Register all modular routers
 app.include_router(auth_router)
 authenticated_route = [Depends(auth)]
+admin_route = [Depends(admin_auth)]
 app.include_router(dashboard_router, dependencies=authenticated_route)
 app.include_router(customers_router, dependencies=authenticated_route)
 app.include_router(orders_router, dependencies=authenticated_route)
@@ -153,8 +154,8 @@ app.include_router(reviews_router, dependencies=authenticated_route)
 app.include_router(interactions_router, dependencies=authenticated_route)
 app.include_router(audit_logs_router, dependencies=authenticated_route)
 app.include_router(predictions_router, dependencies=authenticated_route)
-app.include_router(churn_analytics_router, prefix="/api/analytics", dependencies=authenticated_route)
-app.include_router(campaigns_forecast_router, prefix="/api/analytics", dependencies=authenticated_route)
-app.include_router(cohort_trend_router, prefix="/api/analytics", dependencies=authenticated_route)
-app.include_router(clv_router, prefix="/api/analytics", dependencies=authenticated_route)
-app.include_router(model_evaluation_router, prefix="/api/analytics", dependencies=authenticated_route)
+app.include_router(churn_analytics_router, prefix="/api/analytics", dependencies=admin_route)
+app.include_router(campaigns_forecast_router, prefix="/api/analytics", dependencies=admin_route)
+app.include_router(cohort_trend_router, prefix="/api/analytics", dependencies=admin_route)
+app.include_router(clv_router, prefix="/api/analytics", dependencies=admin_route)
+app.include_router(model_evaluation_router, prefix="/api/analytics", dependencies=admin_route)

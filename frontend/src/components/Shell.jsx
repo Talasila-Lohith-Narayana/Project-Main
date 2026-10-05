@@ -233,18 +233,22 @@ export default function Shell() {
           <Package size={17} />
           {!collapsed && <span>Products</span>}
         </NavLink>
-        <NavLink to="/analytics" title="Analytics">
-          <BarChart3 size={17} />
-          {!collapsed && <span>Analytics</span>}
-        </NavLink>
-        <NavLink to="/campaigns" title="Campaigns">
-          <Megaphone size={17} />
-          {!collapsed && <span>Campaigns</span>}
-        </NavLink>
-        <NavLink to="/model" title="Model diagnostics">
-          <Activity size={17} />
-          {!collapsed && <span>Model</span>}
-        </NavLink>
+        {isAdmin && (
+          <>
+            <NavLink to="/analytics" title="Analytics">
+              <BarChart3 size={17} />
+              {!collapsed && <span>Analytics</span>}
+            </NavLink>
+            <NavLink to="/campaigns" title="Campaigns">
+              <Megaphone size={17} />
+              {!collapsed && <span>Campaigns</span>}
+            </NavLink>
+            <NavLink to="/model" title="Model diagnostics">
+              <Activity size={17} />
+              {!collapsed && <span>Model</span>}
+            </NavLink>
+          </>
+        )}
         {isAdmin && (
           <NavLink to="/users" title="User management">
             <UserPlus size={17} />

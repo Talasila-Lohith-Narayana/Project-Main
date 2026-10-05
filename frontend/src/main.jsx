@@ -25,12 +25,13 @@
 
 import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ToastProvider } from "./context/ToastContext";
 import Shell from "./components/Shell";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { useAuth } from "./context/AuthContext";
 import { LoadingState } from "./components/States";
 import "./styles.css";
 
@@ -44,6 +45,11 @@ const Campaigns = lazy(() => import("./pages/Campaigns"));
 const Model = lazy(() => import("./pages/Model"));
 const Users = lazy(() => import("./pages/Users"));
 const Login = lazy(() => import("./pages/Login"));
+
+function AdminRoute() {
+  const { isAdmin } = useAuth();
+  return isAdmin ? <Outlet /> : <Navigate to="/" replace />;
+}
 
 function App() {
   return (
@@ -63,9 +69,11 @@ function App() {
                     <Route path="customers" element={<Customers />} />
                     <Route path="customers/:id" element={<Customer />} />
                     <Route path="products" element={<Products />} />
-                    <Route path="analytics" element={<Analytics />} />
-                    <Route path="campaigns" element={<Campaigns />} />
-                    <Route path="model" element={<Model />} />
+                    <Route element={<AdminRoute />}>
+                      <Route path="analytics" element={<Analytics />} />
+                      <Route path="campaigns" element={<Campaigns />} />
+                      <Route path="model" element={<Model />} />
+                    </Route>
                     <Route path="users" element={<Users />} />
                   </Route>
                 </Route>

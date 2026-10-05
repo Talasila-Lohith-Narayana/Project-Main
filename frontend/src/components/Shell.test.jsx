@@ -84,6 +84,29 @@ describe("Shell Navigation & Layout Component", () => {
     expect(screen.queryByRole("link", { name: /Users/i })).not.toBeInTheDocument();
   });
 
+  it("hides analytics, campaigns, and model navigation from viewers", () => {
+    vi.spyOn(AuthContextModule, "useAuth").mockReturnValue({
+      user: "analyst",
+      role: "viewer",
+      accounts: {},
+      isAdmin: false,
+      logout: mockLogout,
+      logoutAll: mockLogoutAll,
+      switchToAccount: mockSwitchToAccount,
+      loginAndSwitch: mockLoginAndSwitch,
+    });
+
+    render(
+      <MemoryRouter>
+        <Shell />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Campaigns" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Model diagnostics" })).not.toBeInTheDocument();
+  });
+
   it("displays logged-in user profile badge and role indicator", () => {
     render(
       <MemoryRouter>

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import re
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 from fastapi import HTTPException
@@ -375,18 +376,22 @@ def test_protected_route_expired_token(client):
     assert response.status_code == 401
 
 
-def test_all_api_operations_except_login_require_authentication(client):
-    """Every documented API operation except login declares bearer auth and rejects anonymous calls."""
+def _api_operations():
     from app.main import app
 
-    operations = [
+    return [
         (method, path, operation)
         for path, path_item in app.openapi()["paths"].items()
         for method, operation in path_item.items()
         if method in {"get", "post", "put", "patch", "delete", "options", "head"}
     ]
-    login = ("post", "/api/auth/login")
 
+
+def test_api_operation_inventory_is_complete():
+    """The application exposes the documented 59-operation API surface."""
+    from app.main import app
+
+    operations = _api_operations()
     assert len(operations) == 59
     removed_paths = {
         "/api/health",
@@ -402,11 +407,21 @@ def test_all_api_operations_except_login_require_authentication(client):
         "/api/analytics/data/tables",
     }
     assert removed_paths.isdisjoint(app.openapi()["paths"])
-    for method, path, operation in operations:
-        if (method, path) == login:
-            assert not operation.get("security")
-        else:
-            assert operation.get("security")
 
-    response = client.get("/api/analytics/churn/summary")
-    assert response.status_code == 401
+
+@pytest.mark.parametrize(
+    ("method", "path", "operation"),
+    _api_operations(),
+    ids=lambda value: value if isinstance(value, str) else None,
+)
+def test_api_operations_require_authentication(client, method, path, operation):
+    """Every protected operation rejects requests without a bearer token."""
+    login = ("post", "/api/auth/login")
+    if (method, path) == login:
+        assert not operation.get("security")
+        return
+
+    assert operation.get("security")
+    request_path = re.sub(r"\{[^}]+\}", "test-value", path)
+    response = client.request(method.upper(), request_path)
+    assert response.status_code == 401, f"{method.upper()} {path} did not reject anonymous access"

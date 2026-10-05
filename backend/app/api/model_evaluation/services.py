@@ -1,5 +1,3 @@
-"""Data service layer for Model Evaluation, Experimentation, and Feature Analysis."""
-
 from __future__ import annotations
 
 import json

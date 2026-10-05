@@ -1,5 +1,3 @@
-"""Authentication endpoints for login and administrator-managed user accounts."""
-
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from jose import jwt

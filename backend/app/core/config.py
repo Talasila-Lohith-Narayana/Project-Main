@@ -1,25 +1,3 @@
-"""
-================================================================================
-CONFIGURATION & ENVIRONMENT MODULE (config.py)
-================================================================================
-
-WHAT THIS FILE DOES (Plain English):
-------------------------------------
-This file is the "settings vault" of the application. It loads secret passwords,
-cryptographic keys, security algorithms, and default usernames from the environment
-(or .env file). 
-
-WHAT PART OF THE UI USES THIS:
-------------------------------
-1. Login Page (/login):
-   - Validates user credentials against configured administrative and analyst passwords.
-2. User Authentication & Session Persistence:
-   - Signs and validates secure JWT session cookies/tokens so the user stays logged in.
-3. Role Switcher in Sidebar:
-   - Verifies the 'admin' and 'analyst' (viewer) roles.
-================================================================================
-"""
-
 import os
 from dotenv import load_dotenv
 from pwdlib import PasswordHash

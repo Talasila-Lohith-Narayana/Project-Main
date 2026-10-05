@@ -1,27 +1,3 @@
-"""
-================================================================================
-CUSTOMER REVIEWS & FEEDBACK ROUTER (routers/reviews.py)
-================================================================================
-
-WHAT THIS FILE DOES (Plain English):
-------------------------------------
-This file manages customer feedback and star ratings:
-1. Viewing all historical reviews written by a customer.
-2. Submitting new star ratings (1 to 5 stars) and comments linked to an order.
-3. Editing existing reviews (title, message, score).
-4. Automatically recalculating the customer's average review score in real-time.
-
-WHAT PART OF THE UI HANDLES THIS:
----------------------------------
-1. Reviews List Table (`Customer.jsx`):
-   - Displays star ratings (e.g. ★★★★★), feedback title, comment text, and creation timestamp.
-2. "Add Review" Modal Popup (`ReviewModal.jsx`):
-   - Interactive star rating picker (1 to 5 stars), headline input, and review message text area.
-3. "Edit Review" Modal Popup (`ReviewModal.jsx`):
-   - Allows administrators to adjust feedback rating or text and updates customer average score.
-================================================================================
-"""
-
 import os
 from datetime import datetime, date, timezone
 from fastapi import APIRouter, Depends, HTTPException

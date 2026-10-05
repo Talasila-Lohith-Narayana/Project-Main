@@ -1,11 +1,3 @@
-"""
-Database Configuration & Session Management
-
-This module initializes the SQLAlchemy database engine and session factory
-using connection credentials loaded from environment variables (.env).
-It also provides the `get_db` generator dependency for FastAPI route handlers.
-"""
-
 import os
 
 from dotenv import load_dotenv

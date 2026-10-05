@@ -1,7 +1,3 @@
-"""
-Products Catalog & Category Breakdown Unit Tests.
-"""
-
 def test_list_products_pagination(client, admin_headers):
     """Verifies products directory listing, pagination, and category filters."""
     response = client.get("/api/products?page=1&limit=10", headers=admin_headers)

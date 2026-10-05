@@ -1,32 +1,3 @@
-"""
-================================================================================
-PRODUCTS & INVENTORY CATALOG ROUTER (routers/products.py)
-================================================================================
-
-WHAT THIS FILE DOES (Plain English):
-------------------------------------
-This file manages marketplace inventory intelligence and product analytics:
-1. Paging through the 32,950+ products in the marketplace catalog.
-2. Fast multi-criteria filtering by Category, Price bounds (Min/Max R$), Minimum units sold,
-   and Minimum Star Ratings.
-3. Live full-text search by Product ID or Category name (with automated space-to-underscore conversion).
-4. Exporting filtered product datasets into clean CSV files.
-5. Showing products purchased by a specific customer.
-
-WHAT PART OF THE UI HANDLES THIS:
----------------------------------
-1. Products & Inventory Page (/products):
-   - Real-time search bar.
-   - Category dropdown selector.
-   - "Filters" modal (`ProductFilterModal.jsx`) for price, volume, and rating thresholds.
-   - "Sort" dropdown menu (units sold, total revenue, average price, star rating).
-   - "Export CSV" header button (downloads full catalog matching active filters).
-   - Catalog table with product metrics, weight, photos, revenue, and hoverable ID tooltip.
-2. Customer Profile Detail Page (/customers/:id):
-   - "Products" purchased history table showing items bought by that customer.
-================================================================================
-"""
-
 import io
 import csv
 from datetime import datetime, timezone

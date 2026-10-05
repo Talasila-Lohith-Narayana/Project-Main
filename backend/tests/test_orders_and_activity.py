@@ -1,7 +1,3 @@
-"""
-Orders, Products, Interactions, Reviews, and Audit Log Unit Tests.
-"""
-
 def test_customer_orders_and_products(client, admin_headers):
     """Verifies retrieval of a customer's linked orders and products."""
     # 1. Fetch real customer

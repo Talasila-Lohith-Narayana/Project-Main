@@ -1,28 +1,3 @@
-"""
-================================================================================
-CRM INTERACTIONS & TIMELINE ROUTER (routers/interactions.py)
-================================================================================
-
-WHAT THIS FILE DOES (Plain English):
-------------------------------------
-This file acts as the "CRM interaction logbook" for internal teams:
-1. Viewing customer contact history (phone calls, emails, support tickets, meetings, notes).
-2. Logging new touchpoints with details and timestamps.
-3. Editing past interaction notes if details need clarification.
-
-WHAT PART OF THE UI HANDLES THIS:
----------------------------------
-1. CRM Activity Timeline (`Customer.jsx`):
-   - Displays vertical timeline of communications with icons for Phone, Email, Note,
-     Meeting, and Support Ticket.
-2. "Log Interaction" Button & Modal (`InteractionModal.jsx`):
-   - Dropdown to choose interaction type (Call, Email, Meeting, Note, Support).
-   - Subject / title text field and detailed notes body.
-3. "Edit Interaction" Modal (`InteractionModal.jsx`):
-   - Pre-fills previous notes so staff can make corrections or add updates.
-================================================================================
-"""
-
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session

@@ -1,5 +1,3 @@
-"""Shared paths for Customer Intelligence model and report artifacts."""
-
 from __future__ import annotations
 
 import os

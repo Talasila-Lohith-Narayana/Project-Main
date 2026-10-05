@@ -1,5 +1,3 @@
-"""Schemas for model evaluation, calibration, experiments, and feature analysis endpoints."""
-
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional

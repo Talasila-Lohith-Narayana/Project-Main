@@ -1,32 +1,3 @@
-"""
-================================================================================
-ORDERS MANAGEMENT ROUTER (routers/orders.py)
-================================================================================
-
-WHAT THIS FILE DOES (Plain English):
-------------------------------------
-This file manages customer purchases and checkout transactions:
-1. Fetching the list of all orders made by a customer.
-2. Creating new orders with multiple line items, categories, price points, shipping costs,
-   and payment methods.
-3. Editing existing orders (updating delivery status, purchased timestamps, or payment methods).
-4. Deleting orders with automatic recalculation of customer spending totals and review scores.
-
-WHAT PART OF THE UI HANDLES THIS:
----------------------------------
-1. Order History Table (`Customer.jsx`):
-   - Displays orders with order ID, status badges (Delivered, Shipped), payment type icon,
-     purchase date, delivery date, and total order value (R$).
-2. "Add Order" Modal Popup (`OrderModal.jsx`):
-   - Allows dynamically adding multiple product categories, custom prices, freight values,
-     and payment installments.
-3. "Edit Order" Modal Popup (`OrderModal.jsx`):
-   - Pre-fills previous order line items so administrators can modify them.
-4. "Delete Order" Action Button:
-   - Removes the order and updates customer lifetime monetary value and frequency in real-time.
-================================================================================
-"""
-
 import os
 from datetime import datetime, timedelta, date, timezone
 from fastapi import APIRouter, Depends, HTTPException

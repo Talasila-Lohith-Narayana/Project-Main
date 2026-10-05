@@ -1,7 +1,3 @@
-"""
-Pytest configuration and fixtures for backend test suite.
-"""
-
 from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient

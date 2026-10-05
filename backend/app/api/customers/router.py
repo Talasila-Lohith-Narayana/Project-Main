@@ -1,34 +1,3 @@
-"""
-================================================================================
-CUSTOMER DIRECTORY & PROFILE ROUTER (routers/customers.py)
-================================================================================
-
-WHAT THIS FILE DOES (Plain English):
-------------------------------------
-This file manages everything related to customer records:
-1. Searching, filtering, and paging through the 96,000+ customers list.
-2. Exporting all matching customers to a downloadable CSV spreadsheet.
-3. Viewing a single customer's deep-dive intelligence (spending stats, category preferences,
-   payment methods, RFM segments, and full order history).
-4. Creating, Editing, Deleting, and performing Bulk Actions (Bulk Segment change, Bulk Delete).
-
-WHAT PART OF THE UI HANDLES THIS:
----------------------------------
-1. Customers Directory Page (/customers):
-   - Search bar (by unique ID, city, or state).
-   - Filter modal (by state, segment, activity status, recency days, minimum spend, star ratings).
-   - Sort dropdown (by spend, rating, recency, orders, city).
-   - Export CSV button (streams clean customer data).
-   - Checkbox selection mode for Bulk Segment Updates or Bulk Deletes.
-   - "Add Customer" modal popup.
-2. Customer Profile Detail Page (/customers/:id):
-   - Customer Header badge, location, and RFM intelligence metrics (Tenure, Monetary, Frequency).
-   - Category preference pill breakdown.
-   - Payment method breakdown bar.
-   - "Edit Customer" and "Delete Customer" action buttons.
-================================================================================
-"""
-
 import os
 import io
 import csv

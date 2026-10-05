@@ -1,25 +1,3 @@
-"""
-================================================================================
-APPLICATION ENTRY POINT (main.py)
-================================================================================
-
-WHAT THIS FILE DOES (Plain English):
-------------------------------------
-This is the "main ignition key" and conductor of the backend application.
-1. It launches the FastAPI web server.
-2. It sets up CORS (Cross-Origin Resource Sharing) permissions so our React frontend
-   can communicate securely with this backend server.
-3. It mounts all specialized endpoint routers (Auth, Dashboard, Customers, Orders,
-   Products, Reviews, Interactions, Audit Logs).
-4. On startup, it verifies database tables, initializes default user accounts (Admin and Analyst),
-   and precomputes the customer metrics cache for instant sub-second performance.
-
-WHAT PART OF THE UI HANDLES THIS:
----------------------------------
-- Coordinates and powers the entire frontend web application (`http://localhost:5173`).
-================================================================================
-"""
-
 import os
 import time
 import logging

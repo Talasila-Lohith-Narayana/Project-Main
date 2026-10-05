@@ -1,7 +1,3 @@
-"""
-Customer Directory & Profile Unit Tests.
-"""
-
 import uuid
 
 from app.schemas import CustomerIn

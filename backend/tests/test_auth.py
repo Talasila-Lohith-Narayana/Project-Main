@@ -1,7 +1,3 @@
-"""
-Authentication and System Health Unit Tests.
-"""
-
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import MagicMock

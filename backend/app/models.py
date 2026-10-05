@@ -1,10 +1,3 @@
-"""
-SQLAlchemy Database Models
-
-This module defines the database ORM models for authentication users (AppUser),
-CRM activity and notes (ConsumerInteraction), and compliance/audit trails (AuditLog).
-"""
-
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, Text, DateTime
 from sqlalchemy.dialects.mysql import CHAR

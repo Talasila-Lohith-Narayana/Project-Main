@@ -1,27 +1,3 @@
-"""
-================================================================================
-AUDIT LOGS & COMPLIANCE ROUTER (routers/audit_logs.py)
-================================================================================
-
-WHAT THIS FILE DOES (Plain English):
-------------------------------------
-This file acts as the "black box flight recorder" for the application:
-1. Recording every single administrative action (who changed what, when, and why).
-2. Fetching the change history specifically for a single customer.
-3. Fetching the global system audit log with full-text search across all admins,
-   actions, and details.
-
-WHAT PART OF THE UI HANDLES THIS:
----------------------------------
-1. Global System Audit Log Modal (`AuditLogModal.jsx`):
-   - Accessible via the "Audit Trail" / "Activity Logs" button on the top navigation bar.
-   - Search filter for searching actions (e.g. "Placed new order", "Updated customer", "Bulk Deleted").
-   - Detailed event cards showing timestamp, operator username, action tag, and full details.
-2. Single Customer Audit Trail (`Customer.jsx`):
-   - "Audit Logs" tab inside the customer profile showing historical edits made specifically to that customer.
-================================================================================
-"""
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text

@@ -1,28 +1,3 @@
-"""
-================================================================================
-EXECUTIVE DASHBOARD ROUTER (routers/dashboard.py)
-================================================================================
-
-WHAT THIS FILE DOES (Plain English):
-------------------------------------
-This file is the "business intelligence engine". It aggregates high-level analytics
-across the entire dataset, calculating total revenue, average order values, delivery speeds,
-customer repeat rates, category popularity, monthly sales trends, and satisfaction scores.
-
-WHAT PART OF THE UI HANDLES THIS:
----------------------------------
-1. Dashboard Main Page (/):
-   - Top KPI Cards: Total Customers (96k+), Total Orders (99k+), Total Revenue (R$ 16.0M),
-     Average Rating (4.1★), Repeat Customer Rate, Average Order Value (AOV), Avg Delivery Speed.
-   - Monthly Revenue & Order Volume Area Chart.
-   - Customer Segmentation Chart with ML labels and churn probabilities.
-   - Top Product Categories Bar Chart.
-   - Regional Revenue by Brazilian State Map / Chart.
-   - Payment Methods Breakdown (Credit Card, Boleto, Voucher, Debit).
-   - Review Rating Star Distribution (5★ to 1★).
-================================================================================
-"""
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text

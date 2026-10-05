@@ -1,9 +1,3 @@
-"""
-AI Predictions & Explainability API Router
-Integrates ML model outputs (Churn, SHAP, CLV, Segments, Recommendations)
-from the Customer Intelligence Platform into Customer Sphere, with on-the-fly scoring
-and manual retraining triggers for new customers.
-"""
 import os
 import json
 import logging

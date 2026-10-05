@@ -1,31 +1,3 @@
-"""
-================================================================================
-DATA VALIDATION SCHEMAS MODULE (schemas.py)
-================================================================================
-
-WHAT THIS FILE DOES (Plain English):
-------------------------------------
-This file defines the "rules and blueprints" for what kind of information users 
-are allowed to type into forms and popups. If someone leaves a required field blank,
-enters a negative price, or types an impossible date, this file catches the error
-and displays a friendly error message before bad data ever touches the database.
-
-WHAT PART OF THE UI USES THIS:
-------------------------------
-1. Login Modal / Screen:
-   - Rules for username and password fields (`Login`).
-2. Add / Edit Customer Modal:
-   - Validates Customer Unique ID, City, State code, and Zip Code (`CustomerIn`).
-3. Add / Edit Order Modal:
-   - Validates multi-item categories, price (> 0), freight value, payment type, 
-     installments (1-24), and order dates within the database timeline (`OrderIn`, `OrderItemIn`).
-4. Add / Edit Review Modal:
-   - Validates 1 to 5 star rating, comment title, and text message (`ReviewIn`).
-5. Log / Edit Interaction Note Modal:
-   - Validates interaction type (Call, Email, Meeting), title, and note body (`InteractionIn`).
-================================================================================
-"""
-
 from datetime import datetime, date
 from typing import Literal
 

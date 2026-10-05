@@ -1,7 +1,3 @@
-"""
-Dashboard Analytics & Metrics Unit Tests.
-"""
-
 def test_dashboard_summary_default(client, admin_headers):
     """Verifies that the default dashboard summary endpoint returns 200 and all analytical segments."""
     response = client.get("/api/dashboard/summary", headers=admin_headers)

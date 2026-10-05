@@ -624,6 +624,16 @@
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
 }
 
+[data-theme="dark"] .passwordToggle {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .passwordToggle:hover,
+[data-theme="dark"] .passwordToggle:focus-visible {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
 [data-theme="dark"] .loginCard .btn.primary {
   background: linear-gradient(135deg, #0284c7, #2563eb);
   color: #ffffff;
@@ -2134,6 +2144,44 @@ em {
   box-shadow: 0 0 0 3px #eef1f5;
 }
 
+.passwordInput {
+  position: relative;
+  display: block;
+}
+
+.passwordInput input {
+  width: 100%;
+  padding-right: 42px;
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #65748a;
+  cursor: pointer;
+}
+
+.passwordToggle:hover,
+.passwordToggle:focus-visible {
+  background: #eef1f5;
+  color: #172033;
+}
+
+.passwordToggle:focus-visible {
+  outline: 2px solid #65748a;
+  outline-offset: 1px;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;
@@ -2229,6 +2277,22 @@ em {
   margin-top: 14px;
 }
 
+.loginCard .btn.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.loginSpinner {
+  animation: spin 0.8s linear infinite;
+}
+
+.apiError:focus-visible {
+  outline: 2px solid #a13f3f;
+  outline-offset: 2px;
+}
+
 @media (max-width: 1150px) {
   .kpis {
     grid-template-columns: repeat(3, 1fr);
@@ -2285,10 +2349,28 @@ em {
 
   .login {
     grid-template-columns: 1fr;
+    min-height: 100dvh;
+    padding: 24px 16px;
   }
 
   .loginHero {
     display: none;
+  }
+
+  .loginCard {
+    width: min(420px, 100%);
+    padding: 28px 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login {
+    padding: 16px 12px;
+  }
+
+  .loginCard {
+    padding: 24px 20px;
+    border-radius: 14px;
   }
 }
 

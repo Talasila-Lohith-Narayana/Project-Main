@@ -35,12 +35,26 @@ describe("Login Page Component", () => {
 
     expect(screen.getByRole("heading", { name: /sign in/i })).toBeInTheDocument();
     expect(screen.getByLabelText("Username")).toHaveValue("");
-    expect(screen.getByLabelText("Username")).toHaveAttribute("autocomplete", "off");
+    expect(screen.getByLabelText("Username")).toHaveAttribute("autocomplete", "username");
     expect(screen.getByLabelText("Password")).toHaveValue("");
-    expect(screen.getByLabelText("Password")).toHaveAttribute("autocomplete", "off");
-    expect(screen.getByRole("button", { name: /continue/i }).closest("form"))
-      .toHaveAttribute("autocomplete", "off");
-    expect(screen.getByRole("button", { name: /continue/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toHaveAttribute("autocomplete", "current-password");
+    expect(screen.getByRole("button", { name: /sign in/i }).closest("form"))
+      .toHaveAttribute("autocomplete", "on");
+    expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
+  });
+
+  it("toggles password visibility", () => {
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>
+    );
+
+    const password = screen.getByLabelText("Password");
+    expect(password).toHaveAttribute("type", "password");
+    fireEvent.click(screen.getByRole("button", { name: "Show password" }));
+    expect(password).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "Hide password" })).toBeInTheDocument();
   });
 
   it("shows error when password is shorter than 6 characters", () => {
@@ -57,7 +71,7 @@ describe("Login Page Component", () => {
       target: { value: "123" },
     });
 
-    const submitBtn = screen.getByRole("button", { name: /continue/i });
+    const submitBtn = screen.getByRole("button", { name: /sign in/i });
     fireEvent.click(submitBtn);
 
     expect(
@@ -84,7 +98,7 @@ describe("Login Page Component", () => {
     fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "secure-password" },
     });
-    const submitBtn = screen.getByRole("button", { name: /continue/i });
+    const submitBtn = screen.getByRole("button", { name: /sign in/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
@@ -114,7 +128,7 @@ describe("Login Page Component", () => {
     fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "secure-password" },
     });
-    const submitBtn = screen.getByRole("button", { name: /continue/i });
+    const submitBtn = screen.getByRole("button", { name: /sign in/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {

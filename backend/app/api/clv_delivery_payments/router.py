@@ -7,26 +7,26 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import text
 
-from app.core.database import engine
+from app.core.database import ANALYTICS_DB_NAME, engine
 
 load_dotenv()
 
 CONFIG = {
-    "analytics_schema": "customer_intelligence",
+    "analytics_schema": ANALYTICS_DB_NAME,
     # CLV table (generate_clv_table.py output)
-    "clv_table": "customer_intelligence.customer_clv",
+    "clv_table": f"{ANALYTICS_DB_NAME}.customer_clv",
     "clv_customer_id": "customer_unique_id",
     "clv_value": "clv",                # numeric CLV column
     "clv_tier": "value_tier",          # e.g. Low / Medium / High
     # churn predictions table
-    "churn_table": "customer_intelligence.churn_predictions",
+    "churn_table": f"{ANALYTICS_DB_NAME}.churn_predictions",
     "churn_customer_id": "customer_unique_id",
     "churn_prob": "churn_probability",
     # NOTE: risk_tier lives in customer_segments (not churn_predictions)
     "risk_tier": "risk_tier",
     "high_risk_label": "High",         # matched with LIKE 'High%', so 'High' and 'High Risk' both work
     # segments table
-    "seg_table": "customer_intelligence.customer_segments",
+    "seg_table": f"{ANALYTICS_DB_NAME}.customer_segments",
     "seg_customer_id": "customer_unique_id",
     "seg_label": "segment_label",
     # orders / payments / products (Olist-style)

@@ -10,8 +10,9 @@ from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
+from app.core.database import ANALYTICS_DB_NAME
 
-ANALYTICS_SCHEMA = "customer_intelligence"
+ANALYTICS_SCHEMA = ANALYTICS_DB_NAME
 CHURN_TABLE = f"{ANALYTICS_SCHEMA}.historical_churn_trend"
 REVENUE_TABLE = f"{ANALYTICS_SCHEMA}.historical_revenue_trend"
 COMBINED_TABLE = f"{ANALYTICS_SCHEMA}.historical_trend_combined"

@@ -8,7 +8,7 @@ from sqlalchemy import text
 import yaml
 
 from app.core.artifact_paths import get_models_dir, get_outputs_dir, get_reports_dir
-from app.core.database import engine
+from app.core.database import ANALYTICS_DB_NAME, engine
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 OUTPUTS_DIR = get_outputs_dir()
@@ -245,7 +245,7 @@ def get_churn_definition_and_counts() -> Dict[str, Any]:
 
     try:
         with engine.connect() as conn:
-            query = text("SELECT label, censored, count(*) as cnt FROM customer_intelligence.customer_churn_labels GROUP BY label, censored;")
+            query = text(f"SELECT label, censored, count(*) as cnt FROM {ANALYTICS_DB_NAME}.customer_churn_labels GROUP BY label, censored;")
             res = pd.read_sql(query, conn)
             for _, r in res.iterrows():
                 cnt = int(r["cnt"])

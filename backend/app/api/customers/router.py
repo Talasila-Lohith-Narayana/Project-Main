@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.auth import auth, admin_auth
-from app.core.database import get_db
+from app.core.database import ANALYTICS_DB_NAME, get_db
 from app.core.serialization import rows, ser
 from app.models import AuditLog
 from app.schemas import CustomerIn
@@ -132,14 +132,14 @@ def customers(
             f.append(f"({' OR '.join(risk_conds)})")
 
     where = " AND ".join(f)
-    join_clause = """JOIN customer_metrics_cache m ON m.customer_id = c.customer_id
-        LEFT JOIN customer_intelligence.customer_segments cs
+    join_clause = f"""JOIN customer_metrics_cache m ON m.customer_id = c.customer_id
+        LEFT JOIN {ANALYTICS_DB_NAME}.customer_segments cs
         ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
            c.customer_unique_id COLLATE utf8mb4_unicode_ci
-        LEFT JOIN customer_intelligence.customer_risk_tiers rt
+        LEFT JOIN {ANALYTICS_DB_NAME}.customer_risk_tiers rt
         ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
            c.customer_unique_id COLLATE utf8mb4_unicode_ci
-        LEFT JOIN customer_intelligence.churn_predictions cp
+        LEFT JOIN {ANALYTICS_DB_NAME}.churn_predictions cp
         ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
            c.customer_unique_id COLLATE utf8mb4_unicode_ci"""
 
@@ -164,7 +164,7 @@ def customers(
     )
     rs = db.execute(
         text(
-            f"""SELECT 
+            f"""SELECT
                 MIN(c.customer_id) as customer_id,
                 c.customer_unique_id,
                 MIN(c.customer_city) as customer_city,
@@ -184,13 +184,13 @@ def customers(
                 END AS churn_risk_level
             FROM customers c 
             JOIN customer_metrics_cache m ON m.customer_id = c.customer_id
-            LEFT JOIN customer_intelligence.customer_segments cs
+            LEFT JOIN {ANALYTICS_DB_NAME}.customer_segments cs
                 ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
-            LEFT JOIN customer_intelligence.customer_risk_tiers rt
+            LEFT JOIN {ANALYTICS_DB_NAME}.customer_risk_tiers rt
                 ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
-            LEFT JOIN customer_intelligence.churn_predictions cp
+            LEFT JOIN {ANALYTICS_DB_NAME}.churn_predictions cp
                 ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
             WHERE {where} 
@@ -385,13 +385,13 @@ def export_all_customers_csv(
                 CASE WHEN m.frequency>1 THEN 'Yes' ELSE 'No' END as is_repeat_customer
             FROM customers c 
             JOIN customer_metrics_cache m ON m.customer_id = c.customer_id
-            LEFT JOIN customer_intelligence.customer_segments cs
+            LEFT JOIN {ANALYTICS_DB_NAME}.customer_segments cs
                 ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
-            LEFT JOIN customer_intelligence.customer_risk_tiers rt
+            LEFT JOIN {ANALYTICS_DB_NAME}.customer_risk_tiers rt
                 ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
-            LEFT JOIN customer_intelligence.churn_predictions cp
+            LEFT JOIN {ANALYTICS_DB_NAME}.churn_predictions cp
                 ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
             WHERE {where} 
@@ -561,7 +561,7 @@ def customer_detail(cid: str, db: Session = Depends(get_db), _: str = Depends(au
     """
     r = db.execute(
         text(
-            """SELECT 
+            f"""SELECT
             c.customer_id,
             c.customer_unique_id,
             c.customer_zip_code_prefix,
@@ -595,13 +595,13 @@ def customer_detail(cid: str, db: Session = Depends(get_db), _: str = Depends(au
             FROM customers c 
             JOIN customer_metrics_cache m ON m.customer_id = c.customer_id
             LEFT JOIN customer_features cf ON (cf.customer_id = c.customer_id OR cf.customer_id = c.customer_unique_id)
-            LEFT JOIN customer_intelligence.customer_segments cs
+            LEFT JOIN {ANALYTICS_DB_NAME}.customer_segments cs
                 ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
-            LEFT JOIN customer_intelligence.customer_risk_tiers rt
+            LEFT JOIN {ANALYTICS_DB_NAME}.customer_risk_tiers rt
                 ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
-            LEFT JOIN customer_intelligence.churn_predictions cp
+            LEFT JOIN {ANALYTICS_DB_NAME}.churn_predictions cp
                 ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
                    c.customer_unique_id COLLATE utf8mb4_unicode_ci
             WHERE c.customer_unique_id = :id OR c.customer_id = :id LIMIT 1"""

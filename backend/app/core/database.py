@@ -8,6 +8,9 @@ from sqlalchemy.orm import sessionmaker
 # Load environment variables from .env file
 load_dotenv()
 
+DB_NAME = os.getenv("DB_NAME", "olist")
+ANALYTICS_DB_NAME = os.getenv("ANALYTICS_DB_NAME", "customer_intelligence")
+
 # Build MySQL connection URL from environment variables with safe defaults
 DATABASE_URL = URL.create(
     drivername="mysql+pymysql",
@@ -15,7 +18,7 @@ DATABASE_URL = URL.create(
     password=os.getenv("DB_PASSWORD", ""),
     host=os.getenv("DB_HOST", "localhost"),
     port=int(os.getenv("DB_PORT", "3306")),
-    database=os.getenv("DB_NAME", "olist"),
+    database=DB_NAME,
 )
 
 # SQLAlchemy Engine with connection health checks and automatic pool recycling
@@ -43,4 +46,3 @@ def get_db():
         yield db
     finally:
         db.close()
-

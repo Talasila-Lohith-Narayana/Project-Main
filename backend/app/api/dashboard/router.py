@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.auth import auth
-from app.core.database import get_db
+from app.core.database import ANALYTICS_DB_NAME, get_db
 from app.core.serialization import rows, ser
 
 router = APIRouter(tags=["dashboard"])
@@ -198,10 +198,10 @@ def dashboard(
                 FROM customer_metrics_cache c
                 JOIN customers cust ON cust.customer_unique_id = c.customer_unique_id
                 JOIN orders o ON o.customer_id = cust.customer_id
-                JOIN customer_intelligence.customer_risk_tiers rt
+                JOIN {ANALYTICS_DB_NAME}.customer_risk_tiers rt
                     ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
                        c.customer_unique_id COLLATE utf8mb4_unicode_ci
-                JOIN customer_intelligence.churn_predictions cp
+                JOIN {ANALYTICS_DB_NAME}.churn_predictions cp
                     ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
                        c.customer_unique_id COLLATE utf8mb4_unicode_ci
                 {time_filter_orders}
@@ -213,17 +213,17 @@ def dashboard(
     else:
         seg = db.execute(
             text(
-                """SELECT segment, COUNT(*) AS count,
+                f"""SELECT segment, COUNT(*) AS count,
                 ROUND(COALESCE(AVG(churn_probability) * 100, 0), 2) AS churn_percentage
                 FROM (
                     SELECT c.customer_unique_id,
                         rt.risk_tier AS segment,
                         cp.churn_probability
                     FROM customer_metrics_cache c
-                    JOIN customer_intelligence.customer_risk_tiers rt
+                    JOIN {ANALYTICS_DB_NAME}.customer_risk_tiers rt
                         ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
                            c.customer_unique_id COLLATE utf8mb4_unicode_ci
-                    JOIN customer_intelligence.churn_predictions cp
+                    JOIN {ANALYTICS_DB_NAME}.churn_predictions cp
                         ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
                            c.customer_unique_id COLLATE utf8mb4_unicode_ci
                     GROUP BY c.customer_unique_id, rt.risk_tier,
@@ -387,7 +387,7 @@ def dashboard(
     # 9. Churn Risk Summary from ML model probabilities
     churn_risk_rows = db.execute(
         text(
-            """SELECT
+            f"""SELECT
                 SUM(CASE WHEN cp.churn_probability >= 0.70 THEN 1 ELSE 0 END) as high,
                 SUM(CASE WHEN cp.churn_probability >= 0.30 AND cp.churn_probability < 0.70 THEN 1 ELSE 0 END) as medium,
                 SUM(CASE WHEN cp.churn_probability < 0.30 THEN 1 ELSE 0 END) as low
@@ -395,7 +395,7 @@ def dashboard(
                 SELECT DISTINCT customer_unique_id
                 FROM customer_metrics_cache
             ) scored
-            JOIN customer_intelligence.churn_predictions cp
+            JOIN {ANALYTICS_DB_NAME}.churn_predictions cp
               ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
                  scored.customer_unique_id COLLATE utf8mb4_unicode_ci"""
         )

@@ -12,7 +12,7 @@ import numpy as np
 
 from app.core.artifact_paths import get_customer_intelligence_root, get_models_dir
 from app.core.auth import auth
-from app.core.database import get_db
+from app.core.database import ANALYTICS_DB_NAME, get_db
 
 router = APIRouter(prefix="/api/predictions", tags=["AI Predictions"])
 logger = logging.getLogger("customer_sphere")
@@ -159,7 +159,7 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
     who haven't been scored in the offline batch yet.
     """
     customer = db.execute(
-        text("""
+        text(f"""
             SELECT customer_id, customer_city, customer_state
             FROM customers
             WHERE customer_unique_id = :cuid
@@ -308,7 +308,7 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
                             END) / NULLIF(COUNT(*), 0),
                             0
                         ) AS category_frequency
-                    FROM customer_intelligence.customer_features_with_labels
+                    FROM {ANALYTICS_DB_NAME}.customer_features_with_labels
                 """),
                 {"city_state": city_state, "category": dominant_category},
             ).mappings().one()
@@ -370,9 +370,9 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
 
     # ── Fetch real ML-pipeline CLV from customer_intelligence DB ──
     clv_row = db.execute(
-        text("""
+        text(f"""
             SELECT clv, value_tier, purchase_frequency_per_year, customer_lifespan_years
-            FROM customer_intelligence.customer_clv
+            FROM {ANALYTICS_DB_NAME}.customer_clv
             WHERE customer_unique_id = :cuid
             LIMIT 1
         """),
@@ -400,9 +400,9 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
 
     # ── Fetch campaign recommendation from customer_intelligence DB ──
     campaign_row = db.execute(
-        text("""
+        text(f"""
             SELECT campaign_name, campaign_priority, reason_code
-            FROM customer_intelligence.customer_campaign_recommendations
+            FROM {ANALYTICS_DB_NAME}.customer_campaign_recommendations
             WHERE customer_unique_id = :cuid
             LIMIT 1
         """),
@@ -482,7 +482,7 @@ def get_customer_predictions(
             customer_unique_id = cust_row["customer_unique_id"]
 
     # 2. Query precomputed ML intelligence tables
-    query = text("""
+    query = text(f"""
         SELECT 
             cp.churn_probability,
             cp.shap_values,
@@ -500,14 +500,14 @@ def get_customer_predictions(
             cr.campaign_name,
             cr.campaign_priority,
             cr.reason_code AS campaign_reason_code
-        FROM customer_intelligence.churn_predictions cp
-        LEFT JOIN customer_intelligence.customer_clv clv 
+        FROM {ANALYTICS_DB_NAME}.churn_predictions cp
+        LEFT JOIN {ANALYTICS_DB_NAME}.customer_clv clv
             ON clv.customer_unique_id COLLATE utf8mb4_unicode_ci = cp.customer_unique_id COLLATE utf8mb4_unicode_ci
-        LEFT JOIN customer_intelligence.customer_risk_tiers rt
+        LEFT JOIN {ANALYTICS_DB_NAME}.customer_risk_tiers rt
             ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci = cp.customer_unique_id COLLATE utf8mb4_unicode_ci
-        LEFT JOIN customer_intelligence.customer_segments cs
+        LEFT JOIN {ANALYTICS_DB_NAME}.customer_segments cs
             ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci = cp.customer_unique_id COLLATE utf8mb4_unicode_ci
-        LEFT JOIN customer_intelligence.customer_campaign_recommendations cr 
+        LEFT JOIN {ANALYTICS_DB_NAME}.customer_campaign_recommendations cr
             ON cr.customer_unique_id COLLATE utf8mb4_unicode_ci = cp.customer_unique_id COLLATE utf8mb4_unicode_ci
         WHERE cp.customer_unique_id = :cuid
         ORDER BY cp.scored_at DESC
@@ -643,7 +643,7 @@ def rescore_customer_manually(
     }
     updated_prediction = db.execute(
         text(
-            """UPDATE customer_intelligence.churn_predictions
+            f"""UPDATE {ANALYTICS_DB_NAME}.churn_predictions
                SET churn_probability = :churn_probability,
                    shap_values = :shap_values,
                    feature_values = :feature_values,
@@ -657,7 +657,7 @@ def rescore_customer_manually(
     if updated_prediction.rowcount == 0:
         db.execute(
             text(
-                """INSERT INTO customer_intelligence.churn_predictions
+                f"""INSERT INTO {ANALYTICS_DB_NAME}.churn_predictions
                        (customer_unique_id, churn_probability, shap_values,
                         feature_values, reason_codes, model_version, scored_at)
                    VALUES (:customer_unique_id, :churn_probability, :shap_values,

@@ -1,11 +1,10 @@
 
-import os
 from typing import Optional
 
 import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from sqlalchemy import text
 
 from app.core.database import engine

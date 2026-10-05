@@ -5,7 +5,7 @@ from jose import jwt
 
 from app.main import app
 from app.core.config import SECRET, ALGO, ADMIN_USERNAME, VIEWER_USERNAME
-from app.core.database import get_db, SessionLocal
+from app.core.database import SessionLocal
 
 
 @pytest.fixture(scope="session")

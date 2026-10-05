@@ -5,8 +5,6 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt, JWTError
-from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 
 from .core.config import (
     ADMIN_USERNAME,

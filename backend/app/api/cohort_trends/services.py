@@ -5,7 +5,6 @@ import time
 from datetime import date
 from typing import Callable, Optional
 
-import numpy as np
 import pandas as pd
 from fastapi import HTTPException
 from sqlalchemy import text

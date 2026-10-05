@@ -5,9 +5,7 @@ import logging
 from collections import Counter
 from typing import Any
 
-import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
-from sqlalchemy import text
 from sqlalchemy.exc import OperationalError, ProgrammingError
 
 from app.api.churn_analytics import repository as repo

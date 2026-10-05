@@ -2,7 +2,7 @@
 from datetime import date
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.engine import Engine
 
 from app.api.cohort_trends import schemas as schemas

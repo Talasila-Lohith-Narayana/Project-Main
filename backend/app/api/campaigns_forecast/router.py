@@ -8,25 +8,12 @@ from sqlalchemy.exc import OperationalError, ProgrammingError
 
 from app.api.campaigns_forecast import repository as repo
 from app.api.campaigns_forecast.schemas import (
-    AccuracyEntry,
     ActiveCampaign,
     ActiveCampaignsResponse,
-    BucketRow,
     CampaignCustomer,
     CampaignCustomersResponse,
-    CampaignRuleOut,
-    CampaignSummaryRow,
-    CorrelationResponse,
-    DefaultRuleOut,
     EvaluateRequest,
     EvaluateResponse,
-    ForecastAccuracyResponse,
-    ForecastPoint,
-    ForecastResponse,
-    ReasonCode,
-    RecommendationItem,
-    RecommendationsResponse,
-    RulesResponse,
     SegmentCampaign,
     SegmentCampaignsRow,
 )

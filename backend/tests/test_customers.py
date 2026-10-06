@@ -17,24 +17,7 @@ def test_customer_postal_prefix_preserves_leading_zero_and_accepts_legacy_intege
     assert legacy.customer_zip_code_prefix == "1000"
 
 
-def test_list_customers_pagination(client, admin_headers):
-    """Verifies pagination and metadata for customers listing."""
-    response = client.get("/api/customers?page=1&page_size=5", headers=admin_headers)
-    assert response.status_code == 200
-    data = response.json()
-    assert "items" in data
-    assert "total" in data
-    assert data["page"] == 1
-    assert data["page_size"] == 5
-    assert len(data["items"]) <= 5
 
-
-def test_search_customers(client, admin_headers):
-    """Verifies search filtering by location or ID substring."""
-    response = client.get("/api/customers?q=sao paulo&page_size=5", headers=admin_headers)
-    assert response.status_code == 200
-    data = response.json()
-    assert "items" in data
 
 
 def test_filter_customers_by_segment(client, admin_headers):

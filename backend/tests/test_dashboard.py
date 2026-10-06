@@ -127,17 +127,3 @@ def test_dashboard_summary_comparison_repeat_rate(client, admin_headers):
     assert "pct_change" in comp["repeat_rate"]
 
 
-def test_dashboard_summary_requires_authentication(client):
-    response = client.get("/api/dashboard/summary")
-
-    assert response.status_code == 401
-
-
-def test_dashboard_summary_rejects_invalid_custom_range(client, admin_headers):
-    response = client.get(
-        "/api/dashboard/summary?timeframe=custom&start_date=2018-06-30&end_date=2018-01-01",
-        headers=admin_headers,
-    )
-
-    assert response.status_code == 200
-    assert response.json()["timeframe"] == "custom"

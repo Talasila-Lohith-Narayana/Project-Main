@@ -2561,6 +2561,34 @@ em {
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.035);
 }
 
+.analyticsDashboardPage .analyticsRow {
+  grid-template-columns: minmax(110px, 1fr) repeat(3, max-content);
+  padding: 10px 12px;
+  background: var(--surface-subtle, #f8fafc);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+}
+
+.analyticsDashboardPage .analyticsRow > span {
+  padding: 5px 8px;
+  white-space: nowrap;
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.analyticsDashboardPage .valueTierRows .analyticsRow {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+}
+
+.analyticsDashboardPage .valueTierRows .analyticsRow > span {
+  min-width: 0;
+  white-space: nowrap;
+  text-align: right;
+}
+
 .analyticsDashboardPage .panelHead,
 .modelPage .panelHead {
   margin-bottom: 14px;
@@ -2763,6 +2791,26 @@ em {
   }
 }
 
+@container (max-width: 620px) {
+  .analyticsDashboardPage .analyticsRow {
+    grid-template-columns: minmax(0, 1fr) repeat(2, max-content);
+  }
+
+  .analyticsDashboardPage .analyticsRow > span:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .analyticsDashboardPage .valueTierRows .analyticsRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .analyticsDashboardPage .valueTierRows .analyticsRow > span {
+    width: 100%;
+    text-align: left;
+  }
+}
+
 .cohortSummaryTableWrap {
   max-height: min(70vh, 680px);
   overflow: auto;
@@ -2836,6 +2884,23 @@ em {
   overflow-wrap: anywhere;
 }
 
+.clvMetrics .analyticsMetric strong {
+  white-space: nowrap;
+  overflow: hidden;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
+}
+
+.clvMetrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@container (max-width: 560px) {
+  .clvMetrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .analyticsCampaignRow {
   display: grid;
   gap: 6px;
@@ -2860,6 +2925,17 @@ em {
   color: var(--muted, #64748b);
   font-size: 11px;
   line-height: 1.6;
+}
+
+.analyticsDashboardPage .analyticsCampaignSegment {
+  padding: 10px 12px;
+  background: var(--surface-subtle, #f8fafc);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+}
+
+.analyticsDashboardPage .analyticsCampaignSegment:first-child {
+  padding-top: 10px;
 }
 
 .analyticsStatusRows {

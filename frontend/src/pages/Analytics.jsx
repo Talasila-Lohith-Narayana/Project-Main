@@ -5,11 +5,12 @@ import { Page } from "../components/States";
 import { analyticsService } from "../services/api";
 
 const number = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
-const currency = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
+const currency = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
 });
+
+const formatClv = (value) => `R$ ${currency.format(Number(value) || 0)}`;
 
 function Metric({ label, value, detail }) {
   return (
@@ -83,12 +84,12 @@ function DeliveryOverview({ data }) {
 function ClvOverview({ data }) {
   const metrics = [
     ["Customers with CLV", number.format(data?.customers || 0)],
-    ["Average CLV", currency.format(data?.avg_clv || 0)],
-    ["Median CLV", currency.format(data?.median_clv || 0)],
-    ["Total projected CLV", currency.format(data?.total_clv || 0)],
+    ["Average CLV", formatClv(data?.avg_clv)],
+    ["Median CLV", formatClv(data?.median_clv)],
+    ["Total projected CLV", formatClv(data?.total_clv)],
   ];
   return (
-    <div className="analyticsMetrics">
+    <div className="analyticsMetrics clvMetrics">
       {metrics.map(([label, value]) => (
         <Metric key={label} label={label} value={value} />
       ))}
@@ -101,12 +102,12 @@ function ValueTierOverview({ data }) {
     return <p className="analyticsEmpty">No value-tier data is available.</p>;
   }
   return (
-    <div className="analyticsRows">
+    <div className="analyticsRows valueTierRows">
       {data.map((tier) => (
         <div className="analyticsRow" key={tier.value_tier}>
           <strong>{tier.value_tier} value</strong>
           <span>{number.format(tier.customers || 0)} customers ({Number(tier.pct_share || 0).toFixed(1)}%)</span>
-          <span>{currency.format(tier.avg_clv || 0)} average CLV</span>
+          <span>{formatClv(tier.avg_clv)} average CLV</span>
         </div>
       ))}
     </div>

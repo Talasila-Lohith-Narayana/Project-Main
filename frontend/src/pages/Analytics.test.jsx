@@ -83,7 +83,8 @@ describe("Analytics page", () => {
 
     render(<Analytics />);
 
-    expect(await screen.findByText((content) => content.includes("294,45"))).toBeInTheDocument();
+    expect(await screen.findByText("R$ 294.45")).toBeInTheDocument();
+    expect(screen.getByText("R$ 28,295,586.00")).toBeInTheDocument();
     expect(screen.getByText("High value")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Cohort summary" }));

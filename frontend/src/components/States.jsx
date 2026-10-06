@@ -1,30 +1,5 @@
-/**
- * ================================================================================
- * UI STATE & LAYOUT PRIMITIVES (components/States.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This file contains the shared building blocks for all visual pages:
- * Loading spinners, Error alert boxes with "Retry" buttons, standardized White Card panels,
- * and page header banners with the live database connection pill.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - Used across ALL pages (Dashboard, Customers, Customer Profile, Products):
- *   • Loading spinners when fetching network data (`LoadingState`).
- *   • Error alerts with retry buttons when network fails (`ErrorState`).
- *   • Standardized card containers (`Panel`, `Page`).
- *   • Top header banners with live status pill (`Header`).
- * ================================================================================
- */
-
 import React from "react";
 import { AlertTriangle, LoaderCircle } from "lucide-react";
-
-/**
- * Centered spinner for asynchronous data loading states
- */
 export function LoadingState({ text = "Loading..." }) {
   return (
     <div className="state">
@@ -33,10 +8,6 @@ export function LoadingState({ text = "Loading..." }) {
     </div>
   );
 }
-
-/**
- * Standardized error message container with optional retry button
- */
 export function ErrorState({ message, retry }) {
   return (
     <div className="state error">
@@ -51,17 +22,9 @@ export function ErrorState({ message, retry }) {
     </div>
   );
 }
-
-/**
- * Root page wrapper enforcing responsive margins and max-width layout
- */
 export function Page({ children }) {
   return <div className="page">{children}</div>;
 }
-
-/**
- * Card container with standardized header and child content area
- */
 export function Panel({ title, sub, children }) {
   return (
     <section className="panel">
@@ -75,10 +38,6 @@ export function Panel({ title, sub, children }) {
     </section>
   );
 }
-
-/**
- * Page top header banner with eyebrow badge and database connection status
- */
 export function Header({ eyebrow, title, text }) {
   return (
     <div className="header">

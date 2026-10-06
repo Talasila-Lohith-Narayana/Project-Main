@@ -1,29 +1,3 @@
-/**
- * ================================================================================
- * EXECUTIVE ANALYTICS DASHBOARD PAGE (pages/Dashboard.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the executive control center and primary home page. It coordinates
- * data fetching, timeframe filters, and assembles the modular dashboard components:
- * KPI metric cards, revenue growth trends, customer segments, regional share,
- * payment methods, CSAT ratings, and top categories.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - Primary Dashboard Route (`/`):
- *   • DashboardHeroBanner: Time horizon selector and market reach stats.
- *   • DashboardKpiCards: 6 executive KPI cards with click-through navigation.
- *   • DashboardRevenueTrend: Monthly revenue area chart.
- *   • DashboardCustomerSegments: RFM segments horizontal bar chart.
- *   • DashboardRegionalDistribution: Top Brazilian states donut chart.
- *   • DashboardPaymentMethods: Payment method breakdown donut chart.
- *   • DashboardReviewSatisfaction: Overall CSAT rating and star breakdown.
- *   • DashboardTopCategories: Category volume leaderboard.
- * ================================================================================
- */
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { dashboardService } from "../services/api";

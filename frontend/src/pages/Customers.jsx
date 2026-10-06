@@ -1,28 +1,3 @@
-/**
- * ================================================================================
- * CUSTOMER DIRECTORY & WORKSPACE (pages/Customers.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the searchable phonebook and intelligence directory of all 96,000+ customers.
- * It lets you search for anyone by ID or city, filter by spending or star rating, sort columns,
- * export matching customers to an Excel/CSV file, and select multiple customers for bulk updates.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - Customers Page (`/customers`):
- *   • Real-time search bar (by unique ID, city, or ID hash).
- *   • "Filters" button & modal (by state, segment, spend, orders, and star rating pills).
- *   • "Sort" dropdown menu (highest spend, most orders, highest rating, recent purchase).
- *   • "Export CSV" button (downloads entire filtered customer directory to CSV).
- *   • Checkbox selection mode for Bulk Segment Updates or Bulk Deleting records.
- *   • Customer directory table with truncated IDs, city, state, spend, ratings, and repeat tags.
- *   • "Add Customer" button & modal dialog for administrators.
- *   • Bottom pagination bar (previous, next, and jump-to page controls).
- * ================================================================================
- */
-
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Check, CheckSquare, Download, Filter, Plus, Search, Square, Tag, Trash2 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";

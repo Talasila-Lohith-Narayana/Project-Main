@@ -1,24 +1,3 @@
-/**
- * ================================================================================
- * LOGIN & AUTHENTICATION SCREEN (pages/Login.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the welcoming sign-in screen. Users enter their username and password here.
- * When they click "Sign In", it sends the credentials to the backend server.
- * If correct, it saves their session and redirects them directly to the Dashboard.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - Sign In Form at `/login`:
- *   • Brand hero column on the left (Customer Sphere logo, description).
- *   • Username and password input boxes with default helper hints.
- *   • "Continue / Sign in" button.
- *   • Error message alerts for wrong passwords or invalid input.
- * ================================================================================
- */
-
 import React, { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LoaderCircle, Sparkles } from "lucide-react";
@@ -43,11 +22,7 @@ export default function Login() {
 
   // If already logged in, redirect directly to dashboard
   if (isAuthenticated) return <Navigate to="/" replace />;
-
-  /**
-   * Submits user credentials to backend auth service
-   */
-  async function submit(event) {
+async function submit(event) {
     event.preventDefault();
     setError("");
     if (!form.username || form.password.length < 6) {

@@ -1,20 +1,3 @@
-/**
- * ================================================================================
- * PLATFORM AUDIT TRAIL & COMPLIANCE MODAL (components/AuditLogModal.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the compliance "flight recorder" dialog. It shows a searchable feed of every 
- * data edit, customer creation, order modification, review submission, or bulk action
- * performed by administrators across the entire application.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - "Activity Logs" / "Audit Trail" button in the top navigation bar of `Shell.jsx`.
- * ================================================================================
- */
-
 import React, { useEffect, useState } from "react";
 import { History, RefreshCw, Search, Shield, User, X } from "lucide-react";
 import { customerService } from "../services/api";

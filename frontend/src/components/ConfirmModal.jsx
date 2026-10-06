@@ -1,20 +1,3 @@
-/**
- * ================================================================================
- * REUSABLE CONFIRMATION MODAL (components/ConfirmModal.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * Replaces disruptive native browser `window.confirm()` popups with a sleek,
- * accessible, themed modal dialog. Displays a warning icon for destructive actions,
- * customizable message, and explicit Confirm / Cancel buttons.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * - Single customer deletion confirmation on `Customer.jsx`
- * - Bulk customer deletion confirmation on `Customers.jsx`
- * - Order deletion confirmation on `OrderModal.jsx`
- * ================================================================================
- */
-
 import React from "react";
 import { AlertTriangle, X } from "lucide-react";
 

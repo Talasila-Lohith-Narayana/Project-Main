@@ -7,11 +7,6 @@ import {
   Users,
   WalletCards,
 } from "lucide-react";
-
-/**
- * Renders a small delta badge showing percentage change vs a comparison period.
- * Green ↑ for positive, red ↓ for negative, gray — for zero.
- */
 function DeltaBadge({ pctChange, tooltip }) {
   if (pctChange == null) return null;
   const isPositive = pctChange > 0;

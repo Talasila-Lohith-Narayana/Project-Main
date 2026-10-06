@@ -1,30 +1,3 @@
-/**
- * ================================================================================
- * SINGLE CUSTOMER PROFILE & DEEP-DIVE INTELLIGENCE (pages/Customer.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the individual 360-degree profile page for a single customer. It displays 
- * their full relationship history: how much they spent, their preferred categories,
- * payment habits, past orders, reviews left, CRM communication notes, and audit history.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - Customer Profile Page (`/customers/:id`):
- *   • Header Badge: Customer Unique ID hash with clean copy feature, City, State, and Segment badge.
- *   • Admin Action Buttons: "Edit Customer", "Delete Customer", "Add Order", "Add Review", "Log Activity".
- *   • Top RFM Intelligence Cards: Lifetime Spend (R$), Total Orders, Avg Rating, Tenure Days, Recency.
- *   • 6 Modular Profile Tabs:
- *     1. Overview: Behavior signals, Top Category shares, Payment preferences (CustomerOverview).
- *     2. Products: List of all specific items bought with prices and shipping fees (CustomerProducts).
- *     3. Orders: Full order transaction table with status, dates, and order values (CustomerOrders).
- *     4. Reviews: Star rating badges and written customer feedback comments (CustomerReviews).
- *     5. Activity: CRM timeline with phone calls, emails, support tickets, and team notes (CustomerInteractions).
- *     6. Audit Log: Full audit trail of edits and updates made to this customer profile (CustomerAuditLogs).
- * ================================================================================
- */
-
 import React, { useEffect, useState } from "react";
 import {
   Activity,

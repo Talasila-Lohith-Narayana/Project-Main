@@ -1,22 +1,3 @@
-/**
- * ================================================================================
- * AUTHENTICATION CONTEXT & SESSION PROVIDER (context/AuthContext.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the app's "identity manager". It remembers who is currently logged in,
- * saves login tokens into browser storage so page refreshes don't log you out,
- * and tracks whether the user is an Administrator (full edit access) or an Analyst (view-only).
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - Login & Logout behavior.
- * - Profile Switcher in the sidebar (Admin vs Analyst).
- * - Admin-Only Action Buttons across all pages (Add, Edit, Delete, Bulk actions).
- * ================================================================================
- */
-
 import React, { createContext, useContext, useState } from "react";
 
 // Create Context for holding auth state
@@ -37,12 +18,7 @@ export function AuthProvider({ children }) {
   const [role, setRole] = useState(
     () => localStorage.getItem("ci_role") || "viewer",
   );
-
-  /**
-   * Stores user session credentials to state and localStorage on successful login
-   * @param {Object} session - { access_token, username, role }
-   */
-  const login = (session) => {
+const login = (session) => {
     const updatedAccounts = {
       ...accounts,
       [session.username]: session,
@@ -80,11 +56,7 @@ export function AuthProvider({ children }) {
     setUser(session.username);
     setRole(session.role);
   };
-
-  /**
-   * Clears user session credentials from state and localStorage on logout
-   */
-  const logout = (usernameToLogout = null) => {
+const logout = (usernameToLogout = null) => {
     if (!usernameToLogout || usernameToLogout === user) {
       localStorage.removeItem("ci_token");
       localStorage.removeItem("ci_user");
@@ -94,11 +66,7 @@ export function AuthProvider({ children }) {
       setRole(null);
     }
   };
-
-  /**
-   * Clears all authenticated accounts
-   */
-  const logoutAll = () => {
+const logoutAll = () => {
     localStorage.removeItem("ci_accounts");
     localStorage.removeItem("ci_token");
     localStorage.removeItem("ci_user");
@@ -108,11 +76,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     setRole(null);
   };
-
-  /**
-   * Switch to an already authenticated session, or throw if not logged in
-   */
-  const switchToAccount = (targetUsername) => {
+const switchToAccount = (targetUsername) => {
     const targetSession = accounts[targetUsername];
     if (!targetSession || !targetSession.access_token) {
       throw new Error(`Account ${targetUsername} is not logged in.`);
@@ -124,11 +88,7 @@ export function AuthProvider({ children }) {
     setUser(targetSession.username);
     setRole(targetSession.role);
   };
-
-  /**
-   * Authenticate and add a new profile to active sessions
-   */
-  const loginAndSwitch = async (credentials) => {
+const loginAndSwitch = async (credentials) => {
     const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api"}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -164,10 +124,6 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
-
-/**
- * Custom hook for accessing authentication status, current user, role, login, and logout functions.
- */
 export function useAuth() {
   return useContext(AuthContext);
 }

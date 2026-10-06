@@ -1,20 +1,3 @@
-/**
- * ================================================================================
- * CUSTOMER DIRECTORY FILTER MODAL (components/FilterModal.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the advanced filter popup for the Customers directory. It allows filtering
- * customers by State (e.g. SP, RJ), Segment (ML customer segments),
- * Activity status (has orders vs no orders), Minimum spend, and Star ratings.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - "Filters" button on the Customers directory page (`Customers.jsx`).
- * ================================================================================
- */
-
 import React, { useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 
@@ -36,11 +19,7 @@ export default function FilterModal({
   // Helper to update a single draft filter field
   const update = (field, value) =>
     setDraft((current) => ({ ...current, [field]: value }));
-
-  /**
-   * Toggles inclusion of a star rating filter (1 to 5 stars) in multi-selection array
-   */
-  const toggleRating = (score) => {
+const toggleRating = (score) => {
     setDraft((current) => {
       const activeList = current.ratings || [];
       const exists = activeList.includes(score);
@@ -50,11 +29,7 @@ export default function FilterModal({
       return { ...current, ratings: nextRatings };
     });
   };
-
-  /**
-   * Toggles a churn risk level in the multi-select array
-   */
-  const toggleChurnRisk = (level) => {
+const toggleChurnRisk = (level) => {
     setDraft((current) => {
       const activeList = current.churnRisk || [];
       const exists = activeList.includes(level);
@@ -64,11 +39,7 @@ export default function FilterModal({
       return { ...current, churnRisk: nextList };
     });
   };
-
-  /**
-   * Resets all filter fields in the modal back to their empty default values
-   */
-  const clear = () =>
+const clear = () =>
     setDraft({
       state: "",
       segment: "",

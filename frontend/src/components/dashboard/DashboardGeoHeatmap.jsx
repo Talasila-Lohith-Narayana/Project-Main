@@ -1,26 +1,3 @@
-/**
- * ================================================================================
- * BRAZILIAN GEOLOCATION HEATMAP COMPONENT (components/dashboard/DashboardGeoHeatmap.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * Renders an interactive, visually stunning geographic heatmap of Brazil featuring
- * all 27 federative units (states + DF). Allows executives to visualize market
- * concentration by Customer Density, Order Volume, or Total Revenue (R$).
- * 
- * FEATURES:
- * ---------
- * 1. Vector Map: Instant SVG rendering of all 27 Brazilian states.
- * 2. Metric Switcher: Toggle between Customers, Orders, and Revenue.
- * 3. Color Scale Engine: Dynamic choropleth color interpolation based on density.
- * 4. Micro-Interactions: Electric cyan glow on hover with rich floating tooltip.
- * 5. State Deep-Dive: Click any state to view territorial intelligence, rank,
- *    top cities leaderboard, and quick-link to filter customers.
- * 6. Regional Filter Chips: Focus on Southeast, South, Northeast, Central-West, or North.
- * ================================================================================
- */
-
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Users,

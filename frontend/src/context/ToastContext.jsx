@@ -1,31 +1,3 @@
-/**
- * ================================================================================
- * TOAST NOTIFICATION CONTEXT & PROVIDER (context/ToastContext.jsx)
- * ================================================================================
- *
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the app's notification system. Instead of ugly browser alert() popups
- * that block the entire page, it shows sleek animated toast notifications that
- * slide in from the top-right corner and auto-dismiss after a few seconds.
- *
- * It supports 4 types of toasts:
- *   • success (green) — "Customer saved", "Order created"
- *   • error (red) — "Export failed", API errors
- *   • warning (amber) — "3 customers skipped"
- *   • info (blue) — general informational messages
- *
- * HOW TO USE:
- * -----------
- * import { useToast } from "../context/ToastContext";
- * const toast = useToast();
- * toast.success("Customer saved successfully!");
- * toast.error("Export failed: " + err.message);
- * toast.info("3 customers selected");
- * toast.warning("Some records were skipped");
- * ================================================================================
- */
-
 import React, { createContext, useCallback, useContext, useState, useRef } from "react";
 
 const ToastContext = createContext(null);

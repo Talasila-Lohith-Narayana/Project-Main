@@ -1,25 +1,3 @@
-/**
- * ================================================================================
- * PRODUCTS & INVENTORY CATALOG PAGE (pages/Products.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the marketplace catalog explorer displaying all 32,950+ products.
- * It lets you search for products (with space-to-underscore mapping), filter by price bounds,
- * sales volume, or star rating thresholds, sort the catalog, and download a CSV spreadsheet.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - Products Page (`/products`):
- *   • Top Toolbar: Real-time search bar, Category dropdown, "Filters" button, "Reset", and "Sort" dropdown.
- *   • "Export CSV" Button (in top header banner): Downloads matching products to a CSV file.
- *   • Products Catalog Table: Product ID (hoverable with clean copy), Category, Photos, Weight (g),
- *     Units sold, Total revenue (R$), Average price, Average shipping freight, and Star rating.
- *   • Server-side pagination controls (Previous / Next / Page counter).
- * ================================================================================
- */
-
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -144,11 +122,7 @@ export default function Products() {
   useEffect(() => {
     loadProducts();
   }, [debouncedSearch, filters, sortKey, page]);
-
-  /**
-   * Triggers full CSV download of all matching products from server
-   */
-  const handleExport = async () => {
+const handleExport = async () => {
     setIsExporting(true);
     try {
       const response = await productsService.exportCsv({

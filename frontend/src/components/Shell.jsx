@@ -1,27 +1,3 @@
-/**
- * ================================================================================
- * APP SHELL & NAVIGATION LAYOUT (components/Shell.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the outer framing that wraps around every page inside the app.
- * It provides the permanent left sidebar with navigation links, the user account
- * switcher (Admin vs Analyst), the Dark/Light mode theme toggle, and the top Activity Logs button.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - Left Navigation Sidebar:
- *   • Workspace brand logo ("Customer Sphere").
- *   • Links to Dashboard (`/`), Customers (`/customers`), and Products (`/products`).
- *   • User Role Switcher: Allows seamless one-click switching between 'admin' and 'analyst' profiles.
- *   • Theme Toggle (Sun / Moon icons) for dark and light modes.
- *   • Sign Out button.
- * - Top Header Action:
- *   • "Activity Logs" / "Audit Trail" button that opens `AuditLogModal.jsx`.
- * ================================================================================
- */
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Activity, BarChart3, ChevronLeft, ChevronRight, History, KeyRound, LayoutDashboard, LogOut, Megaphone, Moon, Package, RefreshCw, Sparkles, Sun, UserPlus, Users, X } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";

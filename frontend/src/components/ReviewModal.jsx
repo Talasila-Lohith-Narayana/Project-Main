@@ -1,20 +1,3 @@
-/**
- * ================================================================================
- * ADD / EDIT REVIEW MODAL DIALOG (components/ReviewModal.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the star rating and feedback popup. Administrators can submit or edit 
- * a 1-to-5 star rating, headline title, and detailed written review for an order.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - "Add Review" button on the customer profile page (`Customer.jsx`).
- * - "Edit" button on individual reviews in the Customer Reviews tab.
- * ================================================================================
- */
-
 import React, { useState } from "react";
 import { MessageSquarePlus, Star, X } from "lucide-react";
 

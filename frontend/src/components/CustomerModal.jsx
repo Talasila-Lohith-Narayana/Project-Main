@@ -1,21 +1,3 @@
-/**
- * ================================================================================
- * ADD / EDIT CUSTOMER MODAL DIALOG (components/CustomerModal.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the popup dialog form that opens when you want to add a brand-new customer
- * or edit an existing customer's city, state, postal zip code, or unique identifier.
- * It validates that state codes are 2 letters and all required fields are filled out.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - "Add Customer" button on the Customers directory page (`Customers.jsx`).
- * - "Edit Customer" button on the Customer profile page (`Customer.jsx`).
- * ================================================================================
- */
-
 import React, { useState } from "react";
 import { X } from "lucide-react";
 
@@ -60,11 +42,7 @@ export default function CustomerModal({ customer, close, save }) {
   // Helper to update specific form field
   const update = (field, value) =>
     setForm((current) => ({ ...current, [field]: value }));
-
-  /**
-   * Validates input values and submits customer data to parent save callback
-   */
-  async function submit(event) {
+async function submit(event) {
     event.preventDefault();
     const cleanState = form.customer_state.trim().toUpperCase();
     const cleanUid = form.customer_unique_id.trim();

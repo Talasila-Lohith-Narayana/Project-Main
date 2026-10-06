@@ -1,28 +1,3 @@
-/**
- * ================================================================================
- * FRONTEND ROOT ENTRY POINT & ROUTER (main.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the starting engine of the entire web interface. It loads the React app 
- * into the browser, sets up page navigation (URL routing), manages dark/light themes, 
- * and protects private pages so only logged-in users can view them.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - App-wide URL Navigation:
- *   • /login          -> Login Page (`Login.jsx`)
- *   • /               -> Dashboard Analytics (`Dashboard.jsx`)
- *   • /customers      -> Customers Directory (`Customers.jsx`)
- *   • /customers/:id  -> Customer Profile Detail (`Customer.jsx`)
- *   • /products       -> Products Catalog (`Products.jsx`)
- *   • /analytics      -> Customer Intelligence Analytics (`Analytics.jsx`)
- * - Global Theme Provider (Dark Mode / Light Mode switcher).
- * - Global Authentication Provider (keeps you logged in across pages).
- * ================================================================================
- */
-
 import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";

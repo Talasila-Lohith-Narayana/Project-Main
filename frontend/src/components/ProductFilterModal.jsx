@@ -1,20 +1,3 @@
-/**
- * ================================================================================
- * PRODUCTS CATALOG FILTER MODAL (components/ProductFilterModal.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the filter popup for the Products & Inventory page. Users can filter 
- * marketplace items by Category, Price bounds (Min R$ to Max R$), Minimum sales volume,
- * and Minimum Star Ratings.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - "Filters" button on the Products & Catalog page (`Products.jsx`).
- * ================================================================================
- */
-
 import React, { useState } from "react";
 import { Package, SlidersHorizontal, Star, X } from "lucide-react";
 

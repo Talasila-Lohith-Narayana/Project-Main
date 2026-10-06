@@ -1,21 +1,3 @@
-/**
- * ================================================================================
- * ADD / EDIT ORDER MODAL DIALOG (components/OrderModal.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the interactive shopping order popup. Administrators can add multi-item
- * purchases with category suggestions, item prices (R$), shipping costs, payment methods
- * (Credit Card, Boleto, Voucher, Debit Card), installment plans (1x-12x), and order dates.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - "Add Order" button on the customer profile page (`Customer.jsx`).
- * - "Edit" button on individual order rows inside the Order History table.
- * ================================================================================
- */
-
 import React, { useEffect, useState } from "react";
 import { Package, PackagePlus, Plus, Trash2, X } from "lucide-react";
 import { productsService } from "../services/api";

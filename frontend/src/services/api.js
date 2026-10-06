@@ -1,21 +1,3 @@
-/**
- * ================================================================================
- * API CLIENT & NETWORK SERVICE LAYER (services/api.js)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the network messenger of the frontend. Whenever a page or button needs to
- * talk to the backend Python server (e.g. to load customers, place an order, log in,
- * or export CSV files), it goes through this file. It automatically attaches the user's
- * security token to every request and turns technical server errors into readable messages.
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - Used by ALL pages and modals to fetch and save data.
- * ================================================================================
- */
-
 import axios from "axios";
 
 // Create Axios client pointing to the backend API base URL

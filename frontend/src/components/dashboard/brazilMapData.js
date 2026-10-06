@@ -1,9 +1,3 @@
-/**
- * BRAZIL VECTOR MAP DATA & METADATA
- * Accurate SVG vector paths/polygons for all 27 Brazilian Federative Units (UFs)
- * ViewBox: 0 0 353.845 367.766
- */
-
 export const BRAZIL_MAP_VIEWBOX = '0 0 353.845 367.766';
 
 export const BRAZIL_REGIONS = [

@@ -1,20 +1,3 @@
-/**
- * ================================================================================
- * LOG / EDIT CRM INTERACTION MODAL (components/InteractionModal.jsx)
- * ================================================================================
- * 
- * WHAT THIS FILE DOES (Plain English):
- * ------------------------------------
- * This is the touchpoint log popup. Team members record customer communication
- * records here (phone calls, emails, support tickets, meetings, notes, and follow-ups).
- * 
- * WHAT PART OF THE UI HANDLES THIS:
- * ---------------------------------
- * - "Log Activity" button on the customer profile page (`Customer.jsx`).
- * - "Edit" button on CRM interaction cards in the Activity timeline tab.
- * ================================================================================
- */
-
 import React, { useState } from "react";
 import { X } from "lucide-react";
 
@@ -30,11 +13,7 @@ export default function InteractionModal({ interaction, close, save }) {
   });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
-  /**
-   * Validates title and note description before submitting
-   */
-  async function submit(event) {
+async function submit(event) {
     event.preventDefault();
     const cleanTitle = form.title.trim();
     const cleanDesc = form.description.trim();

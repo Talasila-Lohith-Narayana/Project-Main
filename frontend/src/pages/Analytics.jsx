@@ -9,8 +9,28 @@ const currency = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
   minimumFractionDigits: 2,
 });
+const dateTime = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  hour12: false,
+});
 
 const formatClv = (value) => `R$ ${currency.format(Number(value) || 0)}`;
+const formatTimestamp = (value) => {
+  if (!value || value === "unknown") return "Unknown";
+  const compactTimestamp = String(value).match(/^(\d{4})(\d{2})(\d{2})[_-](\d{2})(\d{2})(\d{2})$/);
+  const parsed = compactTimestamp
+    ? new Date(
+      Number(compactTimestamp[1]),
+      Number(compactTimestamp[2]) - 1,
+      Number(compactTimestamp[3]),
+      Number(compactTimestamp[4]),
+      Number(compactTimestamp[5]),
+      Number(compactTimestamp[6]),
+    )
+    : new Date(value);
+  return Number.isNaN(parsed.getTime()) ? String(value) : dateTime.format(parsed);
+};
 
 function Metric({ label, value, detail }) {
   return (
@@ -193,7 +213,7 @@ function ModelOverview({ data }) {
             : `${(Number(data.operating_point.value) * 100).toFixed(1)}%`}
           detail={data?.operating_point?.mode || ""}
         />
-        <Metric label="Model timestamp" value={data?.timestamp || "Unknown"} />
+        <Metric label="Model timestamp" value={formatTimestamp(data?.timestamp)} />
       </div>
       {features.length > 0 && (
         <details className="analyticsDetails">
@@ -222,7 +242,7 @@ function CalibrationOverview({ data }) {
   return (
     <>
       <p className="analyticsMeta">Selected method: {data.selected_method || "Not specified"}</p>
-      <div className="analyticsTableWrap">
+      <div className="analyticsTableWrap calibrationTableWrap">
         <table className="analyticsTable">
           <thead><tr><th>Metric</th><th>Before</th><th>After</th></tr></thead>
           <tbody>

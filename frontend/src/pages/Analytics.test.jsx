@@ -59,7 +59,7 @@ describe("Analytics page", () => {
     vi.spyOn(analyticsService, "campaignsBySegment").mockResolvedValue([]);
     vi.spyOn(analyticsService, "modelVersion").mockResolvedValue({
       model_name: "LightGBM Classifier",
-      timestamp: "unknown",
+      timestamp: "20261006_122016",
       features_count: 13,
       features: ["monetary_value"],
       operating_point: { mode: "rate", value: 0.05 },
@@ -103,6 +103,7 @@ describe("Analytics page", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Model diagnostics" }));
     expect(await screen.findByText("LightGBM Classifier")).toBeInTheDocument();
+    expect(screen.getByText("Oct 6, 2026, 12:20")).toBeInTheDocument();
     expect(await screen.findByText(/Selected method: isotonic/)).toBeInTheDocument();
     expect(await screen.findByText("No repeat purchase within 180 days.")).toBeInTheDocument();
   });

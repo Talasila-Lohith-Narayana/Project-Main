@@ -137,6 +137,11 @@ export default function Shell() {
           )}
         </div>
       )}
+      {collapsed && (
+        <span className="profileSwitcherIcon" aria-hidden="true">
+          <Users size={16} />
+        </span>
+      )}
       <select
         aria-label="Switch profile"
         title="Switch profile"
@@ -364,7 +369,7 @@ export default function Shell() {
       )}
 
       {/* Dynamic Content Viewport */}
-      <main>
+      <main className={collapsed ? "expanded" : ""}>
         <Outlet />
       </main>
     </div>

@@ -173,6 +173,7 @@ describe("Shell Navigation & Layout Component", () => {
     fireEvent.click(toggleBtn);
 
     expect(screen.getByTitle("Expand sidebar")).toBeInTheDocument();
+    expect(document.querySelector("main")).toHaveClass("expanded");
   });
 
   it("switches directly to an already authenticated session", async () => {

@@ -1026,12 +1026,56 @@ button {
 }
 
 .profileSwitcher.compact {
-  padding: 5px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  min-height: 34px;
+  padding: 2px;
+}
+
+.profileSwitcher.compact::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: #94a3b8;
+  content: "⇄";
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
+  transform: translate(3px, -50%);
+}
+
+.profileSwitcherIcon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  color: #93c5fd;
+  place-items: center;
+  pointer-events: none;
+  transform: translate(-12px, -50%);
+}
+
+.profileSwitcherIcon svg {
+  width: 12px;
+  height: 12px;
 }
 
 .profileSwitcher.compact select {
-  padding: 7px 2px;
-  font-size: 9px;
+  z-index: 1;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  appearance: none;
+  border-color: #334155;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+}
+
+.profileSwitcher.compact select:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
 }
 
 .sideBottom button {
@@ -2546,6 +2590,8 @@ em {
 .analyticsDashboardPage,
 .modelPage {
   min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   container-type: inline-size;
 }
 
@@ -2579,14 +2625,20 @@ em {
 }
 
 .analyticsDashboardPage .valueTierRows .analyticsRow {
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1.15fr);
   align-items: center;
 }
 
 .analyticsDashboardPage .valueTierRows .analyticsRow > span {
   min-width: 0;
-  white-space: nowrap;
-  text-align: right;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.analyticsDashboardPage .valueTierRows .analyticsRow > span:last-child {
+  display: flex;
+  justify-content: flex-start;
 }
 
 .analyticsDashboardPage .panelHead,
@@ -2651,10 +2703,123 @@ em {
   font-variant-numeric: tabular-nums;
 }
 
+.confusionMatrix {
+  position: relative;
+  display: grid;
+  grid-template-areas:
+    "corner predicted-negative predicted-positive"
+    "actual-negative true-negative false-positive"
+    "actual-positive false-negative true-positive";
+  grid-template-columns: 72px repeat(2, minmax(80px, 1fr));
+  grid-template-rows: 52px repeat(2, minmax(62px, auto));
+  max-width: 360px;
+  margin-top: 14px;
+  padding: 34px 10px 10px;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  background: var(--surface-subtle, #f8fafc);
+}
+
+.confusionMatrixTitle {
+  position: absolute;
+  top: 9px;
+  left: 10px;
+  color: var(--text, #0f172a);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.confusionMatrixSubtitle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: var(--muted, #64748b);
+  font-size: 9px;
+}
+
+.confusionMatrixCorner {
+  grid-area: corner;
+}
+
+.confusionMatrixHeader {
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  color: var(--muted, #64748b);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.confusionMatrixPredictedNegative {
+  grid-area: predicted-negative;
+}
+
+.confusionMatrixPredictedPositive {
+  grid-area: predicted-positive;
+}
+
+.confusionMatrixActualNegative {
+  grid-area: actual-negative;
+}
+
+.confusionMatrixActualPositive {
+  grid-area: actual-positive;
+}
+
+.confusionMatrixCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 2px;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 7px;
+  font-variant-numeric: tabular-nums;
+}
+
+.confusionMatrixTrueNegative {
+  grid-area: true-negative;
+}
+
+.confusionMatrixFalsePositive {
+  grid-area: false-positive;
+}
+
+.confusionMatrixFalseNegative {
+  grid-area: false-negative;
+}
+
+.confusionMatrixTruePositive {
+  grid-area: true-positive;
+}
+
+.confusionMatrixCell span {
+  color: var(--muted, #64748b);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.confusionMatrixCell strong {
+  color: var(--text, #0f172a);
+  font-size: 17px;
+}
+
+.confusionMatrixTrueNegative,
+.confusionMatrixTruePositive {
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.confusionMatrixFalsePositive,
+.confusionMatrixFalseNegative {
+  background: rgba(245, 158, 11, 0.12);
+}
+
 .modelPage .analyticsTableWrap,
 .analyticsDashboardPage .analyticsTableWrap {
   max-width: 100%;
-  overflow: auto;
+  overflow: visible;
   border: 1px solid var(--line, #e2e8f0);
   border-radius: 10px;
 }
@@ -2683,6 +2848,128 @@ em {
 .modelPage .analyticsTable td,
 .analyticsDashboardPage .analyticsTable td {
   font-variant-numeric: tabular-nums;
+}
+
+.modelPage .analyticsTable {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.modelPage .analyticsTable th,
+.modelPage .analyticsTable td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  vertical-align: middle;
+}
+
+.modelComparisonTableWrap .analyticsTable th:first-child,
+.modelComparisonTableWrap .analyticsTable td:first-child {
+  width: 34%;
+}
+
+.modelComparisonTableWrap .analyticsTable th:not(:first-child),
+.modelComparisonTableWrap .analyticsTable td:not(:first-child) {
+  width: 22%;
+}
+
+.thresholdTableWrap .analyticsTable th:first-child,
+.thresholdTableWrap .analyticsTable td:first-child {
+  width: 22%;
+}
+
+.thresholdTableWrap .analyticsTable th:not(:first-child),
+.thresholdTableWrap .analyticsTable td:not(:first-child) {
+  width: 26%;
+}
+
+.curveTableWrap .analyticsTable th,
+.curveTableWrap .analyticsTable td {
+  width: 20%;
+}
+
+.imbalanceTableWrap .analyticsTable th,
+.imbalanceTableWrap .analyticsTable td {
+  width: 16.666%;
+}
+
+.imbalanceTableWrap .analyticsTable th:first-child,
+.imbalanceTableWrap .analyticsTable td:first-child {
+  width: 34%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.imbalanceTableWrap .analyticsTable th:not(:first-child),
+.imbalanceTableWrap .analyticsTable td:not(:first-child) {
+  width: 13.2%;
+}
+
+.imbalanceTableWrap .analyticsTable th {
+  padding: 8px 4px;
+  font-size: 9px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+@container (max-width: 620px) {
+  .modelPage .analyticsTableWrap {
+    border: 0;
+    background: transparent;
+  }
+
+  .modelPage .analyticsTable,
+  .modelPage .analyticsTable thead,
+  .modelPage .analyticsTable tbody,
+  .modelPage .analyticsTable tr,
+  .modelPage .analyticsTable th,
+  .modelPage .analyticsTable td {
+    display: block;
+  }
+
+  .modelPage .analyticsTable thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .modelPage .analyticsTable tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 12px;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    background: var(--surface-subtle, #f8fafc);
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 10px;
+  }
+
+  .modelPage .analyticsTable td {
+    width: auto !important;
+    padding: 0;
+    border: 0;
+  }
+
+  .modelPage .analyticsTable td::before {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--muted, #64748b);
+    content: attr(data-label);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .modelPage .analyticsTable td:first-child {
+    grid-column: 1 / -1;
+    font-weight: 700;
+  }
 }
 
 .modelPage .analyticsCampaignRow,
@@ -2808,6 +3095,7 @@ em {
   .analyticsDashboardPage .valueTierRows .analyticsRow > span {
     width: 100%;
     text-align: left;
+    grid-column: auto;
   }
 }
 
@@ -2816,6 +3104,34 @@ em {
   overflow: auto;
   border: 1px solid var(--line, #e2e8f0);
   border-radius: 10px;
+  scrollbar-color: #94a3b8 transparent;
+  scrollbar-width: thin;
+}
+
+.cohortSummaryTableWrap::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.cohortSummaryTableWrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cohortSummaryTableWrap::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+.cohortSummaryTableWrap::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+  border-width: 1px;
+}
+
+.calibrationTableWrap {
+  max-height: none;
+  overflow: visible;
 }
 
 .cohortSummaryTable {
@@ -2844,6 +3160,18 @@ em {
 
 [data-theme="dark"] .cohortSummaryTable th {
   background: var(--surface-subtle, #111827);
+}
+
+[data-theme="dark"] .cohortSummaryTableWrap {
+  scrollbar-color: #64748b transparent;
+}
+
+[data-theme="dark"] .cohortSummaryTableWrap::-webkit-scrollbar-thumb {
+  background: #64748b;
+}
+
+[data-theme="dark"] .cohortSummaryTableWrap::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 [data-theme="dark"] .cohortSummaryTable tbody tr:hover {
@@ -2962,6 +3290,67 @@ em {
   padding: 10px 10px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.22);
   white-space: nowrap;
+}
+
+.calibrationTableWrap {
+  display: inline-block;
+  width: min(100%, 480px);
+  overflow: visible;
+}
+
+.analyticsDashboardPage .calibrationTableWrap {
+  max-height: none;
+  align-self: flex-start;
+  overflow: visible;
+}
+
+.calibrationTableWrap .analyticsTable {
+  display: table;
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.calibrationTableWrap .analyticsTable th,
+.calibrationTableWrap .analyticsTable td {
+  padding: 7px 8px;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  vertical-align: middle;
+}
+
+.calibrationTableWrap .analyticsTable {
+  font-size: 10px;
+}
+
+.calibrationTableWrap .analyticsTable tr {
+  display: table-row;
+}
+
+.calibrationTableWrap .analyticsTable th:first-child,
+.calibrationTableWrap .analyticsTable td:first-child {
+  width: 44%;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.calibrationTableWrap .analyticsTable th:not(:first-child),
+.calibrationTableWrap .analyticsTable td:not(:first-child) {
+  width: 28%;
+  min-width: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.calibrationTableWrap .analyticsTable td:nth-child(2),
+.calibrationTableWrap .analyticsTable td:nth-child(3) {
+  padding-left: 8px;
+  padding-right: 8px;
+  text-align: left;
+}
+
+.calibrationTableWrap .analyticsTable th {
+  letter-spacing: 0.02em;
 }
 
 .analyticsTable th {

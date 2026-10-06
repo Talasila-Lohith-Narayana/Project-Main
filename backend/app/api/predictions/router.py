@@ -291,7 +291,7 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
             ).strip().strip(",") or "unknown"
 
             frequency_stats = db.execute(
-                text("""
+                text(f"""
                     SELECT
                         COALESCE(
                             SUM(CASE
@@ -486,7 +486,6 @@ def get_customer_predictions(
         SELECT 
             cp.churn_probability,
             cp.shap_values,
-            cp.feature_values,
             cp.reason_codes,
             cp.model_version,
             cp.scored_at,
@@ -529,21 +528,7 @@ def get_customer_predictions(
         except Exception:
             shap_dict = {}
 
-    feature_values = {}
-    raw_feature_values = row["feature_values"]
-    if raw_feature_values:
-        try:
-            parsed_values = (
-                json.loads(raw_feature_values)
-                if isinstance(raw_feature_values, str)
-                else raw_feature_values
-            )
-            if isinstance(parsed_values, dict):
-                feature_values = parsed_values
-        except (TypeError, ValueError):
-            feature_values = {}
-
-    shap_drivers = _build_shap_drivers(shap_dict, feature_values)
+    shap_drivers = _build_shap_drivers(shap_dict)
 
     # 4. Parse Reason codes
     reason_codes_list = []
@@ -579,7 +564,7 @@ def get_customer_predictions(
             "reason_codes": reason_codes_list,
             "shap_drivers": shap_drivers,
         },
-        "feature_values": feature_values or None,
+        "feature_values": None,
         "clv": {
             "predicted_clv": round(float(row["clv"]), 2) if row["clv"] is not None else None,
             "value_tier": row["value_tier"],
@@ -630,11 +615,6 @@ def rescore_customer_manually(
             {driver["feature"]: driver["impact"]
              for driver in explainability["shap_drivers"]}
         ),
-        "feature_values": (
-            json.dumps(fresh_predictions["feature_values"])
-            if fresh_predictions.get("feature_values") is not None
-            else None
-        ),
         "reason_codes": json.dumps(
             [item["code"] for item in explainability["reason_codes"]]
         ),
@@ -646,7 +626,6 @@ def rescore_customer_manually(
             f"""UPDATE {ANALYTICS_DB_NAME}.churn_predictions
                SET churn_probability = :churn_probability,
                    shap_values = :shap_values,
-                   feature_values = :feature_values,
                    reason_codes = :reason_codes,
                    model_version = :model_version,
                    scored_at = :scored_at
@@ -659,9 +638,9 @@ def rescore_customer_manually(
             text(
                 f"""INSERT INTO {ANALYTICS_DB_NAME}.churn_predictions
                        (customer_unique_id, churn_probability, shap_values,
-                        feature_values, reason_codes, model_version, scored_at)
+                        reason_codes, model_version, scored_at)
                    VALUES (:customer_unique_id, :churn_probability, :shap_values,
-                           :feature_values, :reason_codes, :model_version, :scored_at)"""
+                           :reason_codes, :model_version, :scored_at)"""
             ),
             prediction_values,
         )

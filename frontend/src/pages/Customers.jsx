@@ -396,7 +396,7 @@ export default function Customers() {
         </div>
       </div>
       <form className="filters" onSubmit={search}>
-        <div className="search">
+        <div className="search customerSearch">
           <Search size={17} />
           <input
             value={query}
@@ -470,7 +470,7 @@ export default function Customers() {
           <Filter size={16} />
           Filters{activeFilterCount > 0 && <b>{activeFilterCount}</b>}
         </button>
-        <button className="btn primary">
+        <button className="btn secondary customerSearchButton">
           <Search size={16} />
           Search
         </button>

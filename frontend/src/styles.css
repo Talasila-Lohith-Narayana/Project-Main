@@ -1341,6 +1341,112 @@ button {
   width: 100%;
 }
 
+.auditLogSearch {
+  min-height: 44px;
+  padding: 0 12px;
+  gap: 10px;
+  border-color: var(--line, #dce2ea);
+  border-radius: 10px;
+  background: var(--surface, #ffffff);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.customerSearch {
+  min-height: 44px;
+  padding: 0 12px;
+  gap: 10px;
+  border-color: var(--line, #dce2ea);
+  border-radius: 10px;
+  background: var(--surface, #ffffff);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.customerSearch:focus-within {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.customerSearch input {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 9px 0;
+  color: var(--text, #0f172a);
+  font-size: 13px;
+  background: transparent;
+}
+
+.customerSearch input::placeholder {
+  color: var(--muted, #64748b);
+  opacity: 0.9;
+}
+
+.customerSearchButton {
+  min-height: 44px;
+  min-width: 104px;
+  justify-content: center;
+  gap: 8px;
+  border-color: var(--line, #dce2ea);
+  border-radius: 10px;
+  background: var(--surface, #ffffff);
+  color: var(--text, #0f172a);
+}
+
+.customerSearchButton:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+[data-theme="dark"] .customerSearchButton {
+  border-color: #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .customerSearchButton:hover:not(:disabled) {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+}
+
+.auditLogSearch:focus-within {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.auditLogSearch input {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 9px 0;
+  color: var(--text, #0f172a);
+  font-size: 13px;
+  background: transparent;
+}
+
+.modal .auditLogSearch input {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.auditLogSearch input::placeholder {
+  color: var(--muted, #64748b);
+  opacity: 0.9;
+}
+
+[data-theme="dark"] .auditLogSearch {
+  border-color: #334155;
+  background: #0f172a;
+}
+
+[data-theme="dark"] .auditLogSearch:focus-within {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
+}
+
 .sortSelectorWrapper {
   position: relative;
   display: inline-flex;

@@ -90,7 +90,7 @@ export default function AuditLogModal({ close }) {
         {/* Toolbar with action filter and search */}
         <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
           <form onSubmit={handleSearch} style={{ display: "flex", flex: 1, minWidth: 200, gap: 6 }}>
-            <div className="search" style={{ flex: 1, margin: 0 }}>
+            <div className="search auditLogSearch" style={{ flex: 1, margin: 0 }}>
               <Search size={16} />
               <input
                 value={query}

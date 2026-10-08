@@ -181,7 +181,7 @@ function ChurnSummary({ data }) {
         <div className="analyticsMetric"><span>Predicted churn rate</span><strong>{percent(data.predicted_churn_rate)}</strong></div>
       </div>
       <p className="analyticsMeta">
-        Threshold: {percent(data.threshold)} · Latest score: {data.refreshed_at || "Unavailable"}
+        Threshold: {percent(data.threshold)} · Latest score: {formatRefreshTimestamp(data.refreshed_at)}
       </p>
     </>
   );

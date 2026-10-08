@@ -703,6 +703,49 @@
   border-color: #1e293b !important;
 }
 
+.auditLogTableWrap {
+  scrollbar-color: #94a3b8 transparent;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+
+.auditLogTableWrap::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.auditLogTableWrap::-webkit-scrollbar-track {
+  margin: 8px 0;
+  background: transparent;
+}
+
+.auditLogTableWrap::-webkit-scrollbar-thumb {
+  min-height: 42px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #94a3b8;
+  background-clip: padding-box;
+}
+
+.auditLogTableWrap::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+  background-clip: padding-box;
+}
+
+[data-theme="dark"] .auditLogTableWrap {
+  scrollbar-color: #475569 transparent;
+}
+
+[data-theme="dark"] .auditLogTableWrap::-webkit-scrollbar-thumb {
+  background: #475569;
+  background-clip: padding-box;
+}
+
+[data-theme="dark"] .auditLogTableWrap::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+  background-clip: padding-box;
+}
+
 [data-theme="dark"] .auditActionBadge.delete {
   background: rgba(239, 68, 68, 0.15) !important;
   color: #f87171 !important;

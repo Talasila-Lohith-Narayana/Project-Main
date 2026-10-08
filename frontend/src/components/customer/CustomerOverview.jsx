@@ -30,8 +30,6 @@ export default function CustomerOverview({ customer, predictions }) {
     ].filter((item) => item[1] != null);
   }
 
-  const paymentPrefs = customer.payment_preferences || [];
-
   const monetaryAvgDisplay =
     customer.monetary_avg != null && hasHistory
       ? `R$ ${Number(customer.monetary_avg).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -135,9 +133,9 @@ export default function CustomerOverview({ customer, predictions }) {
       </div>
 
       <Panel title="Payment preferences" sub="Payment methods used by this customer">
-        {paymentPrefs.length > 0 ? (
+        {(customer.payment_preferences || []).length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-            {paymentPrefs.map((pm) => (
+            {customer.payment_preferences.map((pm) => (
               <div
                 key={pm.type}
                 className="dashPaymentPrefCard"

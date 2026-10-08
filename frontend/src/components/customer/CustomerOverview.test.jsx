@@ -67,7 +67,6 @@ describe("CustomerOverview Component", () => {
     expect(screen.getByText("Credit Card")).toBeInTheDocument();
     expect(screen.getByText("3 orders (75%)")).toBeInTheDocument();
     expect(screen.getByText("R$ 900.00")).toBeInTheDocument();
-
     expect(screen.getByText("Boleto")).toBeInTheDocument();
     expect(screen.getByText("1 order (25%)")).toBeInTheDocument();
     expect(screen.getByText("R$ 300.50")).toBeInTheDocument();

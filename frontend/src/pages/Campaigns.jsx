@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Megaphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnalyticsPanel from "../components/analytics/AnalyticsPanel";
 import { Page, Panel } from "../components/States";
@@ -133,14 +132,13 @@ export default function Campaigns() {
   return (
     <Page>
       <div className="campaignsPage">
-        <header className="analyticsPageHeader">
-          <div className="analyticsPageIcon"><Megaphone size={22} /></div>
+        <div className="header">
           <div>
             <p className="eyebrow">CUSTOMER ENGAGEMENT</p>
             <h1>Campaigns</h1>
             <p>Review active retention campaigns and explore the customers targeted by each.</p>
           </div>
-        </header>
+        </div>
 
         <AnalyticsPanel
           title="Active campaign reach"

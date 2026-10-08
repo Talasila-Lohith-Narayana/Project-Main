@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { Activity } from "lucide-react";
 import AnalyticsPanel from "../components/analytics/AnalyticsPanel";
 import { Page, Panel } from "../components/States";
 import { analyticsService } from "../services/api";
@@ -259,14 +258,13 @@ export default function Model() {
   return (
     <Page>
       <div className="modelPage">
-        <header className="analyticsPageHeader">
-          <div className="analyticsPageIcon"><Activity size={22} /></div>
+        <div className="header">
           <div>
             <p className="eyebrow">CHURN MODEL INSIGHTS</p>
             <h1>Model diagnostics</h1>
             <p>Inspect churn risk, model reports, experiment records, and observed feature behavior.</p>
           </div>
-        </header>
+        </div>
         <div className="modelPageSummary" aria-label="Model summary highlights">
           <div className="modelSummaryCard">
             <span className="modelSummaryLabel">Prediction coverage</span>
@@ -310,7 +308,7 @@ export default function Model() {
         </div>
 
         {view === "overview" && (
-          <section className="analyticsPageSection" aria-labelledby="model-churn-heading">
+          <section className="analyticsPageSection tabPanelTransition" aria-labelledby="model-churn-heading">
             <h2 id="model-churn-heading">Stored churn predictions</h2>
             <div className="grid2">
               <AnalyticsPanel title="Churn overview" sub="Risk volume based on stored customer predictions" load={churnSummaryLoad}>
@@ -336,7 +334,7 @@ export default function Model() {
         )}
 
         {view === "advanced" && (
-          <section className="analyticsPageSection" aria-labelledby="model-evaluation-heading">
+          <section className="analyticsPageSection tabPanelTransition" aria-labelledby="model-evaluation-heading">
             <h2 id="model-evaluation-heading">Model evaluation and feature behavior</h2>
             <div className="grid2">
               <AnalyticsPanel title="Model test performance" sub="Reported metrics for the evaluated test split" load={analyticsService.modelPerformance}>
@@ -354,7 +352,7 @@ export default function Model() {
 
         {view === "all" && (
           <>
-            <section className="analyticsPageSection" aria-labelledby="model-churn-heading">
+            <section className="analyticsPageSection tabPanelTransition" aria-labelledby="model-churn-heading">
               <h2 id="model-churn-heading">Stored churn predictions</h2>
               <div className="grid2">
                 <AnalyticsPanel title="Churn overview" sub="Risk volume based on stored customer predictions" load={churnSummaryLoad}>
@@ -377,7 +375,7 @@ export default function Model() {
                 </AnalyticsPanel>
               </div>
             </section>
-            <section className="analyticsPageSection" aria-labelledby="model-evaluation-heading">              <h2 id="model-evaluation-heading">Model evaluation and feature behavior</h2>
+            <section className="analyticsPageSection tabPanelTransition" aria-labelledby="model-evaluation-heading">              <h2 id="model-evaluation-heading">Model evaluation and feature behavior</h2>
               <div className="grid2">
                 <AnalyticsPanel title="Model test performance" sub="Reported metrics for the evaluated test split" load={analyticsService.modelPerformance}>
                   {(data) => <Performance data={data} />}

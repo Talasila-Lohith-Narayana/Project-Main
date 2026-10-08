@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { BarChart3 } from "lucide-react";
 import AnalyticsPanel from "../components/analytics/AnalyticsPanel";
 import { Page } from "../components/States";
 import { analyticsService } from "../services/api";
@@ -283,14 +282,13 @@ export default function Analytics() {
   return (
     <Page>
       <div className="analyticsDashboardPage">
-        <header className="analyticsPageHeader">
-          <div className="analyticsPageIcon"><BarChart3 size={22} /></div>
+        <div className="header">
           <div>
             <p className="eyebrow">CUSTOMER INTELLIGENCE</p>
             <h1>Analytics</h1>
             <p>Explore customer value, retention, campaign reach, and model diagnostics.</p>
           </div>
-        </header>
+        </div>
 
         <div className="tabs modelTabs" role="tablist" aria-label="Analytics sections">
           <button
@@ -332,7 +330,7 @@ export default function Analytics() {
         </div>
 
         {view === "value" && (
-          <section className="analyticsPageSection" aria-labelledby="analytics-value-heading">
+          <section className="analyticsPageSection tabPanelTransition" aria-labelledby="analytics-value-heading">
             <h2 id="analytics-value-heading">Customer value and retention</h2>
             <div className="grid2 analyticsPageGrid">
               <AnalyticsPanel
@@ -361,7 +359,7 @@ export default function Analytics() {
         )}
 
         {view === "cohorts" && (
-          <section className="analyticsPageSection" aria-labelledby="analytics-cohort-heading">
+          <section className="analyticsPageSection tabPanelTransition" aria-labelledby="analytics-cohort-heading">
             <h2 id="analytics-cohort-heading">Cohort summary</h2>
             <AnalyticsPanel
               title="Acquisition cohort summary"
@@ -374,7 +372,7 @@ export default function Analytics() {
         )}
 
         {view === "campaigns" && (
-          <section className="analyticsPageSection" aria-labelledby="analytics-campaign-heading">
+          <section className="analyticsPageSection tabPanelTransition" aria-labelledby="analytics-campaign-heading">
             <h2 id="analytics-campaign-heading">Campaigns</h2>
             <div className="grid2 analyticsPageGrid">
               <AnalyticsPanel
@@ -405,7 +403,7 @@ export default function Analytics() {
         )}
 
         {view === "model" && (
-          <section className="analyticsPageSection" aria-labelledby="analytics-model-heading">
+          <section className="analyticsPageSection tabPanelTransition" aria-labelledby="analytics-model-heading">
             <h2 id="analytics-model-heading">Model diagnostics</h2>
             <div className="grid2 analyticsPageGrid">
               <AnalyticsPanel

@@ -344,6 +344,41 @@ describe("Products Catalog Page", () => {
     });
   });
 
+  it("jumps to a requested page and clamps invalid page numbers", async () => {
+    const catalogSpy = vi.spyOn(ApiModule.productsService, "catalog").mockResolvedValue(
+      mockProductsData
+    );
+
+    render(
+      <MemoryRouter>
+        <Products />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("prod_111")).toBeInTheDocument();
+    });
+
+    const pageInput = screen.getByRole("textbox", { name: "Page number" });
+    fireEvent.change(pageInput, { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Go" }));
+
+    await waitFor(() => {
+      expect(catalogSpy).toHaveBeenCalledWith(expect.objectContaining({
+        page: 2,
+      }));
+    });
+
+    fireEvent.change(pageInput, { target: { value: "999" } });
+    fireEvent.click(screen.getByRole("button", { name: "Go" }));
+
+    await waitFor(() => {
+      expect(catalogSpy).toHaveBeenCalledWith(expect.objectContaining({
+        page: 2,
+      }));
+    });
+  });
+
   it("exports products catalog to CSV and handles export failures", async () => {
     vi.spyOn(ApiModule.productsService, "catalog").mockResolvedValue(
       mockProductsData

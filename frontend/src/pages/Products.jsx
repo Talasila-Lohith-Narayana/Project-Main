@@ -71,6 +71,7 @@ export default function Products() {
 
   const [sortKey, setSortKey] = useState("items_desc");
   const [page, setPage] = useState(1);
+  const [pageInput, setPageInput] = useState("1");
   const limit = 15;
 
   const [sortOpen, setSortOpen] = useState(false);
@@ -122,6 +123,21 @@ export default function Products() {
   useEffect(() => {
     loadProducts();
   }, [debouncedSearch, filters, sortKey, page]);
+
+  useEffect(() => {
+    setPageInput(String(page));
+  }, [page]);
+
+  const goToPage = () => {
+    const requestedPage = Number.parseInt(pageInput, 10);
+    const lastPage = Math.max(1, data?.total_pages || 1);
+    if (!Number.isInteger(requestedPage)) {
+      setPageInput(String(page));
+      return;
+    }
+    setPage(Math.min(Math.max(requestedPage, 1), lastPage));
+  };
+
 const handleExport = async () => {
     setIsExporting(true);
     try {
@@ -503,8 +519,22 @@ const handleExport = async () => {
               >
                 <ChevronLeft size={16} /> Prev
               </button>
-              <span style={{ fontSize: 12, fontWeight: 600, padding: "0 4px" }}>
-                Page {page} of {data.total_pages}
+              <div className="pageJump" aria-label="Jump to page">
+                <label htmlFor="product-page-number">Page</label>
+                <input
+                  type="text"
+                  id="product-page-number"
+                  value={pageInput}
+                  onChange={(event) => setPageInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") goToPage();
+                  }}
+                  aria-label="Page number"
+                />
+                <button type="button" onClick={goToPage}>Go</button>
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>
+                of {data.total_pages}
               </span>
               <button
                 className="btn secondary"

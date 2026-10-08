@@ -31,3 +31,4 @@ frontend/coverage/
 *.db
 *.sqlite
 *.sqlite3
+API_REFERENCE.md

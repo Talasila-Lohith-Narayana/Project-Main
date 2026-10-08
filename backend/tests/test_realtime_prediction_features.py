@@ -80,6 +80,19 @@ def test_realtime_feature_row_marks_missing_review_comment_as_zero():
     assert feature_row["has_review_comment"] == 0
 
 
+def test_realtime_feature_row_marks_one_star_review_as_bad():
+    feature_row = _build_realtime_feature_row(
+        "customer-with-one-star-review",
+        {"total_spend": 100.0, "total_freight": 10.0, "avg_product_weight": 500.0},
+        {"avg_installments": 1.0, "used_debit_card": 0},
+        {"avg_review_score": 1.0, "has_bad_review": 1, "has_review_comment": 0},
+        {"avg_delivery_days": 9.0, "avg_delivery_delay_days": -6.0, "is_delayed": 0},
+        {"category_frequency": 0.0, "city_state_frequency": 0.0},
+    )
+
+    assert feature_row["has_bad_review"] == 1
+
+
 def test_shap_drivers_include_all_features_and_their_model_inputs():
     shap_values = {f"feature_{index}": index / 10 for index in range(13)}
     feature_values = {feature: index for index, feature in enumerate(shap_values)}

@@ -171,7 +171,6 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
     order_stats = None
     payment_stats = review_stats = delivery_stats = frequency_stats = None
     if customer:
-        customer_id = customer["customer_id"]
         order_stats = db.execute(
             text("""
                 SELECT
@@ -182,9 +181,13 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
                 FROM orders o
                 LEFT JOIN order_items oi ON oi.order_id = o.order_id
                 LEFT JOIN products p ON p.product_id = oi.product_id
-                WHERE o.customer_id = :customer_id
+                WHERE o.customer_id IN (
+                    SELECT c.customer_id
+                    FROM customers c
+                    WHERE c.customer_unique_id = :customer_unique_id
+                )
             """),
-            {"customer_id": customer_id},
+            {"customer_unique_id": customer_unique_id},
         ).mappings().one()
 
         if order_stats["total_orders"] > 0:
@@ -198,24 +201,32 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
                             AVG(op.payment_installments) AS avg_installments
                         FROM orders o
                         LEFT JOIN order_payments op ON op.order_id = o.order_id
-                        WHERE o.customer_id = :customer_id
+                        WHERE o.customer_id IN (
+                            SELECT c.customer_id
+                            FROM customers c
+                            WHERE c.customer_unique_id = :customer_unique_id
+                        )
                         GROUP BY o.order_id
                     ) AS per_order
                 """),
-                {"customer_id": customer_id},
+                {"customer_unique_id": customer_unique_id},
             ).mappings().one()
             preferred_payment = db.execute(
                 text("""
                     SELECT op.payment_type
                     FROM orders o
                     JOIN order_payments op ON op.order_id = o.order_id
-                    WHERE o.customer_id = :customer_id
+                    WHERE o.customer_id IN (
+                        SELECT c.customer_id
+                        FROM customers c
+                        WHERE c.customer_unique_id = :customer_unique_id
+                    )
                       AND op.payment_type IS NOT NULL
                     GROUP BY op.payment_type
                     ORDER BY COUNT(DISTINCT o.order_id) DESC, op.payment_type ASC
                     LIMIT 1
                 """),
-                {"customer_id": customer_id},
+                {"customer_unique_id": customer_unique_id},
             ).mappings().first()
             payment_stats = {
                 **payment_stats,
@@ -229,8 +240,6 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
                 text("""
                     SELECT
                         COALESCE(AVG(r.review_score), 4.2) AS avg_review_score,
-                        CASE WHEN MIN(r.review_score) <= 2 THEN 1 ELSE 0 END
-                            AS has_bad_review,
                         COALESCE(MAX(CASE
                             WHEN r.review_comment_message IS NOT NULL
                                  AND TRIM(r.review_comment_message) != ''
@@ -238,10 +247,34 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
                         END), 0) AS has_review_comment
                     FROM orders o
                     LEFT JOIN order_reviews r ON r.order_id = o.order_id
-                    WHERE o.customer_id = :customer_id
+                    WHERE o.customer_id IN (
+                        SELECT c.customer_id
+                        FROM customers c
+                        WHERE c.customer_unique_id = :customer_unique_id
+                    )
                 """),
-                {"customer_id": customer_id},
+                {"customer_unique_id": customer_unique_id},
             ).mappings().one()
+            has_bad_review = db.execute(
+                text("""
+                    SELECT EXISTS(
+                        SELECT 1
+                        FROM orders o
+                        JOIN order_reviews r ON r.order_id = o.order_id
+                        WHERE o.customer_id IN (
+                            SELECT c.customer_id
+                            FROM customers c
+                            WHERE c.customer_unique_id = :customer_unique_id
+                        )
+                          AND CAST(r.review_score AS DECIMAL(3, 1)) <= 2
+                    ) AS has_bad_review
+                """),
+                {"customer_unique_id": customer_unique_id},
+            ).scalar()
+            review_stats = {
+                **review_stats,
+                "has_bad_review": int(has_bad_review or 0),
+            }
 
             delivery_stats = db.execute(
                 text("""
@@ -260,11 +293,15 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
                             THEN 1 ELSE 0
                         END), 0) AS is_delayed
                     FROM orders o
-                    WHERE o.customer_id = :customer_id
+                    WHERE o.customer_id IN (
+                        SELECT c.customer_id
+                        FROM customers c
+                        WHERE c.customer_unique_id = :customer_unique_id
+                    )
                       AND o.order_status = 'delivered'
                       AND o.order_delivered_customer_date IS NOT NULL
                 """),
-                {"customer_id": customer_id},
+                {"customer_unique_id": customer_unique_id},
             ).mappings().one()
 
             category_row = db.execute(
@@ -273,14 +310,18 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
                     FROM orders o
                     JOIN order_items oi ON oi.order_id = o.order_id
                     JOIN products p ON p.product_id = oi.product_id
-                    WHERE o.customer_id = :customer_id
+                    WHERE o.customer_id IN (
+                        SELECT c.customer_id
+                        FROM customers c
+                        WHERE c.customer_unique_id = :customer_unique_id
+                    )
                       AND p.product_category_name IS NOT NULL
                     GROUP BY p.product_category_name
                     ORDER BY COUNT(oi.order_item_id) DESC,
                              p.product_category_name ASC
                     LIMIT 1
                 """),
-                {"customer_id": customer_id},
+                {"customer_unique_id": customer_unique_id},
             ).mappings().first()
             dominant_category = (
                 category_row["product_category_name"] if category_row else "unknown"
@@ -292,23 +333,50 @@ def _compute_realtime_prediction(db: Session, customer_unique_id: str):
 
             frequency_stats = db.execute(
                 text(f"""
+                    WITH customer_category_counts AS (
+                        SELECT
+                            c.customer_unique_id,
+                            p.product_category_name AS dominant_product_category,
+                            COUNT(*) AS category_count
+                        FROM customers c
+                        JOIN orders o ON o.customer_id = c.customer_id
+                        JOIN order_items oi ON oi.order_id = o.order_id
+                        JOIN products p ON p.product_id = oi.product_id
+                        WHERE p.product_category_name IS NOT NULL
+                        GROUP BY c.customer_unique_id, p.product_category_name
+                    ),
+                    ranked_customer_categories AS (
+                        SELECT
+                            customer_unique_id,
+                            dominant_product_category,
+                            ROW_NUMBER() OVER (
+                                PARTITION BY customer_unique_id
+                                ORDER BY category_count DESC, dominant_product_category ASC
+                            ) AS category_rank
+                        FROM customer_category_counts
+                    ),
+                    current_features AS (
+                        SELECT
+                            c.customer_unique_id,
+                            CONCAT(
+                                COALESCE(c.customer_city, ''),
+                                ', ',
+                                COALESCE(c.customer_state, '')
+                            ) AS customer_city_state,
+                            COALESCE(rc.dominant_product_category, 'unknown')
+                                AS dominant_product_category
+                        FROM customers c
+                        LEFT JOIN ranked_customer_categories rc
+                            ON rc.customer_unique_id = c.customer_unique_id
+                           AND rc.category_rank = 1
+                    )
                     SELECT
-                        COALESCE(
-                            SUM(CASE
-                                WHEN COALESCE(customer_city_state, 'unknown') = :city_state
-                                THEN 1 ELSE 0
-                            END) / NULLIF(COUNT(*), 0),
-                            0
-                        ) AS city_state_frequency,
-                        COALESCE(
-                            SUM(CASE
-                                WHEN BINARY COALESCE(dominant_product_category, 'unknown')
-                                     = BINARY :category
-                                THEN 1 ELSE 0
-                            END) / NULLIF(COUNT(*), 0),
-                            0
-                        ) AS category_frequency
-                    FROM {ANALYTICS_DB_NAME}.customer_features_with_labels
+                        COALESCE(AVG(customer_city_state = :city_state), 0)
+                            AS city_state_frequency,
+                        COALESCE(AVG(
+                            BINARY dominant_product_category = BINARY :category
+                        ), 0) AS category_frequency
+                    FROM current_features
                 """),
                 {"city_state": city_state, "category": dominant_category},
             ).mappings().one()

@@ -587,7 +587,9 @@ def customer_detail(cid: str, db: Session = Depends(get_db), _: str = Depends(au
             COALESCE((
                 SELECT AVG(DATEDIFF(o.order_delivered_customer_date, o.order_purchase_timestamp))
                 FROM orders o
-                WHERE o.customer_id = c.customer_id
+                JOIN customers delivery_customer
+                    ON delivery_customer.customer_id = o.customer_id
+                WHERE delivery_customer.customer_unique_id = c.customer_unique_id
                   AND o.order_status = 'delivered'
                   AND o.order_delivered_customer_date IS NOT NULL
                   AND o.order_purchase_timestamp IS NOT NULL
@@ -612,108 +614,103 @@ def customer_detail(cid: str, db: Session = Depends(get_db), _: str = Depends(au
         raise HTTPException(404, "Customer not found")
     data = {k: ser(v) for k, v in r._mapping.items()}
 
-    has_cf = any(data.get(k) is not None for k in ["tenure_days", "monetary_avg", "weekend_order_ratio"])
-    if not has_cf:
-        stats = db.execute(
-            text(
-                """WITH cust_orders AS (
-                    SELECT DISTINCT
-                        o.order_id,
-                        o.order_purchase_timestamp,
-                        DATE(o.order_purchase_timestamp) AS order_date,
-                        DAYOFWEEK(o.order_purchase_timestamp) AS day_of_week
-                    FROM customers c
-                    JOIN orders o ON o.customer_id = c.customer_id
-                    WHERE c.customer_unique_id = :id OR c.customer_id = :id
-                ),
-                order_values AS (
-                    SELECT 
-                        co.order_id,
-                        co.order_purchase_timestamp,
-                        co.order_date,
-                        co.day_of_week,
-                        COALESCE(SUM(oi.price), 0) AS order_val
-                    FROM cust_orders co
-                    LEFT JOIN order_items oi ON oi.order_id = co.order_id
-                    GROUP BY co.order_id, co.order_purchase_timestamp, co.order_date, co.day_of_week
-                )
+    stats = db.execute(
+        text(
+            """WITH cust_orders AS (
+                SELECT DISTINCT
+                    o.order_id,
+                    o.order_purchase_timestamp,
+                    DATE(o.order_purchase_timestamp) AS order_date,
+                    DAYOFWEEK(o.order_purchase_timestamp) AS day_of_week
+                FROM customers c
+                JOIN orders o ON o.customer_id = c.customer_id
+                WHERE c.customer_unique_id = :id OR c.customer_id = :id
+            ),
+            order_values AS (
                 SELECT
-                    DATEDIFF(MAX(order_purchase_timestamp), MIN(order_purchase_timestamp)) AS tenure_days,
-                    COALESCE(AVG(order_val), 0) AS monetary_avg,
-                    COALESCE(SUM(CASE WHEN day_of_week IN (1, 7) THEN 1.0 ELSE 0.0 END) / NULLIF(COUNT(*), 0), 0) AS weekend_order_ratio,
-                    COALESCE(SUM(order_val) / NULLIF(COUNT(DISTINCT order_date), 0), 0) AS avg_order_value_per_day_active,
-                    COUNT(*) AS total_orders
-                FROM order_values"""
-            ),
-            {"id": cid},
-        ).fetchone()
+                    co.order_id,
+                    co.order_purchase_timestamp,
+                    co.order_date,
+                    co.day_of_week,
+                    COALESCE(SUM(oi.price), 0) AS order_val
+                FROM cust_orders co
+                LEFT JOIN order_items oi ON oi.order_id = co.order_id
+                GROUP BY co.order_id, co.order_purchase_timestamp, co.order_date, co.day_of_week
+            )
+            SELECT
+                DATEDIFF(MAX(order_purchase_timestamp), MIN(order_purchase_timestamp)) AS tenure_days,
+                COALESCE(AVG(order_val), 0) AS monetary_avg,
+                COALESCE(SUM(CASE WHEN day_of_week IN (1, 7) THEN 1.0 ELSE 0.0 END) / NULLIF(COUNT(*), 0), 0) AS weekend_order_ratio,
+                COALESCE(SUM(order_val) / NULLIF(COUNT(DISTINCT order_date), 0), 0) AS avg_order_value_per_day_active,
+                COUNT(*) AS total_orders
+            FROM order_values"""
+        ),
+        {"id": cid},
+    ).fetchone()
 
-        if stats:
-            s_map = stats._mapping
-            data["tenure_days"] = int(s_map["tenure_days"]) if s_map["tenure_days"] is not None else 0
-            data["monetary_avg"] = float(s_map["monetary_avg"]) if s_map["monetary_avg"] is not None else 0.0
-            data["weekend_order_ratio"] = float(s_map["weekend_order_ratio"]) if s_map["weekend_order_ratio"] is not None else 0.0
-            data["avg_order_value_per_day_active"] = float(s_map["avg_order_value_per_day_active"]) if s_map["avg_order_value_per_day_active"] is not None else 0.0
-            data["has_order_history"] = (s_map["total_orders"] or 0) > 0
-        else:
-            data["has_order_history"] = False
-
-        cats = db.execute(
-            text(
-                """SELECT 
-                COALESCE(p.product_category_name, 'Other') AS cat,
-                COUNT(*) AS cnt
-            FROM customers c
-            JOIN orders o ON o.customer_id = c.customer_id
-            JOIN order_items oi ON oi.order_id = o.order_id
-            LEFT JOIN products p ON p.product_id = oi.product_id
-            WHERE c.customer_unique_id = :id OR c.customer_id = :id
-            GROUP BY COALESCE(p.product_category_name, 'Other')
-            ORDER BY cnt DESC
-            LIMIT 6"""
-            ),
-            {"id": cid},
-        ).fetchall()
-        total_items = sum(row[1] for row in cats) if cats else 0
-        if total_items > 0:
-            data["top_categories"] = [
-                {"label": row[0].replace("_", " ").title(), "share": float(row[1] / total_items)}
-                for row in cats
-            ]
-        else:
-            data["top_categories"] = []
-
-        pm = db.execute(
-            text(
-                """SELECT 
-                op.payment_type,
-                COUNT(*) as count,
-                COALESCE(SUM(op.payment_value), 0) as total_val
-            FROM customers c
-            JOIN orders o ON o.customer_id = c.customer_id
-            JOIN order_payments op ON op.order_id = o.order_id
-            WHERE (c.customer_unique_id = :id OR c.customer_id = :id) AND op.payment_type != 'not_defined'
-            GROUP BY op.payment_type
-            ORDER BY count DESC"""
-            ),
-            {"id": cid},
-        ).fetchall()
-        total_pm_count = sum(row[1] for row in pm) if pm else 0
-        if total_pm_count > 0:
-            data["payment_preferences"] = [
-                {
-                    "type": row[0],
-                    "label": row[0].replace("_", " ").title(),
-                    "count": int(row[1]),
-                    "share": float(row[1] / total_pm_count),
-                    "total_value": float(row[2]),
-                }
-                for row in pm
-            ]
-        else:
-            data["payment_preferences"] = []
+    if stats:
+        s_map = stats._mapping
+        data["tenure_days"] = int(s_map["tenure_days"]) if s_map["tenure_days"] is not None else 0
+        data["monetary_avg"] = float(s_map["monetary_avg"]) if s_map["monetary_avg"] is not None else 0.0
+        data["weekend_order_ratio"] = float(s_map["weekend_order_ratio"]) if s_map["weekend_order_ratio"] is not None else 0.0
+        data["avg_order_value_per_day_active"] = float(s_map["avg_order_value_per_day_active"]) if s_map["avg_order_value_per_day_active"] is not None else 0.0
+        data["has_order_history"] = (s_map["total_orders"] or 0) > 0
     else:
-        data["has_order_history"] = True
+        data["has_order_history"] = False
+
+    cats = db.execute(
+        text(
+            """SELECT
+            COALESCE(p.product_category_name, 'Other') AS cat,
+            COUNT(*) AS cnt
+        FROM customers c
+        JOIN orders o ON o.customer_id = c.customer_id
+        JOIN order_items oi ON oi.order_id = o.order_id
+        LEFT JOIN products p ON p.product_id = oi.product_id
+        WHERE c.customer_unique_id = :id OR c.customer_id = :id
+        GROUP BY COALESCE(p.product_category_name, 'Other')
+        ORDER BY cnt DESC
+        LIMIT 6"""
+        ),
+        {"id": cid},
+    ).fetchall()
+    total_items = sum(row[1] for row in cats) if cats else 0
+    if total_items > 0:
+        data["top_categories"] = [
+            {"label": row[0].replace("_", " ").title(), "share": float(row[1] / total_items)}
+            for row in cats
+        ]
+    else:
+        data["top_categories"] = []
+
+    pm = db.execute(
+        text(
+            """SELECT
+            op.payment_type,
+            COUNT(*) as count,
+            COALESCE(SUM(op.payment_value), 0) as total_val
+        FROM customers c
+        JOIN orders o ON o.customer_id = c.customer_id
+        JOIN order_payments op ON op.order_id = o.order_id
+        WHERE (c.customer_unique_id = :id OR c.customer_id = :id) AND op.payment_type != 'not_defined'
+        GROUP BY op.payment_type
+        ORDER BY count DESC"""
+        ),
+        {"id": cid},
+    ).fetchall()
+    total_pm_count = sum(row[1] for row in pm) if pm else 0
+    if total_pm_count > 0:
+        data["payment_preferences"] = [
+            {
+                "type": row[0],
+                "label": row[0].replace("_", " ").title(),
+                "count": int(row[1]),
+                "share": float(row[1] / total_pm_count),
+                "total_value": float(row[2]),
+            }
+            for row in pm
+        ]
+    else:
         data["payment_preferences"] = []
 
     # Calculate formal Customer Lifetime Value (CLV):

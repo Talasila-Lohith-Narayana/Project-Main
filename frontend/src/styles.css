@@ -436,6 +436,12 @@
   color: #38bdf8;
 }
 
+[data-theme="dark"] .pageJump input {
+  background: var(--subtle-bg);
+  border-color: var(--card-border);
+  color: #e2e8f0;
+}
+
 [data-theme="dark"] .heroAvatar {
   background: #1e293b;
   color: #38bdf8;
@@ -1836,6 +1842,41 @@ em {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.pageJump {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 3px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pageJump input {
+  width: 42px;
+  height: 30px;
+  padding: 0 5px;
+  border: 1px solid #dce2ea;
+  border-radius: 7px;
+  background: #fff;
+  color: #1e293b;
+  font: inherit;
+  text-align: center;
+}
+
+.pageJump input:focus {
+  outline: 2px solid rgba(37, 99, 235, 0.2);
+  border-color: #2563eb;
+}
+
+.pageJump button {
+  width: auto;
+  min-width: 34px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .pager button {

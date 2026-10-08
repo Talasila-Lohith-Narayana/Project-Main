@@ -87,6 +87,7 @@ export default function Customers() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageInput, setPageInput] = useState("1");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -287,6 +288,20 @@ export default function Customers() {
   useEffect(() => {
     load();
   }, [page, state, segment, activity, ratings, churnRisk, maxRecency, minSpend, minOrders, sortBy, sortDir]);
+  useEffect(() => {
+    setPageInput(String(page));
+  }, [page]);
+
+  const goToPage = () => {
+    const requestedPage = Number.parseInt(pageInput, 10);
+    const lastPage = Math.max(1, data?.pages || 1);
+    if (!Number.isInteger(requestedPage)) {
+      setPageInput(String(page));
+      return;
+    }
+    setPage(Math.min(Math.max(requestedPage, 1), lastPage));
+  };
+
   const search = (event) => {
     event.preventDefault();
     setPage(1);
@@ -671,6 +686,22 @@ export default function Customers() {
               <button disabled={page <= 1} onClick={() => setPage(page - 1)} title="Previous page">
                 ‹
               </button>
+              <div className="pageJump" aria-label="Jump to page">
+                <label htmlFor="pageno">Page</label>
+                <input
+                  type="text"
+                  id="pageno"
+                  min="1"
+                  max={data.pages || 1}
+                  value={pageInput}
+                  onChange={(event) => setPageInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") goToPage();
+                  }}
+                  aria-label="Page number"
+                />
+                <button type="button" onClick={goToPage}>Go</button>
+              </div>
               <button
                 disabled={page >= data.pages}
                 onClick={() => setPage(page + 1)}

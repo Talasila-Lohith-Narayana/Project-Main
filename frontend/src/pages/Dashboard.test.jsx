@@ -1,6 +1,6 @@
 import React from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Dashboard from "./Dashboard";
 import * as ApiModule from "../services/api";
@@ -28,6 +28,11 @@ describe("Dashboard Page Orchestrator", () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
   it("displays loading state initially", () => {
     vi.spyOn(ApiModule.dashboardService, "summary").mockReturnValue(
       new Promise(() => {})
@@ -39,7 +44,8 @@ describe("Dashboard Page Orchestrator", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("Loading executive analytics...")).toBeInTheDocument();
+    expect(screen.getByText("Executive Business Overview")).toBeInTheDocument();
+    expect(screen.getByText("Loading key metrics...")).toBeInTheDocument();
   });
 
   it("displays error state when dashboard data fails to load and supports retry", async () => {
@@ -72,6 +78,25 @@ describe("Dashboard Page Orchestrator", () => {
     const spy = vi.spyOn(ApiModule.dashboardService, "summary").mockResolvedValue(
       mockDashboardData
     );
+    vi.spyOn(ApiModule.dashboardService, "section").mockImplementation((section) => {
+      if (section === "trends") {
+        return Promise.resolve({
+          monthly: mockDashboardData.monthly,
+          segments: mockDashboardData.segments,
+        });
+      }
+      if (section === "geography") {
+        return Promise.resolve({
+          geo_distribution: mockDashboardData.top_states,
+          top_states: mockDashboardData.top_states,
+          top_cities: [],
+        });
+      }
+      throw new Error(`Unexpected deferred section request: ${section}`);
+    });
+    vi.spyOn(ApiModule.dashboardService, "stateDetail").mockResolvedValue({
+      top_cities: [],
+    });
 
     render(
       <MemoryRouter>
@@ -84,10 +109,11 @@ describe("Dashboard Page Orchestrator", () => {
       expect(screen.getByText("Total Customers")).toBeInTheDocument();
       expect(screen.getByText("Revenue growth trend")).toBeInTheDocument();
       expect(screen.getByText("Customer segments")).toBeInTheDocument();
-      expect(screen.getByText("Regional distribution")).toBeInTheDocument();
-      expect(screen.getByText("Payment methods")).toBeInTheDocument();
-      expect(screen.getByText("Review distribution")).toBeInTheDocument();
-      expect(screen.getByText("Top product categories")).toBeInTheDocument();
+      expect(screen.getByText("Brazilian Market Geolocation Heatmap")).toBeInTheDocument();
+      expect(screen.queryByText("Regional distribution")).not.toBeInTheDocument();
+      expect(screen.queryByText("Payment methods")).not.toBeInTheDocument();
+      expect(screen.queryByText("Review distribution")).not.toBeInTheDocument();
+      expect(screen.queryByText("Top product categories")).not.toBeInTheDocument();
     });
 
     // Switch timeframe to 2018
@@ -95,7 +121,7 @@ describe("Dashboard Page Orchestrator", () => {
     fireEvent.click(btn2018);
 
     await waitFor(() => {
-      expect(spy).toHaveBeenCalledWith({ timeframe: "2018" });
+      expect(spy).toHaveBeenCalledWith({ timeframe: "2018", sections: "core" });
     });
 
     // Switch to Custom Range
@@ -114,8 +140,129 @@ describe("Dashboard Page Orchestrator", () => {
         timeframe: "custom",
         start_date: "2017-01-01",
         end_date: "2018-08-31",
+        sections: "core",
       });
     });
+  });
+
+  it("loads only dashboard sections that approach the viewport", async () => {
+    const observers = [];
+    class TestIntersectionObserver {
+      constructor(callback) {
+        this.callback = callback;
+        observers.push(this);
+      }
+      observe() {}
+      disconnect() {}
+      trigger() {
+        this.callback([{ isIntersecting: true }]);
+      }
+    }
+    vi.stubGlobal("IntersectionObserver", TestIntersectionObserver);
+    const sectionSpy = vi.spyOn(ApiModule.dashboardService, "section").mockResolvedValue({});
+    vi.spyOn(ApiModule.dashboardService, "summary").mockResolvedValue(mockDashboardData);
+
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(observers.length).toBe(2));
+    expect(sectionSpy).not.toHaveBeenCalled();
+
+    act(() => observers[0].trigger());
+    await waitFor(() => expect(sectionSpy).toHaveBeenCalledTimes(1));
+  });
+
+  it("refreshes dashboard data every two minutes", async () => {
+    vi.useFakeTimers();
+    const summarySpy = vi.spyOn(ApiModule.dashboardService, "summary").mockResolvedValue(
+      mockDashboardData
+    );
+    vi.spyOn(ApiModule.dashboardService, "section").mockResolvedValue({});
+
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    const initialRequestCount = summarySpy.mock.calls.length;
+    expect(initialRequestCount).toBeGreaterThan(0);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(120_000);
+    });
+    expect(summarySpy).toHaveBeenCalledTimes(initialRequestCount + 1);
+  });
+
+  it("refreshes dashboard data when another tab reports a data change", async () => {
+    const observers = [];
+    class TestBroadcastChannel {
+      static channels = [];
+
+      constructor(name) {
+        this.name = name;
+        this.listeners = new Set();
+        this.closed = false;
+        TestBroadcastChannel.channels.push(this);
+      }
+      addEventListener(type, listener) {
+        if (type === "message") this.listeners.add(listener);
+      }
+      removeEventListener(type, listener) {
+        if (type === "message") this.listeners.delete(listener);
+      }
+      postMessage(data) {
+        TestBroadcastChannel.channels
+          .filter((candidate) => candidate !== this && !candidate.closed && candidate.name === this.name)
+          .forEach((candidate) => {
+            candidate.listeners.forEach((listener) => listener({ data }));
+          });
+      }
+      close() {
+        this.closed = true;
+        this.listeners.clear();
+      }
+    }
+    class TestIntersectionObserver {
+      constructor(callback) {
+        this.callback = callback;
+        observers.push(this);
+      }
+      observe() {}
+      disconnect() {}
+      trigger() {
+        this.callback([{ isIntersecting: true }]);
+      }
+    }
+    vi.stubGlobal("BroadcastChannel", TestBroadcastChannel);
+    vi.stubGlobal("IntersectionObserver", TestIntersectionObserver);
+    const summarySpy = vi.spyOn(ApiModule.dashboardService, "summary").mockResolvedValue(
+      mockDashboardData
+    );
+    const sectionSpy = vi.spyOn(ApiModule.dashboardService, "section").mockResolvedValue({});
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(summarySpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(observers).toHaveLength(2));
+    act(() => observers.forEach((observer) => observer.trigger()));
+    await waitFor(() => expect(sectionSpy).toHaveBeenCalledTimes(2));
+
+    const otherTab = new TestBroadcastChannel("customer-sphere-dashboard-data");
+    act(() => otherTab.postMessage({ timestamp: Date.now() }));
+
+    await waitFor(() => expect(summarySpy).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(sectionSpy).toHaveBeenCalledTimes(4));
   });
 
   it("handles empty/zero customer metrics gracefully", async () => {

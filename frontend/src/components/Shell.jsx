@@ -5,13 +5,15 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { authService } from "../services/api";
 import AuditLogModal from "./AuditLogModal";
+import ConfirmModal from "./ConfirmModal";
 
 export default function Shell() {
-  const { user, role, accounts, isAdmin, logout, logoutAll, switchToAccount, loginAndSwitch } = useAuth();
+  const { user, role, accounts, isAdmin, hasAccess, logout, logoutAll, switchToAccount, loginAndSwitch } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [switching, setSwitching] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [profiles, setProfiles] = useState([]);
   const [profilesLoading, setProfilesLoading] = useState(true);
   const [profilesError, setProfilesError] = useState("");
@@ -68,6 +70,7 @@ export default function Shell() {
 
   // Handles user sign out and redirection to the login view
   const signOut = () => {
+    setShowSignOutConfirm(false);
     logoutAll();
     navigate("/login");
   };
@@ -122,6 +125,8 @@ export default function Shell() {
     profiles.find((profile) => profile.username === targetUsername)?.role === "admin"
       ? "Administrator"
       : "Viewer";
+  const canAccess = hasAccess || ((page) =>
+    isAdmin || ["dashboard", "customers", "products", "audit_logs"].includes(page));
 
   const profileSwitcher = (
     <div className={`profileSwitcher ${collapsed ? "compact" : ""}`}>
@@ -202,33 +207,41 @@ export default function Shell() {
         </div>
         {!collapsed && <small>WORKSPACE</small>}
         
-        <NavLink to="/" end title="Dashboard">
-          <LayoutDashboard size={17} />
-          {!collapsed && <span>Dashboard</span>}
-        </NavLink>
-        <NavLink to="/customers" title="Customers">
-          <Users size={17} />
-          {!collapsed && <span>Customers</span>}
-        </NavLink>
-        <NavLink to="/products" title="Products">
-          <Package size={17} />
-          {!collapsed && <span>Products</span>}
-        </NavLink>
-        {isAdmin && (
-          <>
-            <NavLink to="/analytics" title="Analytics">
-              <BarChart3 size={17} />
-              {!collapsed && <span>Analytics</span>}
-            </NavLink>
-            <NavLink to="/campaigns" title="Campaigns">
-              <Megaphone size={17} />
-              {!collapsed && <span>Campaigns</span>}
-            </NavLink>
-            <NavLink to="/model" title="Model diagnostics">
-              <Activity size={17} />
-              {!collapsed && <span>Model</span>}
-            </NavLink>
-          </>
+        {canAccess("dashboard") && (
+          <NavLink to="/" end title="Dashboard">
+            <LayoutDashboard size={17} />
+            {!collapsed && <span>Dashboard</span>}
+          </NavLink>
+        )}
+        {canAccess("customers") && (
+          <NavLink to="/customers" title="Customers">
+            <Users size={17} />
+            {!collapsed && <span>Customers</span>}
+          </NavLink>
+        )}
+        {canAccess("products") && (
+          <NavLink to="/products" title="Products">
+            <Package size={17} />
+            {!collapsed && <span>Products</span>}
+          </NavLink>
+        )}
+        {canAccess("analytics") && (
+          <NavLink to="/analytics" title="Analytics">
+            <BarChart3 size={17} />
+            {!collapsed && <span>Analytics</span>}
+          </NavLink>
+        )}
+        {canAccess("campaigns") && (
+          <NavLink to="/campaigns" title="Campaigns">
+            <Megaphone size={17} />
+            {!collapsed && <span>Campaigns</span>}
+          </NavLink>
+        )}
+        {canAccess("model") && (
+          <NavLink to="/model" title="Model diagnostics">
+            <Activity size={17} />
+            {!collapsed && <span>Model</span>}
+          </NavLink>
         )}
         {isAdmin && (
           <NavLink to="/users" title="User management">
@@ -238,15 +251,17 @@ export default function Shell() {
         )}
         
         {/* Workspace Admin Data Changes Button */}
-        <button
-          type="button"
-          onClick={() => setShowAuditModal(true)}
-          className="sideNavBtn"
-          title="Admin Activity: View audit trail and history"
-        >
-          <History size={17} />
-          {!collapsed && <span>Admin Activity</span>}
-        </button>
+        {canAccess("audit_logs") && (
+          <button
+            type="button"
+            onClick={() => setShowAuditModal(true)}
+            className="sideNavBtn"
+            title="Admin Activity: View audit trail and history"
+          >
+            <History size={17} />
+            {!collapsed && <span>Admin Activity</span>}
+          </button>
+        )}
         
         {/* User Session & Logout Controls */}
         <div className="sideBottom">
@@ -280,7 +295,7 @@ export default function Shell() {
 
           {profileSwitcher}
 
-          <button onClick={signOut} title="Sign out" className="sideSignOutBtn">
+          <button onClick={() => setShowSignOutConfirm(true)} title="Sign out" className="sideSignOutBtn">
             <LogOut size={16} />
             {!collapsed && <span>Sign out</span>}
           </button>
@@ -366,6 +381,16 @@ export default function Shell() {
       {/* Admin Activity / Audit Trail Modal */}
       {showAuditModal && (
         <AuditLogModal close={() => setShowAuditModal(false)} />
+      )}
+
+      {showSignOutConfirm && (
+        <ConfirmModal
+          title="Sign out?"
+          message="This will sign out all active profiles on this device."
+          confirmLabel="Sign out"
+          onConfirm={signOut}
+          onCancel={() => setShowSignOutConfirm(false)}
+        />
       )}
 
       {/* Dynamic Content Viewport */}

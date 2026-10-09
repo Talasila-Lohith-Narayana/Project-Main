@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { History, RefreshCw, Search, Shield, User, X } from "lucide-react";
 import { customerService } from "../services/api";
+import DataTable from "./DataTable";
 
 export default function AuditLogModal({ close }) {
   const [logs, setLogs] = useState([]);
@@ -8,6 +9,9 @@ export default function AuditLogModal({ close }) {
   const [error, setError] = useState("");
   const [filterAction, setFilterAction] = useState("");
   const [query, setQuery] = useState("");
+  const [performedBy, setPerformedBy] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const loadLogs = async () => {
     setLoading(true);
@@ -16,6 +20,9 @@ export default function AuditLogModal({ close }) {
       const res = await customerService.globalAuditLogs({
         action: filterAction || undefined,
         q: query || undefined,
+        ...(performedBy.trim() ? { performed_by: performedBy.trim() } : {}),
+        ...(startDate ? { start_date: startDate } : {}),
+        ...(endDate ? { end_date: endDate } : {}),
         limit: 100,
       });
       setLogs(res.items || []);
@@ -87,45 +94,81 @@ export default function AuditLogModal({ close }) {
           Comprehensive record of all creations, updates, deletions, order placements, reviews, and bulk actions made by administrators.
         </p>
 
-        {/* Toolbar with action filter and search */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-          <form onSubmit={handleSearch} style={{ display: "flex", flex: 1, minWidth: 200, gap: 6 }}>
-            <div className="search auditLogSearch" style={{ flex: 1, margin: 0 }}>
+        {/* Search and filters */}
+        <div className="auditToolbar">
+          <div className="auditSearchRow">
+            <form onSubmit={handleSearch} className="auditSearchForm">
+              <div className="search auditLogSearch">
               <Search size={16} />
               <input
+                type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search audit details or customer ID..."
               />
-            </div>
-            <button type="submit" className="btn secondary" style={{ padding: "0 12px" }}>
-              Search
+              </div>
+              <button type="submit" className="btn primary auditSearchButton">
+                Search
+              </button>
+            </form>
+            <button
+              type="button"
+              className="btn secondary auditRefreshButton"
+              onClick={loadLogs}
+              disabled={loading}
+              title="Refresh logs"
+              aria-label="Refresh logs"
+            >
+              <RefreshCw size={16} className={loading ? "spin" : ""} />
             </button>
-          </form>
+          </div>
 
-          <select
-            value={filterAction}
-            onChange={(e) => setFilterAction(e.target.value)}
-            style={{ minWidth: 170, padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1" }}
-          >
-            <option value="">All Actions</option>
-            <option value="Customer">Customer Add / Edit / Delete</option>
-            <option value="order">Order Activity</option>
-            <option value="review">Review Activity</option>
-            <option value="Bulk">Bulk Operations</option>
-            <option value="interaction">CRM Interactions</option>
-          </select>
-
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={loadLogs}
-            disabled={loading}
-            title="Refresh logs"
-            style={{ padding: "8px 10px" }}
-          >
-            <RefreshCw size={15} className={loading ? "spin" : ""} />
-          </button>
+          <div className="auditFilterRow">
+            <label className="auditFilterField auditActionField">
+              <span>Action type</span>
+              <select
+                value={filterAction}
+                onChange={(e) => setFilterAction(e.target.value)}
+              >
+                <option value="">All actions</option>
+                <option value="Customer">Customer Add / Edit / Delete</option>
+                <option value="order">Order Activity</option>
+                <option value="review">Review Activity</option>
+                <option value="Bulk">Bulk Operations</option>
+                <option value="interaction">CRM Interactions</option>
+              </select>
+            </label>
+            <label className="auditFilterField auditActorField">
+              <span>Performed by</span>
+              <input
+                type="text"
+                value={performedBy}
+                onChange={(e) => setPerformedBy(e.target.value)}
+                placeholder="Admin username"
+                aria-label="Filter by admin"
+              />
+            </label>
+            <label className="auditFilterField">
+              <span>From date</span>
+              <input
+                type="date"
+                value={startDate}
+                max={endDate || undefined}
+                onChange={(e) => setStartDate(e.target.value)}
+                aria-label="Start date"
+              />
+            </label>
+            <label className="auditFilterField">
+              <span>To date</span>
+              <input
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={(e) => setEndDate(e.target.value)}
+                aria-label="End date"
+              />
+            </label>
+          </div>
         </div>
 
         {/* Logs List Table */}
@@ -142,67 +185,15 @@ export default function AuditLogModal({ close }) {
               No audit log entries found matching criteria.
             </div>
           ) : (
-            <table style={{ minWidth: "100%", width: "100%" }}>
-              <thead>
-                <tr>
-                  <th style={{ width: 140 }}>Timestamp</th>
-                  <th style={{ width: 150 }}>Action</th>
-                  <th style={{ width: 100 }}>Admin</th>
-                  <th>Details & Changes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => {
-                  const badge = getActionBadgeColor(log.action);
-                  const badgeClass = getActionBadgeClass(log.action);
-                  return (
-                    <tr key={log.id}>
-                      <td style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap" }}>
-                        {new Date(log.created_at).toLocaleString([], {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          second: "2-digit",
-                        })}
-                      </td>
-                      <td>
-                        <span
-                          className={badgeClass}
-                          style={{
-                            display: "inline-block",
-                            padding: "3px 8px",
-                            borderRadius: 6,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            background: badge.bg,
-                            color: badge.color,
-                            border: `1px solid ${badge.border}`,
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {log.action}
-                        </span>
-                      </td>
-                      <td>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 500 }}>
-                          <Shield size={12} color="#64748b" /> {log.performed_by || "admin"}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: 12, color: "var(--text-main)" }}>
-                        <div>{log.details || "No extra metadata recorded."}</div>
-                        {log.customer_id && (
-                          <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, fontFamily: "monospace" }}>
-                            Target: {log.customer_id}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <DataTable
+              data={logs}
+              columns={[
+                { header: "Timestamp", accessorKey: "created_at", cell: ({ row }) => <span style={{ fontSize: 11, color: "#64748b", whiteSpace: "nowrap" }}>{new Date(row.original.created_at).toLocaleString([], { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span> },
+                { header: "Action", accessorKey: "action", cell: ({ row }) => { const badge = getActionBadgeColor(row.original.action); return <span className={getActionBadgeClass(row.original.action)} style={{ display: "inline-block", padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`, whiteSpace: "nowrap" }}>{row.original.action}</span>; } },
+                { header: "Admin", accessorKey: "performed_by", cell: ({ row }) => <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 500 }}><Shield size={12} color="#64748b" /> {row.original.performed_by || "admin"}</span> },
+                { header: "Details & Changes", accessorKey: "details", cell: ({ row }) => <div style={{ fontSize: 12, color: "var(--text-main)" }}><div>{row.original.details || "No extra metadata recorded."}</div>{row.original.customer_id && <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, fontFamily: "monospace" }}>Target: {row.original.customer_id}</div>}</div> },
+              ]}
+            />
           )}
         </div>
 

@@ -164,6 +164,25 @@ def _compute_comparison(current_kpis, previous_kpis):
     return comparison
 
 
+def _dashboard_comparison(
+    db,
+    current_kpis,
+    compare_to,
+    compare_start_date,
+    compare_end_date,
+):
+    if not compare_to:
+        return None
+
+    comp_filter, comp_params = _build_time_filter(
+        compare_to, compare_start_date, compare_end_date, param_prefix="cmp_"
+    )
+    comp_kpis = _compute_kpis(db, comp_filter, comp_params)
+    comparison = _compute_comparison(current_kpis, comp_kpis)
+    comparison["compare_to"] = compare_to
+    return comparison
+
+
 @router.get("/api/dashboard/summary")
 def dashboard(
     timeframe: str = "all",
@@ -172,21 +191,38 @@ def dashboard(
     compare_to: str = None,
     compare_start_date: str = None,
     compare_end_date: str = None,
+    sections: str = "all",
     db: Session = Depends(get_db),
     _: str = Depends(auth),
 ):
     """
-    Computes all aggregated executive metrics for the primary Dashboard view,
+    Computes executive metrics for the primary Dashboard view. Set sections=core
+    to return only initial KPI/comparison data,
     with optional timeframe horizon filtering ('all', '2018', '2017', '2016', 'l6m', 'l30d', 'custom')
     and custom start_date / end_date range.
     Supports period-over-period comparison via the 'compare_to' parameter.
     UI Component: `Dashboard.jsx`.
     """
+    if sections not in {"all", "core"}:
+        raise HTTPException(status_code=422, detail="sections must be 'all' or 'core'.")
+
     # Build primary timeframe filter
     time_filter_orders, params = _build_time_filter(timeframe, start_date, end_date)
 
     # 1-2. Compute primary KPIs
     k = _compute_kpis(db, time_filter_orders, params)
+    comparison = _dashboard_comparison(
+        db, k, compare_to, compare_start_date, compare_end_date
+    )
+
+    if sections == "core":
+        result = {
+            "kpis": {k_name: ser(v_val) for k_name, v_val in k.items()},
+            "timeframe": timeframe,
+        }
+        if comparison is not None:
+            result["comparison"] = comparison
+        return result
 
     # 3. Customer Segments Breakdown (Filtered by selected timeframe / date range)
     if time_filter_orders:
@@ -406,16 +442,6 @@ def dashboard(
         "low": int(churn_risk_rows[2] or 0) if churn_risk_rows else 0,
     }
 
-    # 10. Period-over-Period Comparison (optional)
-    comparison = None
-    if compare_to:
-        comp_filter, comp_params = _build_time_filter(
-            compare_to, compare_start_date, compare_end_date, param_prefix="cmp_"
-        )
-        comp_kpis = _compute_kpis(db, comp_filter, comp_params)
-        comparison = _compute_comparison(k, comp_kpis)
-        comparison["compare_to"] = compare_to
-
     result = {
         "kpis": {**{k_name: ser(v_val) for k_name, v_val in k.items()}},
         "segments": rows(seg),
@@ -433,6 +459,187 @@ def dashboard(
         result["comparison"] = comparison
 
     return result
+
+
+@router.get("/api/dashboard/sections/{section}")
+def dashboard_section(
+    section: str,
+    timeframe: str = "all",
+    start_date: str = None,
+    end_date: str = None,
+    db: Session = Depends(get_db),
+    _: str = Depends(auth),
+):
+    """Return one deferred dashboard section without recomputing core KPIs."""
+    if section not in {"trends", "geography"}:
+        raise HTTPException(status_code=404, detail="Dashboard section not found.")
+
+    time_filter_orders, params = _build_time_filter(timeframe, start_date, end_date)
+
+    if section == "trends":
+        if time_filter_orders:
+            segments_raw = db.execute(
+                text(
+                    f"""SELECT rt.risk_tier AS segment,
+                    COUNT(DISTINCT c.customer_unique_id) as count,
+                    ROUND(COALESCE(AVG(cp.churn_probability) * 100, 0), 2) AS churn_percentage
+                    FROM customer_metrics_cache c
+                    JOIN customers cust ON cust.customer_unique_id = c.customer_unique_id
+                    JOIN orders o ON o.customer_id = cust.customer_id
+                    JOIN {ANALYTICS_DB_NAME}.customer_risk_tiers rt
+                        ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                           c.customer_unique_id COLLATE utf8mb4_unicode_ci
+                    JOIN {ANALYTICS_DB_NAME}.churn_predictions cp
+                        ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                           c.customer_unique_id COLLATE utf8mb4_unicode_ci
+                    {time_filter_orders}
+                    GROUP BY rt.risk_tier
+                    ORDER BY count DESC"""
+                ),
+                params,
+            ).fetchall()
+        else:
+            segments_raw = db.execute(
+                text(
+                    f"""SELECT segment, COUNT(*) AS count,
+                    ROUND(COALESCE(AVG(churn_probability) * 100, 0), 2) AS churn_percentage
+                    FROM (
+                        SELECT c.customer_unique_id,
+                            rt.risk_tier AS segment,
+                            cp.churn_probability
+                        FROM customer_metrics_cache c
+                        JOIN {ANALYTICS_DB_NAME}.customer_risk_tiers rt
+                            ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                               c.customer_unique_id COLLATE utf8mb4_unicode_ci
+                        JOIN {ANALYTICS_DB_NAME}.churn_predictions cp
+                            ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
+                               c.customer_unique_id COLLATE utf8mb4_unicode_ci
+                        GROUP BY c.customer_unique_id, rt.risk_tier,
+                            cp.churn_probability
+                    ) t
+                    GROUP BY segment
+                    ORDER BY count DESC"""
+                )
+            ).fetchall()
+
+        monthly_where = (
+            f"{time_filter_orders} AND o.order_purchase_timestamp IS NOT NULL"
+            if time_filter_orders
+            else "WHERE o.order_purchase_timestamp IS NOT NULL"
+        )
+        monthly_raw = db.execute(
+            text(
+                f"""SELECT DATE_FORMAT(o.order_purchase_timestamp,'%Y-%m') month,
+                    COUNT(*) orders, COALESCE(SUM(p.payment_value),0) revenue
+                FROM orders o
+                LEFT JOIN order_payments p ON p.order_id=o.order_id
+                {monthly_where}
+                GROUP BY month ORDER BY month"""
+            ),
+            params,
+        ).fetchall()
+
+        monthly_dict = {
+            row[0]: {"orders": int(row[1]), "revenue": float(row[2])}
+            for row in monthly_raw
+            if row[0]
+        }
+        months = sorted(monthly_dict)
+        monthly = []
+        if months:
+            start_year, start_month = map(int, months[0].split("-"))
+            end_year, end_month = map(int, months[-1].split("-"))
+            year, month = start_year, start_month
+            while (year, month) <= (end_year, end_month):
+                month_key = f"{year:04d}-{month:02d}"
+                monthly.append({
+                    "month": month_key,
+                    **monthly_dict.get(month_key, {"orders": 0, "revenue": 0.0}),
+                })
+                month += 1
+                if month > 12:
+                    month = 1
+                    year += 1
+        else:
+            monthly = rows(monthly_raw)
+
+        return {"segments": rows(segments_raw), "monthly": monthly}
+
+    if section == "geography":
+        geo_where = (
+            f"{time_filter_orders} AND c.customer_state IN "
+            "('AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO')"
+            if time_filter_orders
+            else "WHERE c.customer_state IN "
+            "('AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO')"
+        )
+        states_raw = db.execute(
+            text(
+                f"""SELECT c.customer_state as state,
+                    COUNT(DISTINCT c.customer_unique_id) as customers,
+                    COUNT(DISTINCT o.order_id) as orders,
+                    COALESCE(SUM(p.payment_value), 0) as revenue
+                FROM customers c
+                JOIN orders o ON o.customer_id = c.customer_id
+                JOIN order_payments p ON p.order_id = o.order_id
+                {geo_where}
+                GROUP BY c.customer_state
+                ORDER BY revenue DESC"""
+            ),
+            params,
+        ).fetchall()
+
+        total_revenue = sum(float(row[3]) for row in states_raw) or 1.0
+        total_customers = sum(int(row[1]) for row in states_raw) or 1
+        total_orders = sum(int(row[2]) for row in states_raw) or 1
+        geo_distribution = []
+        for row in states_raw:
+            state_code = row[0]
+            customers = int(row[1])
+            orders = int(row[2])
+            revenue = round(float(row[3]), 2)
+            metadata = BRAZILIAN_STATES_META.get(state_code, {})
+            geo_distribution.append({
+                "state": state_code,
+                "name": metadata.get("name", state_code),
+                "region": metadata.get("region", "Other"),
+                "capital": metadata.get("capital", ""),
+                "customers": customers,
+                "orders": orders,
+                "revenue": revenue,
+                "aov": round(revenue / orders, 2) if orders else 0.0,
+                "pct_revenue": round(revenue / total_revenue * 100, 2),
+                "pct_customers": round(customers / total_customers * 100, 2),
+                "pct_orders": round(orders / total_orders * 100, 2),
+            })
+
+        top_cities_raw = db.execute(
+            text(
+                f"""SELECT c.customer_city as city, c.customer_state as state,
+                    COUNT(DISTINCT c.customer_unique_id) as customers,
+                    COUNT(DISTINCT o.order_id) as orders,
+                    ROUND(COALESCE(SUM(p.payment_value), 0), 2) as revenue
+                FROM customers c
+                JOIN orders o ON o.customer_id = c.customer_id
+                JOIN order_payments p ON p.order_id = o.order_id
+                {time_filter_orders}
+                GROUP BY c.customer_city, c.customer_state
+                ORDER BY revenue DESC
+                LIMIT 10"""
+            ),
+            params,
+        ).fetchall()
+        top_states = [
+            {"state": item["state"], "customers": item["customers"], "revenue": item["revenue"]}
+            for item in geo_distribution
+        ]
+        return {
+            "geo_distribution": geo_distribution,
+            "top_states": top_states,
+            "top_cities": rows(top_cities_raw),
+        }
+
+    raise HTTPException(status_code=404, detail="Dashboard section not found.")
 
 
 @router.get("/api/dashboard/geo/state/{state_code}")

@@ -6,11 +6,18 @@ import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { userService } from "../services/api";
+import DataTable from "../components/DataTable";
+import { ACCESS_PAGES, DEFAULT_VIEWER_ACCESS } from "../accessPages";
 
-const emptyForm = { username: "", password: "", role: "viewer" };
+const emptyForm = { username: "", password: "", role: "viewer", access_pages: [] };
 
 export default function Users() {
-  const { isAdmin, user: currentUser, updateCurrentSession } = useAuth();
+  const {
+    isAdmin,
+    user: currentUser,
+    updateCurrentSession,
+    updateAccountAccess,
+  } = useAuth();
   const toast = useToast();
   const [users, setUsers] = useState([]);
   const [activeSection, setActiveSection] = useState("manage");
@@ -19,7 +26,11 @@ export default function Users() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [editingUser, setEditingUser] = useState(null);
-  const [editForm, setEditForm] = useState({ username: "", password: "" });
+  const [editForm, setEditForm] = useState({
+    username: "",
+    password: "",
+    access_pages: [],
+  });
   const [editBusy, setEditBusy] = useState(false);
   const [deletingUser, setDeletingUser] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -44,6 +55,10 @@ export default function Users() {
 
   async function submit(event) {
     event.preventDefault();
+    if (form.role === "viewer" && form.access_pages.length === 0) {
+      toast.error("Select at least one page for this user.");
+      return;
+    }
     setBusy(true);
     try {
       const created = await userService.create(form);
@@ -65,21 +80,37 @@ export default function Users() {
 
   function startEditing(account) {
     setEditingUser(account);
-    setEditForm({ username: account.username, password: "" });
+    setEditForm({
+      username: account.username,
+      password: "",
+      access_pages: account.access_pages || DEFAULT_VIEWER_ACCESS,
+    });
   }
 
   async function saveUser(event) {
     event.preventDefault();
+    if (editingUser.role === "viewer" && editForm.access_pages.length === 0) {
+      toast.error("Select at least one page for this user.");
+      return;
+    }
     setEditBusy(true);
     const changes = { username: editForm.username };
     if (editForm.password) changes.password = editForm.password;
+    if (editingUser.role === "viewer") {
+      changes.access_pages = editForm.access_pages;
+    }
     try {
       const updated = await userService.update(editingUser.username, changes);
+      updateAccountAccess?.(updated.username, updated.access_pages);
       setUsers((current) =>
         current
           .map((account) =>
             account.username === editingUser.username
-              ? { username: updated.username, role: updated.role }
+              ? {
+                username: updated.username,
+                role: updated.role,
+                access_pages: updated.access_pages,
+              }
               : account,
           )
           .sort((left, right) => left.username.localeCompare(right.username)),
@@ -92,7 +123,7 @@ export default function Users() {
         });
       }
       setEditingUser(null);
-      setEditForm({ username: "", password: "" });
+      setEditForm({ username: "", password: "", access_pages: [] });
       toast.success(`User "${updated.username}" updated.`);
     } catch (requestError) {
       toast.error(requestError.message);
@@ -120,6 +151,39 @@ export default function Users() {
   }
 
   const adminCount = users.filter((account) => account.role === "admin").length;
+
+  const columns = [
+    {
+      header: "Username",
+      accessorKey: "username",
+      cell: ({ row }) => <span className="userTableName"><UsersIcon size={15} />{row.original.username}</span>,
+    },
+    {
+      header: "Role",
+      accessorKey: "role",
+      cell: ({ row }) => <span className={`userRoleBadge ${row.original.role}`}>{row.original.role === "admin" ? <Shield size={13} /> : <KeyRound size={13} />}{row.original.role === "admin" ? "Administrator" : "Viewer"}</span>,
+    },
+    {
+      header: "Page access",
+      accessorKey: "access_pages",
+      cell: ({ row }) => row.original.role === "admin"
+        ? "All pages"
+        : (row.original.access_pages || []).map((page) =>
+          ACCESS_PAGES.find((item) => item.key === page)?.label || page,
+        ).join(", ") || "No pages",
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const account = row.original;
+        return <div className="userActions">
+          <button className="btn ghost userEditButton" type="button" onClick={() => startEditing(account)} aria-label={`Edit ${account.username}`} title={`Edit ${account.username}`}><Pencil size={13} /></button>
+          <button className="btn danger userDeleteButton" type="button" onClick={() => setDeletingUser(account)} aria-label={`Delete ${account.username}`} title={account.username === currentUser ? "You cannot delete your active account" : account.role === "admin" && adminCount <= 1 ? "The last administrator cannot be deleted" : `Delete ${account.username}`} disabled={account.username === currentUser || (account.role === "admin" && adminCount <= 1)}><Trash2 size={13} /></button>
+        </div>;
+      },
+    },
+  ];
 
   return (
     <Page>
@@ -165,49 +229,77 @@ export default function Users() {
         >
           <Panel
             title="Create an account"
-            sub="Set a username, temporary password, and access level for the new user."
+            sub="Choose which pages the new user can view. Administrators always have full access."
           >
             <form className="userCreateForm" onSubmit={submit}>
-              <label>
-                Username
-                <input
-                  autoComplete="off"
-                  minLength={3}
-                  maxLength={80}
-                  required
-                  value={form.username}
-                  onChange={(event) =>
-                    setForm({ ...form, username: event.target.value })
-                  }
-                />
-              </label>
-              <label>
-                Temporary password
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  maxLength={128}
-                  required
-                  value={form.password}
-                  onChange={(event) =>
-                    setForm({ ...form, password: event.target.value })
-                  }
-                />
-                <small>Use at least 8 characters.</small>
-              </label>
-              <label>
-                Access role
-                <select
-                  value={form.role}
-                  onChange={(event) =>
-                    setForm({ ...form, role: event.target.value })
-                  }
-                >
-                  <option value="viewer">Viewer — read-only access</option>
-                  <option value="admin">Administrator — full access</option>
-                </select>
-              </label>
+              <div className="userCredentialFields">
+                <div className="userCredentialField">
+                  <label htmlFor="new-username">Username</label>
+                  <input
+                    id="new-username"
+                    autoComplete="off"
+                    minLength={3}
+                    maxLength={80}
+                    required
+                    value={form.username}
+                    onChange={(event) =>
+                      setForm({ ...form, username: event.target.value })
+                    }
+                  />
+                </div>
+                <div className="userCredentialField">
+                  <label htmlFor="new-temporary-password">Temporary password</label>
+                  <input
+                    id="new-temporary-password"
+                    type="password"
+                    autoComplete="new-password"
+                    minLength={8}
+                    maxLength={128}
+                    required
+                    value={form.password}
+                    onChange={(event) =>
+                      setForm({ ...form, password: event.target.value })
+                    }
+                  />
+                  <small>Use at least 8 characters.</small>
+                </div>
+              </div>
+              <fieldset className="userAccessFieldset">
+                <legend>Page access</legend>
+                <div className="userAccessOptions">
+                  {ACCESS_PAGES.map(({ key, label }) => (
+                    <label key={key} className="userAccessOption">
+                      <input
+                        type="checkbox"
+                        checked={form.role === "admin" || form.access_pages.includes(key)}
+                        disabled={form.role === "admin"}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            access_pages: event.target.checked
+                              ? [...current.access_pages, key]
+                              : current.access_pages.filter((page) => page !== key),
+                          }))
+                        }
+                      />
+                      <span>{label}</span>
+                    </label>
+                  ))}
+                </div>
+                <label className="userAdminAccessOption">
+                  <input
+                    type="checkbox"
+                    checked={form.role === "admin"}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        role: event.target.checked ? "admin" : "viewer",
+                      }))
+                    }
+                  />
+                  <span>Administrator — full access to all pages and actions</span>
+                </label>
+              </fieldset>
               <button className="btn primary" type="submit" disabled={busy}>
                 <Plus size={15} />
                 {busy ? "Creating..." : "Create user"}
@@ -232,69 +324,7 @@ export default function Users() {
               <ErrorState message={error} retry={loadUsers} />
             ) : (
               <div className="userTableWrap">
-                <table className="userTable">
-                  <thead>
-                    <tr>
-                      <th>Username</th>
-                      <th>Role</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((account) => (
-                      <tr key={account.username}>
-                        <td>
-                          <span className="userTableName">
-                            <UsersIcon size={15} />
-                            {account.username}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`userRoleBadge ${account.role}`}>
-                            {account.role === "admin" ? (
-                              <Shield size={13} />
-                            ) : (
-                              <KeyRound size={13} />
-                            )}
-                            {account.role === "admin" ? "Administrator" : "Viewer"}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="userActions">
-                            <button
-                              className="btn ghost userEditButton"
-                              type="button"
-                              onClick={() => startEditing(account)}
-                              aria-label={`Edit ${account.username}`}
-                              title={`Edit ${account.username}`}
-                            >
-                              <Pencil size={13} />
-                            </button>
-                            <button
-                              className="btn danger userDeleteButton"
-                              type="button"
-                              onClick={() => setDeletingUser(account)}
-                              aria-label={`Delete ${account.username}`}
-                              title={
-                                account.username === currentUser
-                                  ? "You cannot delete your active account"
-                                  : account.role === "admin" && adminCount <= 1
-                                    ? "The last administrator cannot be deleted"
-                                    : `Delete ${account.username}`
-                              }
-                              disabled={
-                                account.username === currentUser ||
-                                (account.role === "admin" && adminCount <= 1)
-                              }
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <DataTable columns={columns} data={users} />
               </div>
             )}
           </Panel>
@@ -351,6 +381,34 @@ export default function Users() {
             <p className="filterHint">
               Password changes do not terminate sessions that are already signed in.
             </p>
+            <fieldset className="userAccessFieldset">
+              <legend>Page access</legend>
+              <div className="userAccessOptions">
+                {ACCESS_PAGES.map(({ key, label }) => (
+                  <label key={key} className="userAccessOption">
+                    <input
+                      type="checkbox"
+                      checked={editingUser.role === "admin" || editForm.access_pages.includes(key)}
+                      disabled={editingUser.role === "admin" || editBusy}
+                      onChange={(event) =>
+                        setEditForm((current) => ({
+                          ...current,
+                          access_pages: event.target.checked
+                            ? [...current.access_pages, key]
+                            : current.access_pages.filter((page) => page !== key),
+                        }))
+                      }
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+              {editingUser.role === "admin" && (
+                <p className="filterHint">
+                  Administrators always have full access to every page.
+                </p>
+              )}
+            </fieldset>
             <div className="actions">
               <button
                 type="button"

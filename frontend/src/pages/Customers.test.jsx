@@ -139,6 +139,7 @@ describe("Customers Directory Page", () => {
         rating: "5",
         sort_by: "spend",
         sort_dir: "desc",
+        include_churn: false,
       }));
     });
   });
@@ -158,7 +159,9 @@ describe("Customers Directory Page", () => {
 
     const searchInput = screen.getByPlaceholderText(/Search unique customer ID or city/i);
     fireEvent.change(searchInput, { target: { value: "Sao Paulo" } });
-    fireEvent.submit(searchInput.closest("form"));
+    const searchButton = screen.getByRole("button", { name: /^search$/i });
+    expect(searchButton.parentElement).toBe(searchInput.closest(".customerSearchGroup"));
+    fireEvent.click(searchButton);
 
     await waitFor(() => {
       expect(mockList).toHaveBeenCalledWith(expect.objectContaining({

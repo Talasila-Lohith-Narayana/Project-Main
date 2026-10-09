@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { dashboardService } from "../services/api";
 import { ErrorState, LoadingState, Page } from "../components/States";
@@ -8,15 +8,28 @@ import DashboardHeroBanner from "../components/dashboard/DashboardHeroBanner";
 import DashboardKpiCards from "../components/dashboard/DashboardKpiCards";
 import DashboardRevenueTrend from "../components/dashboard/DashboardRevenueTrend";
 import DashboardCustomerSegments from "../components/dashboard/DashboardCustomerSegments";
-import DashboardRegionalDistribution from "../components/dashboard/DashboardRegionalDistribution";
 import DashboardGeoHeatmap from "../components/dashboard/DashboardGeoHeatmap";
-import DashboardPaymentMethods from "../components/dashboard/DashboardPaymentMethods";
-import DashboardReviewSatisfaction from "../components/dashboard/DashboardReviewSatisfaction";
-import DashboardTopCategories from "../components/dashboard/DashboardTopCategories";
 import { COMPARISON_PERIODS } from "../components/dashboard/dashboardConstants";
+import DeferredDashboardSection from "../components/dashboard/DeferredDashboardSection";
+import { subscribeToDashboardDataChanges } from "../services/dashboardDataEvents";
+
+const DASHBOARD_POLL_INTERVAL_MS = 1 * 60 * 1000;
+
+function getDashboardParams(selectedTime, range, compare, compPeriod) {
+  const params =
+    selectedTime === "custom"
+      ? { timeframe: "custom", start_date: range.startDate, end_date: range.endDate }
+      : { timeframe: selectedTime };
+
+  if (compare && compPeriod) params.compare_to = compPeriod;
+  return params;
+}
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
+  const requestId = useRef(0);
+  const [refreshToken, setRefreshToken] = useState(0);
+  const [refreshError, setRefreshError] = useState("");
   const [timeframe, setTimeframe] = useState("all");
   const [customRange, setCustomRange] = useState({
     startDate: "2017-01-01",
@@ -27,23 +40,45 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const load = (selectedTime = timeframe, range = customRange, compare = compareMode, compPeriod = compareTo) => {
-    setError("");
-    const params =
-      selectedTime === "custom"
-        ? { timeframe: "custom", start_date: range.startDate, end_date: range.endDate }
-        : { timeframe: selectedTime };
-
-    // Add comparison period if compare mode is active
-    if (compare && compPeriod) {
-      params.compare_to = compPeriod;
-    }
-
+  const load = useCallback((
+    selectedTime = timeframe,
+    range = customRange,
+    compare = compareMode,
+    compPeriod = compareTo,
+    isBackgroundRefresh = false,
+  ) => {
+    const currentRequestId = ++requestId.current;
+    if (!isBackgroundRefresh) setError("");
     return dashboardService
-      .summary(params)
-      .then(setData)
-      .catch((requestError) => setError(requestError.message));
-  };
+      .summary({
+        ...getDashboardParams(selectedTime, range, compare, compPeriod),
+        sections: "core",
+      })
+      .then((response) => {
+        if (currentRequestId === requestId.current) {
+          setData(response);
+          setRefreshError("");
+        }
+      })
+      .catch((requestError) => {
+        if (currentRequestId === requestId.current) {
+          if (isBackgroundRefresh) setRefreshError(requestError.message);
+          else setError(requestError.message);
+        }
+      });
+  }, [timeframe, customRange, compareMode, compareTo]);
+
+  const refreshDashboard = useCallback((fromAnotherTab = false) => {
+    if (!fromAnotherTab && document.visibilityState !== "visible") return;
+    setRefreshToken((token) => token + 1);
+    load(timeframe, customRange, compareMode, compareTo, true);
+  }, [load, timeframe, customRange, compareMode, compareTo]);
+
+  const deferredParams = getDashboardParams(timeframe, customRange, compareMode, compareTo);
+  const loadSection = useCallback(
+    (section) => dashboardService.section(section, deferredParams),
+    [timeframe, customRange.startDate, customRange.endDate, compareMode, compareTo],
+  );
 
   useEffect(() => {
     if (timeframe !== "custom") {
@@ -55,6 +90,21 @@ export default function Dashboard() {
       load(timeframe, customRange, compareMode, compareTo || defaultComp?.key);
     }
   }, [timeframe, compareMode, compareTo]);
+
+  useEffect(() => {
+    if (!data) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      refreshDashboard();
+    }, DASHBOARD_POLL_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [data !== null, refreshDashboard]);
+
+  useEffect(() => {
+    if (!data) return undefined;
+    return subscribeToDashboardDataChanges(() => refreshDashboard(true));
+  }, [data !== null, refreshDashboard]);
 
   const handleApplyCustom = (e) => {
     e?.preventDefault();
@@ -82,13 +132,6 @@ export default function Dashboard() {
       </Page>
     );
 
-  if (!data)
-    return (
-      <Page>
-        <LoadingState text="Loading executive analytics..." />
-      </Page>
-    );
-
   const kpis = data?.kpis || {};
   const repeatRate =
     kpis.repeat_rate != null
@@ -113,47 +156,78 @@ export default function Dashboard() {
         setCompareTo={setCompareTo}
         onToggleCompare={handleToggleCompare}
       />
+      {refreshError && (
+        <div className="dashboardRefreshNotice" role="alert">
+          <span>Could not refresh dashboard data: {refreshError}</span>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => load(timeframe, customRange, compareMode, compareTo, true)}
+          >
+            Retry now
+          </button>
+        </div>
+      )}
 
       {/* KPI Cards Grid with Interactive Shortcuts */}
-      <DashboardKpiCards
-        kpis={kpis}
-        repeatRate={repeatRate}
-        navigate={navigate}
-        comparison={data?.comparison || null}
-      />
+      {data ? (
+        <DashboardKpiCards
+          kpis={kpis}
+          repeatRate={repeatRate}
+          navigate={navigate}
+          comparison={data.comparison || null}
+        />
+      ) : (
+        <div className="dashboardKpiLoading" role="status" aria-label="Loading key metrics">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div className="dashboardKpiSkeleton" key={index} aria-hidden="true">
+              <span className="dashboardSkeletonLine dashboardSkeletonLine--short" />
+              <span className="dashboardSkeletonLine dashboardSkeletonLine--value" />
+              <span className="dashboardSkeletonLine dashboardSkeletonLine--medium" />
+            </div>
+          ))}
+          <span className="dashboardKpiLoadingLabel">
+            <LoadingState text="Loading key metrics..." />
+          </span>
+        </div>
+      )}
 
       {/* Primary Visualizations */}
       <div className="grid2">
-        <DashboardRevenueTrend monthly={data.monthly} />
-        <DashboardCustomerSegments segments={data.segments} navigate={navigate} />
+        <DeferredDashboardSection
+          key={`trends-${JSON.stringify(deferredParams)}`}
+          section="trends"
+          title="Revenue and customer trends"
+          loadSection={loadSection}
+          refreshToken={refreshToken}
+        >
+          {(sectionData) => (
+            <>
+              <DashboardRevenueTrend monthly={sectionData.monthly} />
+              <DashboardCustomerSegments segments={sectionData.segments} navigate={navigate} />
+            </>
+          )}
+        </DeferredDashboardSection>
       </div>
 
       {/* Brazilian Territorial Geolocation Heatmap */}
-      <DashboardGeoHeatmap
-        geoDistribution={data.geo_distribution || data.top_states || []}
-        topCities={data.top_cities || []}
-        kpis={kpis}
-        navigate={navigate}
-        timeframe={timeframe}
-      />
-
-      {/* Secondary 3-Column Analytics Grid */}
-      <div className="grid3">
-        <DashboardRegionalDistribution
-          topStates={data.top_states}
-          kpis={kpis}
-          navigate={navigate}
-        />
-        <DashboardPaymentMethods payments={data.payments} />
-        <DashboardReviewSatisfaction
-          ratingsDist={data.ratings_dist}
-          kpis={kpis}
-          navigate={navigate}
-        />
-      </div>
-
-      {/* Top Product Categories Leaderboard */}
-      <DashboardTopCategories categories={data.categories} navigate={navigate} />
+      <DeferredDashboardSection
+        key={`geography-${JSON.stringify(deferredParams)}`}
+        section="geography"
+        title="Geographic analytics"
+        loadSection={loadSection}
+        refreshToken={refreshToken}
+      >
+        {(sectionData) => (
+          <DashboardGeoHeatmap
+            geoDistribution={sectionData.geo_distribution}
+            topCities={sectionData.top_cities || []}
+            kpis={kpis}
+            navigate={navigate}
+            timeframe={timeframe}
+          />
+        )}
+      </DeferredDashboardSection>
     </Page>
   );
 }

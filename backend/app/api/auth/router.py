@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import json
 from fastapi import APIRouter, Depends, HTTPException, status
 from jose import jwt
 from sqlalchemy.exc import IntegrityError
@@ -7,7 +8,15 @@ from app.core.config import SECRET, ALGO, pwd
 from app.core.auth import admin_auth, auth
 from app.core.database import get_db
 from app.models import AppUser
-from app.schemas import Login, UserCreate, UserSummary, UserUpdate, UserUpdateResult
+from app.schemas import (
+    Login,
+    ProfileSummary,
+    UserCreate,
+    UserSummary,
+    UserUpdate,
+    UserUpdateResult,
+)
+from app.core.permissions import DEFAULT_VIEWER_ACCESS, get_user_access_pages
 
 router = APIRouter(tags=["auth"])
 
@@ -35,6 +44,7 @@ def login(x: Login, db: Session = Depends(get_db)):
         "token_type": "bearer",
         "username": u.username,
         "role": u.role,
+        "access_pages": get_user_access_pages(u),
     }
 
 
@@ -44,10 +54,17 @@ def list_users(
     _: dict = Depends(admin_auth),
 ):
     users = db.query(AppUser).order_by(AppUser.username).all()
-    return [{"username": user.username, "role": user.role} for user in users]
+    return [
+        {
+            "username": user.username,
+            "role": user.role,
+            "access_pages": get_user_access_pages(user),
+        }
+        for user in users
+    ]
 
 
-@router.get("/api/auth/profiles", response_model=list[UserSummary])
+@router.get("/api/auth/profiles", response_model=list[ProfileSummary])
 def list_profiles(
     db: Session = Depends(get_db),
     _: dict = Depends(auth),
@@ -73,6 +90,11 @@ def create_user(
         username=data.username,
         password_hash=pwd.hash(data.password),
         role=data.role,
+        access_pages=json.dumps(
+            data.access_pages
+            if data.access_pages is not None
+            else list(DEFAULT_VIEWER_ACCESS)
+        ),
     )
     db.add(user)
     try:
@@ -84,7 +106,11 @@ def create_user(
             detail="A user with this username already exists.",
         ) from exc
     db.refresh(user)
-    return {"username": user.username, "role": user.role}
+    return {
+        "username": user.username,
+        "role": user.role,
+        "access_pages": get_user_access_pages(user),
+    }
 
 
 @router.patch("/api/auth/users/{username}", response_model=UserUpdateResult)
@@ -111,6 +137,9 @@ def update_user(
     if data.password is not None:
         user.password_hash = pwd.hash(data.password)
 
+    if data.access_pages is not None:
+        user.access_pages = json.dumps(data.access_pages)
+
     try:
         db.commit()
     except IntegrityError as exc:
@@ -135,6 +164,7 @@ def update_user(
     return {
         "username": user.username,
         "role": user.role,
+        "access_pages": get_user_access_pages(user),
         "access_token": access_token,
     }
 
@@ -159,7 +189,11 @@ def delete_user(
             detail="The last administrator account cannot be deleted.",
         )
 
-    deleted_user = {"username": user.username, "role": user.role}
+    deleted_user = {
+        "username": user.username,
+        "role": user.role,
+        "access_pages": get_user_access_pages(user),
+    }
     db.delete(user)
     db.commit()
     return deleted_user

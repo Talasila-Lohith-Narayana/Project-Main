@@ -6,8 +6,6 @@ import {
   ArrowUpDown,
   ArrowDownUp,
   Boxes,
-  ChevronLeft,
-  ChevronRight,
   DollarSign,
   Download,
   Package,
@@ -23,6 +21,8 @@ import { productsService } from "../services/api";
 import { ErrorState, Header, LoadingState, Page } from "../components/States";
 import ProductFilterModal from "../components/ProductFilterModal";
 import { useToast } from "../context/ToastContext";
+import DataTable from "../components/DataTable";
+import TablePagination from "../components/TablePagination";
 
 const sortOptions = [
   { key: "items_desc", label: "Most units sold", icon: "📦" },
@@ -71,7 +71,6 @@ export default function Products() {
 
   const [sortKey, setSortKey] = useState("items_desc");
   const [page, setPage] = useState(1);
-  const [pageInput, setPageInput] = useState("1");
   const limit = 15;
 
   const [sortOpen, setSortOpen] = useState(false);
@@ -123,20 +122,6 @@ export default function Products() {
   useEffect(() => {
     loadProducts();
   }, [debouncedSearch, filters, sortKey, page]);
-
-  useEffect(() => {
-    setPageInput(String(page));
-  }, [page]);
-
-  const goToPage = () => {
-    const requestedPage = Number.parseInt(pageInput, 10);
-    const lastPage = Math.max(1, data?.total_pages || 1);
-    if (!Number.isInteger(requestedPage)) {
-      setPageInput(String(page));
-      return;
-    }
-    setPage(Math.min(Math.max(requestedPage, 1), lastPage));
-  };
 
 const handleExport = async () => {
     setIsExporting(true);
@@ -193,6 +178,18 @@ const handleExport = async () => {
 
   const activeSort = sortOptions.find((s) => s.key === sortKey) || sortOptions[0];
   const activeFiltersCount = Object.values(filters).filter(Boolean).length;
+
+  const sortableHeader = (label, key) => <button type="button" className="tableSortButton" onClick={() => toggleSort(key)}>{label} {renderSortIcon(key)}</button>;
+  const columns = [
+    { header: "Product ID", accessorKey: "product_id", cell: ({ row }) => <div style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(37, 99, 235, 0.1)", color: "#2563eb", display: "grid", placeItems: "center" }}><Package size={16} /></div><div><code title={row.original.product_id} className="truncated-id" style={{ fontSize: 12, fontWeight: 600, maxWidth: 130 }}>{row.original.product_id}</code><div style={{ fontSize: 11, color: "#64748b" }}>{row.original.photos_qty} {row.original.photos_qty === 1 ? "photo" : "photos"}</div></div></div> },
+    { header: () => sortableHeader("Category", "category"), accessorKey: "category_name", cell: ({ row }) => <span style={{ display: "inline-block", padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: "rgba(16, 185, 129, 0.1)", color: "#059669", textTransform: "capitalize" }}>{row.original.category_name.replace(/_/g, " ")}</span> },
+    { header: () => sortableHeader("Units Sold", "items"), accessorKey: "total_units_sold", cell: ({ row }) => <b style={{ fontFamily: "Space Grotesk" }}>{row.original.total_units_sold.toLocaleString("en-US")}</b> },
+    { header: () => sortableHeader("Total Revenue", "revenue"), accessorKey: "total_revenue", cell: ({ row }) => <span style={{ fontWeight: 600, color: "#059669" }}>R$ {row.original.total_revenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> },
+    { header: () => sortableHeader("Avg Price", "price"), accessorKey: "avg_price", cell: ({ row }) => `R$ ${row.original.avg_price.toFixed(2)}` },
+    { header: "Avg Freight", accessorKey: "avg_freight", cell: ({ row }) => `R$ ${row.original.avg_freight.toFixed(2)}` },
+    { header: () => sortableHeader("Rating", "rating"), accessorKey: "avg_rating", cell: ({ row }) => <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ color: "#f59e0b" }}>★</span><b>{row.original.avg_rating > 0 ? row.original.avg_rating.toFixed(1) : "—"}</b><small style={{ color: "#64748b", fontSize: 11 }}>({row.original.total_reviews})</small></span> },
+    { header: "Weight", accessorKey: "weight_g", cell: ({ row }) => <span style={{ fontSize: 12, color: "#64748b" }}>{row.original.weight_g > 0 ? `${(row.original.weight_g / 1000).toFixed(2)} kg` : "—"}</span> },
+  ];
 
   return (
     <Page>
@@ -362,191 +359,16 @@ const handleExport = async () => {
 
       {/* Products Table */}
       {data && (
-        <>
-          <div className="table" style={{ marginTop: 12 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Product ID</th>
-                  <th
-                    onClick={() => toggleSort("category")}
-                    style={{ cursor: "pointer", userSelect: "none" }}
-                  >
-                    <span style={{ display: "inline-flex", alignItems: "center" }}>
-                      Category {renderSortIcon("category")}
-                    </span>
-                  </th>
-                  <th
-                    onClick={() => toggleSort("items")}
-                    style={{ cursor: "pointer", userSelect: "none" }}
-                  >
-                    <span style={{ display: "inline-flex", alignItems: "center" }}>
-                      Units Sold {renderSortIcon("items")}
-                    </span>
-                  </th>
-                  <th
-                    onClick={() => toggleSort("revenue")}
-                    style={{ cursor: "pointer", userSelect: "none" }}
-                  >
-                    <span style={{ display: "inline-flex", alignItems: "center" }}>
-                      Total Revenue {renderSortIcon("revenue")}
-                    </span>
-                  </th>
-                  <th
-                    onClick={() => toggleSort("price")}
-                    style={{ cursor: "pointer", userSelect: "none" }}
-                  >
-                    <span style={{ display: "inline-flex", alignItems: "center" }}>
-                      Avg Price {renderSortIcon("price")}
-                    </span>
-                  </th>
-                  <th>Avg Freight</th>
-                  <th
-                    onClick={() => toggleSort("rating")}
-                    style={{ cursor: "pointer", userSelect: "none" }}
-                  >
-                    <span style={{ display: "inline-flex", alignItems: "center" }}>
-                      Rating {renderSortIcon("rating")}
-                    </span>
-                  </th>
-                  <th>Weight</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.length > 0 ? (
-                  data.items.map((prod) => (
-                    <tr key={prod.product_id}>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div
-                            style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: 8,
-                              background: "rgba(37, 99, 235, 0.1)",
-                              color: "#2563eb",
-                              display: "grid",
-                              placeItems: "center",
-                            }}
-                          >
-                            <Package size={16} />
-                          </div>
-                          <div>
-                            <code
-                              title={prod.product_id}
-                              className="truncated-id"
-                              style={{
-                                fontSize: 12,
-                                fontWeight: 600,
-                                maxWidth: 130,
-                              }}
-                            >
-                              {prod.product_id}
-                            </code>
-                            <div style={{ fontSize: 11, color: "#64748b" }}>
-                              {prod.photos_qty} {prod.photos_qty === 1 ? "photo" : "photos"}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            padding: "3px 8px",
-                            borderRadius: 6,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            background: "rgba(16, 185, 129, 0.1)",
-                            color: "#059669",
-                            textTransform: "capitalize",
-                          }}
-                        >
-                          {prod.category_name.replace(/_/g, " ")}
-                        </span>
-                      </td>
-                      <td>
-                        <b style={{ fontFamily: "Space Grotesk" }}>
-                          {prod.total_units_sold.toLocaleString("en-US")}
-                        </b>
-                      </td>
-                      <td>
-                        <span style={{ fontWeight: 600, color: "#059669" }}>
-                          R$ {prod.total_revenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </td>
-                      <td>R$ {prod.avg_price.toFixed(2)}</td>
-                      <td>R$ {prod.avg_freight.toFixed(2)}</td>
-                      <td>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                          <span style={{ color: "#f59e0b" }}>★</span>
-                          <b>{prod.avg_rating > 0 ? prod.avg_rating.toFixed(1) : "—"}</b>
-                          <small style={{ color: "#64748b", fontSize: 11 }}>
-                            ({prod.total_reviews})
-                          </small>
-                        </span>
-                      </td>
-                      <td>
-                        <span style={{ fontSize: 12, color: "#64748b" }}>
-                          {prod.weight_g > 0 ? `${(prod.weight_g / 1000).toFixed(2)} kg` : "—"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "30px 0", color: "#64748b" }}>
-                      No matching products found in catalog. Try clearing or relaxing search filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination Footer */}
-          <div className="pagination" style={{ marginTop: 16 }}>
-            <span style={{ fontSize: 13, color: "var(--muted)" }}>
-              Showing <strong>{data.items.length.toLocaleString("en-US")}</strong> of{" "}
-              <strong>{data.total.toLocaleString("en-US")}</strong> available products
-            </span>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <button
-                className="btn secondary"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 10px" }}
-              >
-                <ChevronLeft size={16} /> Prev
-              </button>
-              <div className="pageJump" aria-label="Jump to page">
-                <label htmlFor="product-page-number">Page</label>
-                <input
-                  type="text"
-                  id="product-page-number"
-                  value={pageInput}
-                  onChange={(event) => setPageInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") goToPage();
-                  }}
-                  aria-label="Page number"
-                />
-                <button type="button" onClick={goToPage}>Go</button>
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 600 }}>
-                of {data.total_pages}
-              </span>
-              <button
-                className="btn secondary"
-                disabled={page >= data.total_pages}
-                onClick={() => setPage((p) => p + 1)}
-                style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 10px" }}
-              >
-                Next <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
-        </>
+        <div className="table" style={{ marginTop: 12 }}>
+          <DataTable columns={columns} data={data.items} emptyMessage="No matching products found in catalog. Try clearing or relaxing search filters." />
+          <TablePagination
+            page={page}
+            pageCount={data.total_pages}
+            totalItems={data.total}
+            itemLabel="available product"
+            onPageChange={setPage}
+          />
+        </div>
       )}
     </Page>
   );

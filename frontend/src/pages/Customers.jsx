@@ -9,6 +9,9 @@ import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { SEGMENT_COLORS } from "../components/dashboard/dashboardConstants";
+import DataTable from "../components/DataTable";
+import TablePagination from "../components/TablePagination";
+import { publishDashboardDataChanged } from "../services/dashboardDataEvents";
 
 // Reference data for filters and sorts (All 27 Brazilian States & Federal District)
 const states = [
@@ -87,7 +90,6 @@ export default function Customers() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageInput, setPageInput] = useState("1");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -204,6 +206,7 @@ export default function Customers() {
         customer_unique_ids: selectedIds,
         segment: bulkSegment,
       });
+      publishDashboardDataChanged();
       setShowBulkModal(false);
       setSelectedIds([]);
       toast.success(`Segment updated for ${selectedIds.length} customer(s).`);
@@ -224,6 +227,7 @@ export default function Customers() {
       const res = await customerService.bulkDelete({
         customer_unique_ids: selectedIds,
       });
+      if (res.deleted_count > 0) publishDashboardDataChanged();
       toast.success(`Bulk delete complete. Deleted: ${res.deleted_count}, Skipped: ${res.skipped_count}`);
       if (res.skipped_count > 0) {
         toast.warning(`${res.skipped_count} customer(s) skipped — they have order history.`);
@@ -279,6 +283,7 @@ export default function Customers() {
         min_orders: minOrders || undefined,
         sort_by: sortBy || undefined,
         sort_dir: sortDir || undefined,
+        include_churn: false,
         page,
         page_size: 12,
       })
@@ -288,20 +293,6 @@ export default function Customers() {
   useEffect(() => {
     load();
   }, [page, state, segment, activity, ratings, churnRisk, maxRecency, minSpend, minOrders, sortBy, sortDir]);
-  useEffect(() => {
-    setPageInput(String(page));
-  }, [page]);
-
-  const goToPage = () => {
-    const requestedPage = Number.parseInt(pageInput, 10);
-    const lastPage = Math.max(1, data?.pages || 1);
-    if (!Number.isInteger(requestedPage)) {
-      setPageInput(String(page));
-      return;
-    }
-    setPage(Math.min(Math.max(requestedPage, 1), lastPage));
-  };
-
   const search = (event) => {
     event.preventDefault();
     setPage(1);
@@ -364,6 +355,26 @@ export default function Customers() {
     );
   };
 
+  const sortableHeader = (label, key) => (
+    <button type="button" className="tableSortButton" onClick={() => toggleSort(key)}>
+      {label} {renderSortIcon(key)}
+    </button>
+  );
+  const columns = [
+    ...(isSelectionMode ? [{
+      id: "select",
+      header: () => <input type="checkbox" checked={data.items.length > 0 && data.items.every((c) => selectedIds.includes(c.customer_unique_id))} onChange={toggleSelectAll} aria-label="Select all customers" />,
+      cell: ({ row }) => <input type="checkbox" checked={selectedIds.includes(row.original.customer_unique_id)} onChange={(e) => toggleSelectOne(e, row.original.customer_unique_id)} aria-label={`Select ${row.original.customer_unique_id}`} />,
+    }] : []),
+    { header: "Customer", accessorKey: "customer_unique_id", cell: ({ row }) => <div className="customer"><div className="avatar">{row.original.customer_city?.[0]}</div><div><b title={row.original.customer_unique_id}>{row.original.customer_unique_id}</b></div></div> },
+    { header: () => sortableHeader("Location", "city"), accessorKey: "customer_city", cell: ({ row }) => `${row.original.customer_city}, ${row.original.customer_state}` },
+    { header: "Segment", accessorKey: "segment", cell: ({ row }) => <em>{row.original.segment && <span className="churnDot" style={{ background: SEGMENT_COLORS[row.original.segment] || "#94a3b8", boxShadow: `0 0 6px ${(SEGMENT_COLORS[row.original.segment] || "#94a3b8")}66` }} title={`Segment: ${row.original.segment}`} />}{row.original.segment}</em> },
+    { header: () => sortableHeader("Orders", "orders"), accessorKey: "frequency" },
+    { header: () => sortableHeader("Spend", "spend"), accessorKey: "monetary_total", cell: ({ row }) => `R$ ${Number(row.original.monetary_total).toLocaleString("en-US")}` },
+    { header: () => sortableHeader("Rating", "rating"), accessorKey: "avg_review_score", cell: ({ row }) => `★ ${Number(row.original.avg_review_score).toFixed(1)}` },
+    { header: () => sortableHeader("Recency", "recency"), accessorKey: "recency_days", cell: ({ row }) => `${row.original.recency_days}d ago` },
+  ];
+
   return (
     <Page>
       <div className="header">
@@ -411,13 +422,19 @@ export default function Customers() {
         </div>
       </div>
       <form className="filters" onSubmit={search}>
-        <div className="search customerSearch">
-          <Search size={17} />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search unique customer ID or city..."
-          />
+        <div className="customerSearchGroup">
+          <div className="search customerSearch">
+            <Search size={17} />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search unique customer ID or city..."
+            />
+          </div>
+          <button type="submit" className="btn secondary customerSearchButton">
+            <Search size={16} />
+            Search
+          </button>
         </div>
         <div className="sortSelectorWrapper" ref={sortMenuRef}>
           <button
@@ -485,10 +502,6 @@ export default function Customers() {
           <Filter size={16} />
           Filters{activeFilterCount > 0 && <b>{activeFilterCount}</b>}
         </button>
-        <button className="btn secondary customerSearchButton">
-          <Search size={16} />
-          Search
-        </button>
       </form>
       {/* Bulk Operations Toolbar */}
       {selectedIds.length > 0 && (
@@ -551,166 +564,27 @@ export default function Customers() {
         <div className="state">No customers match these filters.</div>
       ) : (
         <div className="table">
-          <table>
-            <thead>
-              <tr>
-                {isSelectionMode && (
-                  <th style={{ width: 40, textAlign: "center" }}>
-                    <input
-                      type="checkbox"
-                      checked={data.items.length > 0 && data.items.every((c) => selectedIds.includes(c.customer_unique_id))}
-                      onChange={toggleSelectAll}
-                      style={{ cursor: "pointer" }}
-                    />
-                  </th>
-                )}
-                <th>Customer</th>
-                <th
-                  onClick={() => toggleSort("city")}
-                  style={{ cursor: "pointer", userSelect: "none" }}
-                >
-                  <span style={{ display: "inline-flex", alignItems: "center" }}>
-                    Location {renderSortIcon("city")}
-                  </span>
-                </th>
-                <th>Segment</th>
-                <th
-                  onClick={() => toggleSort("orders")}
-                  style={{ cursor: "pointer", userSelect: "none" }}
-                >
-                  <span style={{ display: "inline-flex", alignItems: "center" }}>
-                    Orders {renderSortIcon("orders")}
-                  </span>
-                </th>
-                <th
-                  onClick={() => toggleSort("spend")}
-                  style={{ cursor: "pointer", userSelect: "none" }}
-                >
-                  <span style={{ display: "inline-flex", alignItems: "center" }}>
-                    Spend {renderSortIcon("spend")}
-                  </span>
-                </th>
-                <th
-                  onClick={() => toggleSort("rating")}
-                  style={{ cursor: "pointer", userSelect: "none" }}
-                >
-                  <span style={{ display: "inline-flex", alignItems: "center" }}>
-                    Rating {renderSortIcon("rating")}
-                  </span>
-                </th>
-                <th
-                  onClick={() => toggleSort("recency")}
-                  style={{ cursor: "pointer", userSelect: "none" }}
-                >
-                  <span style={{ display: "inline-flex", alignItems: "center" }}>
-                    Recency {renderSortIcon("recency")}
-                  </span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((customer) => {
-                const isSelected = selectedIds.includes(customer.customer_unique_id);
-                return (
-                  <tr
-                    key={customer.customer_unique_id}
-                    onClick={() => {
-                      if (isSelectionMode) {
-                        toggleSelectOne({ stopPropagation: () => {} }, customer.customer_unique_id);
-                      } else {
-                        navigate(`/customers/${customer.customer_unique_id}`);
-                      }
-                    }}
-                    style={{ background: isSelected ? "rgba(37, 99, 235, 0.08)" : undefined }}
-                  >
-                    {isSelectionMode && (
-                      <td style={{ textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => toggleSelectOne(e, customer.customer_unique_id)}
-                          style={{ cursor: "pointer" }}
-                        />
-                      </td>
-                    )}
-                    <td>
-                      <div className="customer">
-                        <div className="avatar">
-                          {customer.customer_city?.[0]}
-                        </div>
-                        <div>
-                          <b title={customer.customer_unique_id}>
-                            {customer.customer_unique_id}
-                          </b>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      {customer.customer_city}, {customer.customer_state}
-                    </td>
-                    <td>
-                      <em>
-                      {customer.segment && (
-                          <span
-                            className="churnDot"
-                            style={{
-                            background: SEGMENT_COLORS[customer.segment] || "#94a3b8",
-                            boxShadow: `0 0 6px ${(SEGMENT_COLORS[customer.segment] || "#94a3b8")}66`,
-                            }}
-                          title={`Segment: ${customer.segment}`}
-                          />
-                        )}
-                        {customer.segment}
-                      </em>
-                    </td>
-                    <td>{customer.frequency}</td>
-                    <td>R$ {Number(customer.monetary_total).toLocaleString("en-US")}</td>
-                    <td>★ {Number(customer.avg_review_score).toFixed(1)}</td>
-                    <td>{customer.recency_days}d ago</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <div className="pager">
-            <div className="pagerInfo">
-              <span>
-                Page <strong>{data.page}</strong> of <strong>{data.pages || 1}</strong>
-              </span>
-              <span className="pagerDivider">•</span>
-              <span className="pagerTotal">
-                <strong>{Number(data.total).toLocaleString("en-US")}</strong> {data.total === 1 ? "unique customer" : "unique customers"}
-              </span>
-            </div>
-            <div className="pagerControls">
-              <button disabled={page <= 1} onClick={() => setPage(page - 1)} title="Previous page">
-                ‹
-              </button>
-              <div className="pageJump" aria-label="Jump to page">
-                <label htmlFor="pageno">Page</label>
-                <input
-                  type="text"
-                  id="pageno"
-                  min="1"
-                  max={data.pages || 1}
-                  value={pageInput}
-                  onChange={(event) => setPageInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") goToPage();
-                  }}
-                  aria-label="Page number"
-                />
-                <button type="button" onClick={goToPage}>Go</button>
-              </div>
-              <button
-                disabled={page >= data.pages}
-                onClick={() => setPage(page + 1)}
-                title="Next page"
-              >
-                ›
-              </button>
-            </div>
-          </div>
+          <DataTable
+            columns={columns}
+            data={data.items}
+            getRowProps={(customer) => ({
+              onClick: () => {
+                if (isSelectionMode) {
+                  toggleSelectOne({ stopPropagation: () => {} }, customer.customer_unique_id);
+                } else {
+                  navigate(`/customers/${customer.customer_unique_id}`);
+                }
+              },
+              style: { background: selectedIds.includes(customer.customer_unique_id) ? "rgba(37, 99, 235, 0.08)" : undefined },
+            })}
+          />
+          <TablePagination
+            page={page}
+            pageCount={data.pages}
+            totalItems={data.total}
+            itemLabel="unique customer"
+            onPageChange={setPage}
+          />
         </div>
       )}
       {showForm && (
@@ -718,6 +592,7 @@ export default function Customers() {
           close={() => setShowForm(false)}
           save={async (payload) => {
             await customerService.create(payload);
+            publishDashboardDataChanged();
             setShowForm(false);
             toast.success("Customer created successfully.");
             setPage(1);

@@ -91,6 +91,11 @@ describe("API Service Layer", () => {
       const res = await dashboardService.summary("2018");
       expect(res).toEqual({ success: true });
     });
+
+    it("calls the deferred dashboard section endpoint with params", async () => {
+      const res = await dashboardService.section("trends", { timeframe: "2018" });
+      expect(res).toEqual({ success: true });
+    });
   });
 
   describe("analyticsService", () => {

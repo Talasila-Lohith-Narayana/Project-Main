@@ -73,7 +73,7 @@ describe("AuditLogModal Component", () => {
     });
   });
 
-  it("handles search input and submission", async () => {
+  it("submits the audit search form when Enter is pressed", async () => {
     const spy = vi.spyOn(ApiModule.customerService, "globalAuditLogs").mockResolvedValue({
       items: [mockLogs[0]],
     });
@@ -86,9 +86,7 @@ describe("AuditLogModal Component", () => {
 
     const searchInput = screen.getByPlaceholderText(/search audit details or customer id/i);
     fireEvent.change(searchInput, { target: { value: "c_123" } });
-
-    const searchBtn = screen.getByRole("button", { name: /^search$/i });
-    fireEvent.click(searchBtn);
+    fireEvent.submit(searchInput.closest("form"));
 
     await waitFor(() => {
       expect(spy).toHaveBeenCalledWith({
@@ -117,6 +115,37 @@ describe("AuditLogModal Component", () => {
       expect(spy).toHaveBeenCalledWith({
         action: "Customer",
         q: undefined,
+        limit: 100,
+      });
+    });
+  });
+
+  it("submits actor and timestamp filters with search", async () => {
+    const spy = vi.spyOn(ApiModule.customerService, "globalAuditLogs").mockResolvedValue({
+      items: [mockLogs[0]],
+    });
+
+    render(<AuditLogModal close={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText("DELETE_ORDER")).toBeInTheDocument());
+
+    fireEvent.change(screen.getByLabelText("Filter by admin"), {
+      target: { value: "superadmin" },
+    });
+    fireEvent.change(screen.getByLabelText("Start date"), {
+      target: { value: "2026-09-01" },
+    });
+    fireEvent.change(screen.getByLabelText("End date"), {
+      target: { value: "2026-09-30" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^search$/i }));
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenLastCalledWith({
+        action: undefined,
+        q: undefined,
+        performed_by: "superadmin",
+        start_date: "2026-09-01",
+        end_date: "2026-09-30",
         limit: 100,
       });
     });

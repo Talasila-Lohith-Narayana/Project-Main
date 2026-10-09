@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { AlertTriangle, RotateCw } from "lucide-react";
 import { analyticsService } from "../../services/api";
 import { LoadingState, Panel } from "../States";
+import DataTable from "../DataTable";
 
 const currency = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
@@ -128,23 +129,14 @@ function CustomerDelivery({ data }) {
         </div>
       </div>
       {deliveries.length > 0 && (
-        <div className="analyticsTableWrap" style={{ marginTop: 14 }}>
-          <table className="analyticsTable">
-            <thead>
-              <tr><th>Order</th><th>Purchased</th><th>Delivered</th><th>Days</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {deliveries.map((delivery) => (
-                <tr key={delivery.order_id}>
-                  <td>{delivery.order_id}</td>
-                  <td>{delivery.purchased_at ? new Date(delivery.purchased_at).toLocaleDateString() : "—"}</td>
-                  <td>{delivery.delivered_at ? new Date(delivery.delivered_at).toLocaleDateString() : "—"}</td>
-                  <td>{delivery.delivery_days ?? "—"}</td>
-                  <td>{delivery.delivery_status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="dataTableWrap" style={{ marginTop: 14 }}>
+          <DataTable data={deliveries} columns={[
+            { header: "Order", accessorKey: "order_id" },
+            { header: "Purchased", accessorKey: "purchased_at", cell: ({ row }) => row.original.purchased_at ? new Date(row.original.purchased_at).toLocaleDateString() : "—" },
+            { header: "Delivered", accessorKey: "delivered_at", cell: ({ row }) => row.original.delivered_at ? new Date(row.original.delivered_at).toLocaleDateString() : "—" },
+            { header: "Days", accessorKey: "delivery_days", cell: ({ row }) => row.original.delivery_days ?? "—" },
+            { header: "Status", accessorKey: "delivery_status" },
+          ]} />
         </div>
       )}
       {deliveries.length === 0 && <p className="analyticsEmpty">No delivered orders are available.</p>}
@@ -193,17 +185,12 @@ function CustomerExplanation({ data }) {
         </div>
       )}
       {shapValues.length > 0 && (
-        <div className="analyticsTableWrap" style={{ marginTop: 12 }}>
-          <table className="analyticsTable">
-            <thead><tr><th>Feature</th><th>SHAP value</th><th>Effect</th></tr></thead>
-            <tbody>{shapValues.map(([feature, value]) => (
-              <tr key={feature}>
-                <td>{feature.replaceAll("_", " ")}</td>
-                <td>{Number(value).toFixed(4)}</td>
-                <td>{Number(value) > 0 ? "Raises risk" : "Lowers risk"}</td>
-              </tr>
-            ))}</tbody>
-          </table>
+        <div className="dataTableWrap" style={{ marginTop: 12 }}>
+          <DataTable data={shapValues.map(([feature, value]) => ({ feature, value }))} columns={[
+            { header: "Feature", accessorKey: "feature", cell: ({ row }) => row.original.feature.replaceAll("_", " ") },
+            { header: "SHAP value", accessorKey: "value", cell: ({ row }) => Number(row.original.value).toFixed(4) },
+            { header: "Effect", accessorKey: "effect", cell: ({ row }) => Number(row.original.value) > 0 ? "Raises risk" : "Lowers risk" },
+          ]} />
         </div>
       )}
       {reasons.length === 0 && shapValues.length === 0 && (

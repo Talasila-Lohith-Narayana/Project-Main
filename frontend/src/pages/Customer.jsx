@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { customerService, predictionService } from "../services/api";
+import { publishDashboardDataChanged } from "../services/dashboardDataEvents";
 import { useToast } from "../context/ToastContext";
 import InteractionModal from "../components/InteractionModal";
 import OrderModal from "../components/OrderModal";
@@ -80,6 +81,7 @@ export default function Customer() {
     setBulkOrderDeleteLoading(true);
     try {
       await customerService.removeOrders(id, orderIds);
+      publishDashboardDataChanged();
       clearSelection();
       toast.success(`${orderIds.length} order${orderIds.length === 1 ? "" : "s"} deleted successfully.`);
       await load();
@@ -123,6 +125,7 @@ export default function Customer() {
     setError("");
     try {
       await customerService.remove(id);
+      publishDashboardDataChanged();
       setShowDeleteConfirm(false);
       toast.success("Customer deleted successfully.");
       navigate("/customers");
@@ -353,6 +356,7 @@ export default function Customer() {
           close={() => setShowEdit(false)}
           save={async (payload) => {
             await customerService.update(id, payload);
+            publishDashboardDataChanged();
             setShowEdit(false);
             toast.success("Customer profile updated.");
             await load();
@@ -365,6 +369,7 @@ export default function Customer() {
           close={() => setShowAddOrder(false)}
           save={async (payload) => {
             await customerService.createOrder(id, payload);
+            publishDashboardDataChanged();
             setShowAddOrder(false);
             toast.success("Order placed successfully.");
             await load();
@@ -379,6 +384,7 @@ export default function Customer() {
           close={() => setEditingOrder(null)}
           save={async (payload) => {
             await customerService.updateOrder(id, editingOrder.order_id, payload);
+            publishDashboardDataChanged();
             setEditingOrder(null);
             toast.success("Order updated successfully.");
             await load();
@@ -386,6 +392,7 @@ export default function Customer() {
           }}
           onDelete={async (orderId) => {
             await customerService.removeOrder(id, orderId);
+            publishDashboardDataChanged();
             setEditingOrder(null);
             toast.success("Order deleted successfully.");
             await load();
@@ -401,6 +408,7 @@ export default function Customer() {
           close={() => setShowAddReview(false)}
           save={async (payload) => {
             await customerService.createReview(id, payload);
+            publishDashboardDataChanged();
             setShowAddReview(false);
             toast.success("Review added successfully.");
             await load();
@@ -417,6 +425,7 @@ export default function Customer() {
           close={() => setEditingReview(null)}
           save={async (payload) => {
             await customerService.updateReview(id, editingReview.review_id, payload);
+            publishDashboardDataChanged();
             setEditingReview(null);
             toast.success("Review updated successfully.");
             await load();

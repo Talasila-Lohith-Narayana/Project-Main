@@ -43,6 +43,13 @@ function TestConsumer() {
       </button>
       <button
         onClick={() =>
+          auth.updateAccountAccess("analyst_user", ["dashboard", "analytics"])
+        }
+      >
+        Update Analyst Access
+      </button>
+      <button
+        onClick={() =>
           auth.updateCurrentSession({
             username: "renamed_admin",
             role: "admin",
@@ -130,6 +137,7 @@ describe("AuthContext and AuthProvider", () => {
         username: "renamed_admin",
         role: "admin",
         access_token: "jwt_renamed",
+        access_pages: ["dashboard", "customers", "products", "analytics", "campaigns", "model", "audit_logs"],
       },
     });
     expect(screen.getByTestId("isAdmin").textContent).toBe("yes");
@@ -162,6 +170,34 @@ describe("AuthContext and AuthProvider", () => {
 
     expect(screen.getByTestId("user").textContent).toBe("admin_user");
     expect(screen.getByTestId("isAdmin").textContent).toBe("yes");
+  });
+
+  it("uses updated page permissions when switching to a cached account", () => {
+    render(
+      <AuthProvider>
+        <TestConsumer />
+      </AuthProvider>
+    );
+
+    act(() => {
+      screen.getByText("Login Analyst").click();
+    });
+    act(() => {
+      screen.getByText("Update Analyst Access").click();
+    });
+
+    expect(JSON.parse(localStorage.getItem("ci_accounts")).analyst_user.access_pages)
+      .toEqual(["dashboard", "analytics"]);
+    expect(latestAuth.hasAccess("analytics")).toBe(true);
+
+    act(() => {
+      screen.getByText("Login Admin").click();
+    });
+    act(() => {
+      latestAuth.switchToAccount("analyst_user");
+    });
+
+    expect(latestAuth.hasAccess("analytics")).toBe(true);
   });
 
   it("throws an error when switching to an account that is not logged in", () => {

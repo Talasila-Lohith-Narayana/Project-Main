@@ -71,6 +71,23 @@ def test_audit_logs(client, admin_headers):
     assert "items" in customer_logs_res.json()
 
 
+def test_global_audit_logs_validate_timestamp_range(client, admin_headers):
+    response = client.get(
+        "/api/audit-logs?start_date=2026-09-30&end_date=2026-09-01",
+        headers=admin_headers,
+    )
+    assert response.status_code == 422
+
+
+def test_global_audit_logs_filter_by_actor_and_timestamp(client, admin_headers):
+    response = client.get(
+        "/api/audit-logs?performed_by=admin&start_date=2099-01-01&end_date=2099-01-02",
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+
+
 def test_customer_orders_require_authentication(client):
     response = client.get("/api/customers/unknown/orders")
 

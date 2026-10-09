@@ -38,6 +38,50 @@ def test_dashboard_summary_viewer_access(client, viewer_headers):
     assert "kpis" in response.json()
 
 
+def test_dashboard_core_summary_only_returns_initial_data(client, admin_headers):
+    response = client.get(
+        "/api/dashboard/summary?sections=core",
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "kpis" in data
+    assert data["timeframe"] == "all"
+    assert "monthly" not in data
+    assert "geo_distribution" not in data
+
+
+def test_dashboard_summary_rejects_unknown_sections(client, admin_headers):
+    response = client.get(
+        "/api/dashboard/summary?sections=unknown",
+        headers=admin_headers,
+    )
+    assert response.status_code == 422
+
+
+def test_dashboard_deferred_sections_require_known_section(client, admin_headers):
+    response = client.get(
+        "/api/dashboard/sections/unknown",
+        headers=admin_headers,
+    )
+    assert response.status_code == 404
+
+
+def test_dashboard_deferred_sections_return_expected_payloads(client, admin_headers):
+    expected_keys = {
+        "trends": {"monthly", "segments"},
+        "geography": {"geo_distribution", "top_states", "top_cities"},
+    }
+
+    for section, keys in expected_keys.items():
+        response = client.get(
+            f"/api/dashboard/sections/{section}?timeframe=2018",
+            headers=admin_headers,
+        )
+        assert response.status_code == 200
+        assert keys <= response.json().keys()
+
+
 def test_dashboard_summary_presets(client, admin_headers):
     """Verifies dashboard time presets (2018, 2017, l6m, l30d)."""
     for preset in ["2018", "2017", "l6m", "l30d"]:
@@ -125,5 +169,3 @@ def test_dashboard_summary_comparison_repeat_rate(client, admin_headers):
     assert "previous" in comp["repeat_rate"]
     assert "delta" in comp["repeat_rate"]
     assert "pct_change" in comp["repeat_rate"]
-
-

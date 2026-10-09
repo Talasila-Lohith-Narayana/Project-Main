@@ -16,6 +16,7 @@ class AppUser(Base):
     username = Column(String(80), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), nullable=False, default="viewer")
+    access_pages = Column(Text, nullable=True)
 
 
 class ConsumerInteraction(Base):

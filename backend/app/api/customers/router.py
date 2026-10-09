@@ -40,6 +40,7 @@ def customers(
     rating: str = "",
     ratings: list[str] | None = None,
     churn_risk: str = "",
+    include_churn: bool = True,
     sort_by: str | None = None,
     sort_dir: str | None = None,
     page: int = Query(1, ge=1),
@@ -117,6 +118,7 @@ def customers(
         p["min_rating"] = min_rating
 
     # Churn risk filter uses the model probability shown by the segment dot.
+    include_churn_details = include_churn or bool(churn_risk) or sort_by == "churn_risk"
     churn_probability_filter_expr = "(cp.churn_probability * 100)"
     churn_probability_expr = "(MAX(cp.churn_probability) * 100)"
     if churn_risk:
@@ -132,16 +134,18 @@ def customers(
             f.append(f"({' OR '.join(risk_conds)})")
 
     where = " AND ".join(f)
-    join_clause = f"""JOIN customer_metrics_cache m ON m.customer_id = c.customer_id
-        LEFT JOIN {ANALYTICS_DB_NAME}.customer_segments cs
-        ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
-           c.customer_unique_id COLLATE utf8mb4_unicode_ci
-        LEFT JOIN {ANALYTICS_DB_NAME}.customer_risk_tiers rt
+    risk_tiers_join = f"""LEFT JOIN {ANALYTICS_DB_NAME}.customer_risk_tiers rt
         ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
-           c.customer_unique_id COLLATE utf8mb4_unicode_ci
-        LEFT JOIN {ANALYTICS_DB_NAME}.churn_predictions cp
+           c.customer_unique_id COLLATE utf8mb4_unicode_ci"""
+    churn_join = f"""LEFT JOIN {ANALYTICS_DB_NAME}.churn_predictions cp
         ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
            c.customer_unique_id COLLATE utf8mb4_unicode_ci"""
+
+    count_joins = f"JOIN customer_metrics_cache m ON m.customer_id = c.customer_id"
+    if segment:
+        count_joins += f" {risk_tiers_join}"
+    if churn_risk:
+        count_joins += f" {churn_join}"
 
     # Multi-field sorting
     sort_map = {
@@ -155,10 +159,22 @@ def customers(
     col = sort_map.get(sort_by) if sort_by in sort_map else "c.customer_unique_id"
     direction = "ASC" if str(sort_dir).lower() == "asc" else "DESC"
     order_clause = f"{col} {direction}"
+    churn_columns = (
+        f""",
+                ROUND(MAX(cp.churn_probability) * 100, 2) AS churn_percentage,
+                ROUND({churn_probability_expr}, 2) AS churn_risk_score,
+                CASE
+                    WHEN {churn_probability_expr} >= 70 THEN 'high'
+                    WHEN {churn_probability_expr} >= 30 THEN 'medium'
+                    ELSE 'low'
+                END AS churn_risk_level"""
+        if include_churn_details
+        else ""
+    )
 
     total = (
         db.execute(
-            text(f"SELECT COUNT(DISTINCT c.customer_unique_id) FROM customers c {join_clause} WHERE {where}"), p
+            text(f"SELECT COUNT(DISTINCT c.customer_unique_id) FROM customers c {count_joins} WHERE {where}"), p
         ).scalar()
         or 0
     )
@@ -174,25 +190,12 @@ def customers(
                 m.monetary_total,
                 m.avg_review_score,
                 CASE WHEN m.frequency>1 THEN 1 ELSE 0 END as is_repeat_customer,
-                COALESCE(rt.risk_tier, m.segment) COLLATE utf8mb4_unicode_ci AS segment,
-                ROUND(MAX(cp.churn_probability) * 100, 2) AS churn_percentage,
-                ROUND({churn_probability_expr}, 2) AS churn_risk_score,
-                CASE
-                    WHEN {churn_probability_expr} >= 70 THEN 'high'
-                    WHEN {churn_probability_expr} >= 30 THEN 'medium'
-                    ELSE 'low'
-                END AS churn_risk_level
+                COALESCE(rt.risk_tier, m.segment) COLLATE utf8mb4_unicode_ci AS segment
+                {churn_columns}
             FROM customers c 
             JOIN customer_metrics_cache m ON m.customer_id = c.customer_id
-            LEFT JOIN {ANALYTICS_DB_NAME}.customer_segments cs
-                ON cs.customer_unique_id COLLATE utf8mb4_unicode_ci =
-                   c.customer_unique_id COLLATE utf8mb4_unicode_ci
-            LEFT JOIN {ANALYTICS_DB_NAME}.customer_risk_tiers rt
-                ON rt.customer_unique_id COLLATE utf8mb4_unicode_ci =
-                   c.customer_unique_id COLLATE utf8mb4_unicode_ci
-            LEFT JOIN {ANALYTICS_DB_NAME}.churn_predictions cp
-                ON cp.customer_unique_id COLLATE utf8mb4_unicode_ci =
-                   c.customer_unique_id COLLATE utf8mb4_unicode_ci
+            {risk_tiers_join}
+            {churn_join if include_churn_details else ""}
             WHERE {where} 
             GROUP BY c.customer_unique_id, m.recency_days, m.frequency, m.monetary_total, m.avg_review_score, rt.risk_tier, m.segment
             ORDER BY {order_clause} 

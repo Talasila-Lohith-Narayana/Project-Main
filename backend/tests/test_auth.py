@@ -83,7 +83,11 @@ def test_admin_can_create_user_and_new_user_can_log_in(client, admin_headers):
             json={"username": username, "password": password, "role": "viewer"},
         )
         assert response.status_code == 201
-        assert response.json() == {"username": username, "role": "viewer"}
+        assert response.json() == {
+            "username": username,
+            "role": "viewer",
+            "access_pages": ["dashboard", "customers", "products", "audit_logs"],
+        }
 
         login_response = client.post(
             "/api/auth/login",
@@ -113,6 +117,164 @@ def test_only_admin_can_manage_users(client, viewer_headers):
     ).status_code == 403
 
 
+def test_user_page_access_is_returned_on_login_and_enforced(client, admin_headers):
+    username = f"scoped_user_{datetime.now(timezone.utc).timestamp():.0f}"
+    password = "scoped-user-password"
+    try:
+        create_response = client.post(
+            "/api/auth/users",
+            headers=admin_headers,
+            json={
+                "username": username,
+                "password": password,
+                "role": "viewer",
+                "access_pages": ["products"],
+            },
+        )
+        assert create_response.status_code == 201
+        assert create_response.json()["access_pages"] == ["products"]
+
+        login_response = client.post(
+            "/api/auth/login",
+            json={"username": username, "password": password},
+        )
+        assert login_response.status_code == 200
+        assert login_response.json()["access_pages"] == ["products"]
+        scoped_headers = {
+            "Authorization": f"Bearer {login_response.json()['access_token']}"
+        }
+        assert client.get(
+            "/api/dashboard/summary?sections=core",
+            headers=scoped_headers,
+        ).status_code == 403
+        assert client.get("/api/products", headers=scoped_headers).status_code == 200
+
+        update_response = client.patch(
+            f"/api/auth/users/{username}",
+            headers=admin_headers,
+            json={"access_pages": ["analytics"]},
+        )
+        assert update_response.status_code == 200
+        assert update_response.json()["access_pages"] == ["analytics"]
+        assert client.get("/api/products", headers=scoped_headers).status_code == 403
+        for path in (
+            "/api/analytics/clv/summary",
+            "/api/analytics/customers/byvaluetier",
+            "/api/analytics/delivery/performance",
+            "/api/analytics/cohort/summary",
+            "/api/analytics/campaigns/active",
+            "/api/analytics/campaigns/by-segment",
+            "/api/analytics/model/version",
+            "/api/analytics/model/calibration",
+            "/api/analytics/churn/definition",
+        ):
+            assert client.get(path, headers=scoped_headers).status_code != 403, path
+        assert client.get(
+            "/api/analytics/churn/summary",
+            headers=scoped_headers,
+        ).status_code == 403
+
+        for page, allowed_path, denied_path in (
+            ("campaigns", "/api/analytics/campaigns/test-campaign/customers", "/api/analytics/model/version"),
+            ("model", "/api/analytics/churn/summary", "/api/analytics/campaigns/active"),
+            ("customers", "/api/analytics/customers/test-customer/clv", "/api/analytics/clv/summary"),
+            ("audit_logs", "/api/audit-logs", "/api/products"),
+            ("dashboard", "/api/dashboard/summary?sections=core", "/api/products"),
+        ):
+            update_response = client.patch(
+                f"/api/auth/users/{username}",
+                headers=admin_headers,
+                json={"access_pages": [page]},
+            )
+            assert update_response.status_code == 200
+            assert client.get(allowed_path, headers=scoped_headers).status_code != 403
+            assert client.get(denied_path, headers=scoped_headers).status_code == 403
+
+        update_response = client.patch(
+            f"/api/auth/users/{username}",
+            headers=admin_headers,
+            json={"access_pages": ["customers"]},
+        )
+        assert update_response.status_code == 200
+        for path in (
+            "/api/analytics/customers/test-customer/clv",
+            "/api/analytics/customers/test-customer/delivery",
+            "/api/analytics/customers/test-customer/explanation",
+            "/api/analytics/members/test-customer/risk",
+            "/api/customers/test-customer/audit-logs",
+        ):
+            assert client.get(path, headers=scoped_headers).status_code != 403, path
+        assert client.post(
+            "/api/analytics/campaigns/evaluate",
+            headers=scoped_headers,
+            json={"customer_unique_id": "test-customer"},
+        ).status_code != 403
+
+        update_response = client.patch(
+            f"/api/auth/users/{username}",
+            headers=admin_headers,
+            json={"access_pages": ["model"]},
+        )
+        assert update_response.status_code == 200
+        for path in (
+            "/api/analytics/churn/summary",
+            "/api/analytics/churn/top-features",
+            "/api/analytics/churn/feature-importance-global",
+            "/api/analytics/data/last-refresh",
+            "/api/analytics/churn/probability-distribution",
+            "/api/analytics/churn/reason-codes/summary",
+            "/api/analytics/model/performance-summary",
+            "/api/analytics/model/comparison",
+            "/api/analytics/model/version",
+            "/api/analytics/model/calibration",
+            "/api/analytics/model/imbalance-experiments",
+            "/api/analytics/churn/definition",
+        ):
+            assert client.get(path, headers=scoped_headers).status_code != 403, path
+    finally:
+        with SessionLocal() as db:
+            db.query(AppUser).filter_by(username=username).delete()
+            db.commit()
+
+
+def test_viewer_must_have_at_least_one_valid_page(client, admin_headers):
+    empty_access = client.post(
+        "/api/auth/users",
+        headers=admin_headers,
+        json={
+            "username": "empty_access_user",
+            "password": "valid-password",
+            "role": "viewer",
+            "access_pages": [],
+        },
+    )
+    unknown_page = client.post(
+        "/api/auth/users",
+        headers=admin_headers,
+        json={
+            "username": "unknown_page_user",
+            "password": "valid-password",
+            "role": "viewer",
+            "access_pages": ["not-a-page"],
+        },
+    )
+    assert empty_access.status_code == 422
+    assert unknown_page.status_code == 422
+
+    empty_update = client.patch(
+        f"/api/auth/users/{VIEWER_USERNAME}",
+        headers=admin_headers,
+        json={"access_pages": []},
+    )
+    unknown_update = client.patch(
+        f"/api/auth/users/{VIEWER_USERNAME}",
+        headers=admin_headers,
+        json={"access_pages": ["not-a-page"]},
+    )
+    assert empty_update.status_code == 422
+    assert unknown_update.status_code == 422
+
+
 @pytest.mark.parametrize(
     "path",
     [
@@ -123,8 +285,36 @@ def test_only_admin_can_manage_users(client, viewer_headers):
         "/api/analytics/model/version",
     ],
 )
-def test_only_admin_can_view_analytics_and_model_details(client, viewer_headers, path):
-    assert client.get(path, headers=viewer_headers).status_code == 403
+def test_ungranted_viewer_cannot_view_analytics_and_model_details(
+    client,
+    admin_headers,
+    path,
+):
+    username = f"no_model_access_{datetime.now(timezone.utc).timestamp():.0f}"
+    password = "model-access-test-password"
+    try:
+        created = client.post(
+            "/api/auth/users",
+            headers=admin_headers,
+            json={
+                "username": username,
+                "password": password,
+                "role": "viewer",
+                "access_pages": ["dashboard"],
+            },
+        )
+        assert created.status_code == 201
+        login = client.post(
+            "/api/auth/login",
+            json={"username": username, "password": password},
+        )
+        assert login.status_code == 200
+        headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+        assert client.get(path, headers=headers).status_code == 403
+    finally:
+        with SessionLocal() as db:
+            db.query(AppUser).filter_by(username=username).delete()
+            db.commit()
 
 
 def test_authenticated_users_can_list_profiles_but_anonymous_users_cannot(
@@ -271,7 +461,11 @@ def test_admin_can_delete_user_and_deleted_sessions_are_revoked(client, admin_he
             headers=admin_headers,
         )
         assert delete_response.status_code == 200
-        assert delete_response.json() == {"username": username, "role": "viewer"}
+        assert delete_response.json() == {
+            "username": username,
+            "role": "viewer",
+            "access_pages": ["dashboard", "customers", "products", "audit_logs"],
+        }
         assert client.post(
             "/api/auth/login",
             json={"username": username, "password": password},

@@ -8,6 +8,7 @@ import Shell from "./components/Shell";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
 import { LoadingState } from "./components/States";
+import { ACCESS_PAGE_PATHS } from "./accessPages";
 import "./styles.css";
 
 // Page components
@@ -26,6 +27,12 @@ function AdminRoute() {
   return isAdmin ? <Outlet /> : <Navigate to="/" replace />;
 }
 
+function AccessRoute({ page }) {
+  const { hasAccess } = useAuth();
+  const fallback = ACCESS_PAGE_PATHS.find(({ key }) => hasAccess(key))?.path || "/login";
+  return hasAccess(page) ? <Outlet /> : <Navigate to={fallback} replace />;
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -40,16 +47,28 @@ function App() {
                 {/* Authenticated routes guarded by ProtectedRoute & wrapped in Shell layout */}
                 <Route element={<ProtectedRoute />}>
                   <Route element={<Shell />}>
-                    <Route index element={<Dashboard />} />
-                    <Route path="customers" element={<Customers />} />
-                    <Route path="customers/:id" element={<Customer />} />
-                    <Route path="products" element={<Products />} />
-                    <Route element={<AdminRoute />}>
+                    <Route element={<AccessRoute page="dashboard" />}>
+                      <Route index element={<Dashboard />} />
+                    </Route>
+                    <Route element={<AccessRoute page="customers" />}>
+                      <Route path="customers" element={<Customers />} />
+                      <Route path="customers/:id" element={<Customer />} />
+                    </Route>
+                    <Route element={<AccessRoute page="products" />}>
+                      <Route path="products" element={<Products />} />
+                    </Route>
+                    <Route element={<AccessRoute page="analytics" />}>
                       <Route path="analytics" element={<Analytics />} />
+                    </Route>
+                    <Route element={<AccessRoute page="campaigns" />}>
                       <Route path="campaigns" element={<Campaigns />} />
+                    </Route>
+                    <Route element={<AccessRoute page="model" />}>
                       <Route path="model" element={<Model />} />
                     </Route>
-                    <Route path="users" element={<Users />} />
+                    <Route element={<AdminRoute />}>
+                      <Route path="users" element={<Users />} />
+                    </Route>
                   </Route>
                 </Route>
 

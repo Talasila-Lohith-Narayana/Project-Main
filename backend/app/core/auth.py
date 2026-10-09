@@ -4,6 +4,7 @@ from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models import AppUser
+from app.core.permissions import get_user_access_pages
 from .config import SECRET, ALGO
 
 # Extract bearer token from HTTP request header
@@ -23,14 +24,18 @@ def auth(
     except (JWTError, KeyError):
         raise HTTPException(401, "Invalid or expired token. Please log in again.")
 
-    user = (
+    account = (
         db.query(AppUser)
         .filter_by(username=payload.get("sub"), role=payload.get("role"))
         .first()
     )
-    if user is None:
+    if account is None:
         raise HTTPException(401, "Invalid or expired token. Please log in again.")
-    return payload
+    return {
+        **payload,
+        "role": account.role,
+        "access_pages": get_user_access_pages(account),
+    }
 
 
 def admin_auth(user: dict = Depends(auth)):

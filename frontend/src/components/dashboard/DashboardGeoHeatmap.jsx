@@ -91,6 +91,8 @@ export default function DashboardGeoHeatmap({
   const [selectedState, setSelectedState] = useState("SP");
   const [stateDetailData, setStateDetailData] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState("");
+  const [detailRetry, setDetailRetry] = useState(0);
   const detailCache = useRef({});
 
   // Map state distribution into lookup dictionary keyed by UF code
@@ -142,31 +144,45 @@ export default function DashboardGeoHeatmap({
 
   // Fetch detailed breakdown when a state is selected
   useEffect(() => {
+    let active = true;
     if (!selectedState) {
       setStateDetailData(null);
-      return;
+      setDetailError("");
+      setLoadingDetail(false);
+      return () => {
+        active = false;
+      };
     }
 
     const cacheKey = `${selectedState}_${timeframe}`;
     if (detailCache.current[cacheKey]) {
       setStateDetailData(detailCache.current[cacheKey]);
-      return;
+      setDetailError("");
+      setLoadingDetail(false);
+      return () => {
+        active = false;
+      };
     }
 
+    setDetailError("");
     setLoadingDetail(true);
     dashboardService
       .stateDetail(selectedState, { timeframe })
       .then((data) => {
+        if (!active) return;
         detailCache.current[cacheKey] = data;
         setStateDetailData(data);
       })
-      .catch(() => {
-        // Fallback gracefully without breaking UI
+      .catch((requestError) => {
+        if (active) setDetailError(requestError.message);
       })
       .finally(() => {
-        setLoadingDetail(false);
+        if (active) setLoadingDetail(false);
       });
-  }, [selectedState, timeframe]);
+    return () => {
+      active = false;
+    };
+  }, [selectedState, timeframe, detailRetry]);
 
   // Metrics definition
   const metrics = [
@@ -539,6 +555,17 @@ export default function DashboardGeoHeatmap({
 
                   {loadingDetail ? (
                     <div className="geoLoadingText">Loading cities breakdown...</div>
+                  ) : detailError ? (
+                    <div className="geoDetailError">
+                      <span>{detailError}</span>
+                      <button
+                        type="button"
+                        className="btn ghost"
+                        onClick={() => setDetailRetry((retry) => retry + 1)}
+                      >
+                        Retry city details
+                      </button>
+                    </div>
                   ) : stateDetailData?.top_cities && stateDetailData.top_cities.length > 0 ? (
                     <div className="geoCityList">
                       {stateDetailData.top_cities.map((c, idx) => {

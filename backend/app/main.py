@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt, JWTError
+from sqlalchemy import inspect, text
 
 from .core.config import (
     ADMIN_USERNAME,
@@ -16,7 +17,15 @@ from .core.config import (
     pwd,
 )
 from .core.database import engine, get_db
-from .core.auth import admin_auth, auth
+from .core.permissions import (
+    require_campaign_data_access,
+    require_clv_delivery_access,
+    require_customer_analytics_access,
+    require_audit_access,
+    require_any_page_access,
+    require_page_access,
+    require_products_area_access,
+)
 from .models import Base, AppUser
 
 # Import all domain API routers
@@ -45,6 +54,11 @@ from .api.model_evaluation.router import router as model_evaluation_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(engine)
+    if "access_pages" not in {
+        column["name"] for column in inspect(engine).get_columns("ci_users")
+    }:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE ci_users ADD COLUMN access_pages TEXT"))
     db = next(get_db())
 
     # Default users are checked without running table migrations or cache rebuilds.
@@ -144,18 +158,60 @@ app.add_middleware(
 
 # Register all modular routers
 app.include_router(auth_router)
-authenticated_route = [Depends(auth)]
-admin_route = [Depends(admin_auth)]
-app.include_router(dashboard_router, dependencies=authenticated_route)
-app.include_router(customers_router, dependencies=authenticated_route)
-app.include_router(orders_router, dependencies=authenticated_route)
-app.include_router(products_router, dependencies=authenticated_route)
-app.include_router(reviews_router, dependencies=authenticated_route)
-app.include_router(interactions_router, dependencies=authenticated_route)
-app.include_router(audit_logs_router, dependencies=authenticated_route)
-app.include_router(predictions_router, dependencies=authenticated_route)
-app.include_router(churn_analytics_router, prefix="/api/analytics", dependencies=admin_route)
-app.include_router(campaigns_forecast_router, prefix="/api/analytics", dependencies=admin_route)
-app.include_router(cohort_trend_router, prefix="/api/analytics", dependencies=admin_route)
-app.include_router(clv_router, prefix="/api/analytics", dependencies=admin_route)
-app.include_router(model_evaluation_router, prefix="/api/analytics", dependencies=admin_route)
+app.include_router(
+    dashboard_router,
+    dependencies=[Depends(require_page_access("dashboard"))],
+)
+app.include_router(
+    customers_router,
+    dependencies=[Depends(require_page_access("customers"))],
+)
+app.include_router(
+    orders_router,
+    dependencies=[Depends(require_page_access("customers"))],
+)
+app.include_router(
+    products_router,
+    dependencies=[Depends(require_products_area_access())],
+)
+app.include_router(
+    reviews_router,
+    dependencies=[Depends(require_page_access("customers"))],
+)
+app.include_router(
+    interactions_router,
+    dependencies=[Depends(require_page_access("customers"))],
+)
+app.include_router(
+    audit_logs_router,
+    dependencies=[Depends(require_audit_access())],
+)
+app.include_router(
+    predictions_router,
+    dependencies=[Depends(require_page_access("customers"))],
+)
+app.include_router(
+    churn_analytics_router,
+    prefix="/api/analytics",
+    dependencies=[Depends(require_customer_analytics_access())],
+)
+app.include_router(
+    campaigns_forecast_router,
+    prefix="/api/analytics",
+    dependencies=[Depends(require_campaign_data_access())],
+)
+app.include_router(
+    cohort_trend_router,
+    prefix="/api/analytics",
+    dependencies=[Depends(require_page_access("analytics"))],
+)
+app.include_router(
+    clv_router,
+    prefix="/api/analytics",
+    dependencies=[Depends(require_clv_delivery_access())],
+)
+app.include_router(
+    model_evaluation_router,
+    prefix="/api/analytics",
+    dependencies=[Depends(require_any_page_access("analytics", "model"))],
+)

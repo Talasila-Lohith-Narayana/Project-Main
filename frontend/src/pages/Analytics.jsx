@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import AnalyticsPanel from "../components/analytics/AnalyticsPanel";
 import { Page } from "../components/States";
 import { analyticsService } from "../services/api";
+import DataTable from "../components/DataTable";
 
 const number = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const currency = new Intl.NumberFormat("en-US", {
@@ -141,35 +142,18 @@ function CohortOverview({ data }) {
   return (
     <>
       <p className="analyticsMeta">All {number.format(cohorts.length)} acquisition months · newest first</p>
-      <div className="analyticsTableWrap cohortSummaryTableWrap">
-        <table className="analyticsTable cohortSummaryTable" aria-label="Acquisition cohort summary by month">
-          <thead>
-            <tr>
-              <th>Cohort</th>
-              <th>Customers</th>
-              <th>Months observed</th>
-              <th>M1 retention</th>
-              <th>M3 retention</th>
-              <th>Repeat purchase</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...cohorts].reverse().map((cohort) => (
-              <tr key={cohort.cohort}>
-                <td><strong>{cohort.label}</strong></td>
-                <td>{cohort.cohort_size == null ? "—" : number.format(cohort.cohort_size)}</td>
-                <td>{cohort.months_observed}</td>
-                <td>{cohort.m1_retention_pct == null ? "—" : `${Number(cohort.m1_retention_pct).toFixed(1)}%`}</td>
-                <td>{cohort.m3_retention_pct == null ? "—" : `${Number(cohort.m3_retention_pct).toFixed(1)}%`}</td>
-                <td>
-                  {cohort.cumulative_repeat_purchase_rate_pct == null
-                    ? "—"
-                    : `${Number(cohort.cumulative_repeat_purchase_rate_pct).toFixed(1)}%`}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="dataTableWrap cohortSummaryTableWrap">
+        <DataTable
+          data={[...cohorts].reverse()}
+          columns={[
+            { header: "Cohort", accessorKey: "cohort", cell: ({ row }) => <strong>{row.original.label}</strong> },
+            { header: "Customers", accessorKey: "cohort_size", cell: ({ row }) => row.original.cohort_size == null ? "—" : number.format(row.original.cohort_size) },
+            { header: "Months observed", accessorKey: "months_observed" },
+            { header: "M1 retention", accessorKey: "m1_retention_pct", cell: ({ row }) => row.original.m1_retention_pct == null ? "—" : `${Number(row.original.m1_retention_pct).toFixed(1)}%` },
+            { header: "M3 retention", accessorKey: "m3_retention_pct", cell: ({ row }) => row.original.m3_retention_pct == null ? "—" : `${Number(row.original.m3_retention_pct).toFixed(1)}%` },
+            { header: "Repeat purchase", accessorKey: "cumulative_repeat_purchase_rate_pct", cell: ({ row }) => row.original.cumulative_repeat_purchase_rate_pct == null ? "—" : `${Number(row.original.cumulative_repeat_purchase_rate_pct).toFixed(1)}%` },
+          ]}
+        />
       </div>
     </>
   );
@@ -241,19 +225,15 @@ function CalibrationOverview({ data }) {
   return (
     <>
       <p className="analyticsMeta">Selected method: {data.selected_method || "Not specified"}</p>
-      <div className="analyticsTableWrap calibrationTableWrap">
-        <table className="analyticsTable">
-          <thead><tr><th>Metric</th><th>Before</th><th>After</th></tr></thead>
-          <tbody>
-            {rows.map(([label, initial, calibrated]) => (
-              <tr key={label}>
-                <td>{label}</td>
-                <td>{initial == null ? "—" : Number(initial).toFixed(4)}</td>
-                <td>{calibrated == null ? "—" : Number(calibrated).toFixed(4)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="dataTableWrap calibrationTableWrap">
+        <DataTable
+          data={rows.map(([label, initial, calibrated]) => ({ label, initial, calibrated }))}
+          columns={[
+            { header: "Metric", accessorKey: "label" },
+            { header: "Before", accessorKey: "initial", cell: ({ row }) => row.original.initial == null ? "—" : Number(row.original.initial).toFixed(4) },
+            { header: "After", accessorKey: "calibrated", cell: ({ row }) => row.original.calibrated == null ? "—" : Number(row.original.calibrated).toFixed(4) },
+          ]}
+        />
       </div>
     </>
   );

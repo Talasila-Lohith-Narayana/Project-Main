@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Shell from "./Shell";
 import * as AuthContextModule from "../context/AuthContext";
@@ -107,6 +107,32 @@ describe("Shell Navigation & Layout Component", () => {
     expect(screen.queryByRole("link", { name: "Model diagnostics" })).not.toBeInTheDocument();
   });
 
+  it("shows only the pages granted to a viewer", () => {
+    vi.spyOn(AuthContextModule, "useAuth").mockReturnValue({
+      user: "scoped_viewer",
+      role: "viewer",
+      accounts: {},
+      isAdmin: false,
+      hasAccess: (page) => ["dashboard", "analytics"].includes(page),
+      logout: mockLogout,
+      logoutAll: mockLogoutAll,
+      switchToAccount: mockSwitchToAccount,
+      loginAndSwitch: mockLoginAndSwitch,
+    });
+
+    render(
+      <MemoryRouter>
+        <Shell />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Analytics" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Customers" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Products" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Admin Activity/i })).not.toBeInTheDocument();
+  });
+
   it("displays logged-in user profile badge and role indicator", () => {
     render(
       <MemoryRouter>
@@ -149,7 +175,7 @@ describe("Shell Navigation & Layout Component", () => {
     expect(screen.queryByText(/Admin Data Activity Log/i)).not.toBeInTheDocument();
   });
 
-  it("calls logoutAll when clicking Sign out button", () => {
+  it("asks for confirmation before signing out all profiles", () => {
     render(
       <MemoryRouter>
         <Shell />
@@ -159,6 +185,17 @@ describe("Shell Navigation & Layout Component", () => {
     const logoutBtn = screen.getByTitle("Sign out");
     fireEvent.click(logoutBtn);
 
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("This will sign out all active profiles on this device.")).toBeInTheDocument();
+    expect(mockLogoutAll).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mockLogoutAll).not.toHaveBeenCalled();
+
+    fireEvent.click(logoutBtn);
+    const signOutDialog = screen.getByRole("dialog");
+    fireEvent.click(within(signOutDialog).getByRole("button", { name: "Sign out" }));
     expect(mockLogoutAll).toHaveBeenCalledTimes(1);
   });
 

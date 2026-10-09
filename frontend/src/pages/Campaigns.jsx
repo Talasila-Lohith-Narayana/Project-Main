@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import AnalyticsPanel from "../components/analytics/AnalyticsPanel";
 import { Page, Panel } from "../components/States";
 import { analyticsService } from "../services/api";
+import DataTable from "../components/DataTable";
+import TablePagination from "../components/TablePagination";
 
 const number = new Intl.NumberFormat("en-US");
 
@@ -11,33 +13,13 @@ function ActiveCampaigns({ data, onSelect }) {
   if (campaigns.length === 0) {
     return <p className="analyticsEmpty">No active campaigns were returned.</p>;
   }
-  return (
-    <div className="analyticsTableWrap">
-      <table className="analyticsTable campaignsTable">
-        <thead>
-          <tr><th>Campaign</th><th>Priority</th><th>Customers</th><th>Targets</th></tr>
-        </thead>
-        <tbody>
-          {campaigns.map((campaign) => (
-            <tr key={campaign.campaign_name}>
-              <td><strong>{campaign.campaign_name}</strong></td>
-              <td><span className={`campaignPriority priority${campaign.campaign_priority}`}>P{campaign.campaign_priority}</span></td>
-              <td>{number.format(campaign.customer_count)}</td>
-              <td>
-                <button
-                  type="button"
-                  className="btn ghost"
-                  onClick={() => onSelect(campaign.campaign_name)}
-                >
-                  View customers
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  const columns = [
+    { header: "Campaign", accessorKey: "campaign_name", cell: ({ row }) => <strong>{row.original.campaign_name}</strong> },
+    { header: "Priority", accessorKey: "campaign_priority", cell: ({ row }) => <span className={`campaignPriority priority${row.original.campaign_priority}`}>P{row.original.campaign_priority}</span> },
+    { header: "Customers", accessorKey: "customer_count", cell: ({ row }) => number.format(row.original.customer_count) },
+    { id: "targets", header: "Targets", cell: ({ row }) => <button type="button" className="btn ghost" onClick={() => onSelect(row.original.campaign_name)}>View customers</button> },
+  ];
+  return <div className="dataTableWrap"><DataTable columns={columns} data={campaigns} /></div>;
 }
 
 function CampaignSegments({ data }) {
@@ -75,38 +57,19 @@ function CampaignCustomers({ data, navigate }) {
       <p className="analyticsMeta">
         {number.format(data.total)} targeted customers · ordered by churn probability
       </p>
-      <div className="analyticsTableWrap">
-        <table className="analyticsTable campaignsTable campaignAudienceTable">
-          <thead>
-            <tr><th>Customer</th><th>Risk</th><th>Priority</th><th>Segment</th><th>Value</th><th>Churn score</th><th>Reason</th></tr>
-          </thead>
-          <tbody>
-            {items.map((customer) => (
-              <tr key={customer.customer_unique_id}>
-                <td>
-                  <button
-                    type="button"
-                    className="analyticsLinkButton"
-                    title={customer.customer_unique_id}
-                    onClick={() => navigate(`/customers/${customer.customer_unique_id}`)}
-                  >
-                    {customer.customer_unique_id}
-                  </button>
-                </td>
-                <td>{customer.risk_tier}</td>
-                <td>P{customer.campaign_priority}</td>
-                <td>{customer.segment_label}</td>
-                <td>{customer.value_tier}</td>
-                <td>
-                  {customer.churn_probability == null
-                    ? "—"
-                    : `${(Number(customer.churn_probability) * 100).toFixed(1)}%`}
-                </td>
-                <td>{customer.reason_code}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="dataTableWrap campaignAudienceTableWrap">
+        <DataTable
+          columns={[
+            { header: "Customer", accessorKey: "customer_unique_id", cell: ({ row }) => <button type="button" className="analyticsLinkButton" title={row.original.customer_unique_id} onClick={() => navigate(`/customers/${row.original.customer_unique_id}`)}>{row.original.customer_unique_id}</button> },
+            { header: "Risk", accessorKey: "risk_tier" },
+            { header: "Priority", accessorKey: "campaign_priority", cell: ({ row }) => `P${row.original.campaign_priority}` },
+            { header: "Segment", accessorKey: "segment_label" },
+            { header: "Value", accessorKey: "value_tier" },
+            { header: "Churn score", accessorKey: "churn_probability", cell: ({ row }) => row.original.churn_probability == null ? "—" : `${(Number(row.original.churn_probability) * 100).toFixed(1)}%` },
+            { header: "Reason", accessorKey: "reason_code" },
+          ]}
+          data={items}
+        />
       </div>
       <p className="analyticsMeta">Showing page {data.page} of targeted customers.</p>
     </>
@@ -176,43 +139,14 @@ export default function Campaigns() {
                 {(data) => (
                   <>
                     <CampaignCustomers data={data} navigate={navigate} />
-                    <div className="pager campaignAudiencePager">
-                      <div className="pagerInfo">
-                        <span>
-                          Page <strong>{page}</strong> of{" "}
-                          <strong>
-                            {Math.max(1, Math.ceil(data.total / data.page_size))}
-                          </strong>
-                        </span>
-                        <span className="pagerDivider">•</span>
-                        <span className="pagerTotal">
-                          <strong>{number.format(data.total)}</strong>{" "}
-                          {data.total === 1 ? "targeted customer" : "targeted customers"}
-                        </span>
-                      </div>
-                      <div className="pagerControls">
-                        <button
-                          type="button"
-                          disabled={page <= 1}
-                          onClick={() => setPage((current) => current - 1)}
-                          aria-label="Previous page"
-                          title="Previous page"
-                        >
-                          ‹
-                        </button>
-                        <button
-                          type="button"
-                          disabled={
-                            page >= Math.ceil(data.total / data.page_size)
-                          }
-                          onClick={() => setPage((current) => current + 1)}
-                          aria-label="Next page"
-                          title="Next page"
-                        >
-                          ›
-                        </button>
-                      </div>
-                    </div>
+                    <TablePagination
+                      className="campaignAudiencePager"
+                      page={page}
+                      pageCount={Math.ceil(data.total / data.page_size)}
+                      totalItems={data.total}
+                      itemLabel="targeted customer"
+                      onPageChange={setPage}
+                    />
                   </>
                 )}
               </AnalyticsPanel>

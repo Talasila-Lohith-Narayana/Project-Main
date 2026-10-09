@@ -88,11 +88,14 @@ export const userService = {
 
 /** Executive dashboard analytics endpoints */
 export const dashboardService = {
-  /** Fetch KPIs, revenue trend, customer segmentation, regional distributions, and geo heatmap */
+  /** Fetch the initial dashboard KPIs and comparison data */
   summary: (params = {}) => {
     const queryParams = typeof params === "string" ? { timeframe: params } : params;
     return data(api.get("/dashboard/summary", { params: queryParams }));
   },
+  /** Fetch a deferred dashboard section when it approaches the viewport */
+  section: (section, params = {}) =>
+    data(api.get(`/dashboard/sections/${section}`, { params })),
   /** Fetch deep-dive geographic analytics for a specific Brazilian state */
   stateDetail: (stateCode, params = {}) => {
     return data(api.get(`/dashboard/geo/state/${stateCode}`, { params }));

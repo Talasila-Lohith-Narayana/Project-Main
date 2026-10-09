@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import AnalyticsPanel from "../components/analytics/AnalyticsPanel";
 import { Page, Panel } from "../components/States";
 import { analyticsService } from "../services/api";
+import DataTable from "../components/DataTable";
 
 const number = new Intl.NumberFormat("en-US");
 const featureLabel = (feature) => feature.replaceAll("_", " ");
@@ -82,18 +83,13 @@ function ModelComparison({ data }) {
   return (
     <>
       {data.summary_winner && <p className="analyticsMeta">Summary winner: {data.summary_winner}</p>}
-      <div className="analyticsTableWrap modelComparisonTableWrap">
-        <table className="analyticsTable">
-          <thead><tr><th>Metric</th><th>Logistic</th><th>LightGBM</th><th>Better</th></tr></thead>
-          <tbody>{rows.map((row) => (
-            <tr key={row.metric}>
-              <td data-label="Metric">{row.metric}</td>
-              <td data-label="Logistic">{row.logistic_regression == null ? "—" : Number(row.logistic_regression).toFixed(4)}</td>
-              <td data-label="LightGBM">{row.lightgbm == null ? "—" : Number(row.lightgbm).toFixed(4)}</td>
-              <td data-label="Better">{row.better || "—"}</td>
-            </tr>
-          ))}</tbody>
-        </table>
+      <div className="dataTableWrap modelComparisonTableWrap">
+        <DataTable data={rows} columns={[
+          { header: "Metric", accessorKey: "metric" },
+          { header: "Logistic", accessorKey: "logistic_regression", cell: ({ row }) => row.original.logistic_regression == null ? "—" : Number(row.original.logistic_regression).toFixed(4) },
+          { header: "LightGBM", accessorKey: "lightgbm", cell: ({ row }) => row.original.lightgbm == null ? "—" : Number(row.original.lightgbm).toFixed(4) },
+          { header: "Better", accessorKey: "better", cell: ({ row }) => row.original.better || "—" },
+        ]} />
       </div>
     </>
   );
@@ -112,36 +108,26 @@ function ThresholdAnalysis({ data }) {
     <>
       <p className="analyticsMeta">Recommended model: {data.recommended_model || "Not specified"}</p>
       {rows.length > 0 ? (
-        <div className="analyticsTableWrap thresholdTableWrap">
-          <table className="analyticsTable">
-            <thead><tr><th>Objective</th><th>Logistic threshold / score</th><th>LightGBM threshold / score</th><th>Better</th></tr></thead>
-            <tbody>{rows.map((row) => (
-              <tr key={row.metric}>
-                <td data-label="Objective">{row.metric}</td>
-                <td data-label="Logistic">{row.best_threshold_logreg == null ? "—" : `${Number(row.best_threshold_logreg).toFixed(3)} / ${row.best_score_logreg == null ? "—" : Number(row.best_score_logreg).toFixed(3)}`}</td>
-                <td data-label="LightGBM">{row.best_threshold_lgbm == null ? "—" : `${Number(row.best_threshold_lgbm).toFixed(3)} / ${row.best_score_lgbm == null ? "—" : Number(row.best_score_lgbm).toFixed(3)}`}</td>
-                <td data-label="Better">{row.better || "—"}</td>
-              </tr>
-            ))}</tbody>
-          </table>
+        <div className="dataTableWrap thresholdTableWrap">
+          <DataTable data={rows} columns={[
+            { header: "Objective", accessorKey: "metric" },
+            { header: "Logistic threshold / score", accessorKey: "best_threshold_logreg", cell: ({ row }) => row.original.best_threshold_logreg == null ? "—" : `${Number(row.original.best_threshold_logreg).toFixed(3)} / ${row.original.best_score_logreg == null ? "—" : Number(row.original.best_score_logreg).toFixed(3)}` },
+            { header: "LightGBM threshold / score", accessorKey: "best_threshold_lgbm", cell: ({ row }) => row.original.best_threshold_lgbm == null ? "—" : `${Number(row.original.best_threshold_lgbm).toFixed(3)} / ${row.original.best_score_lgbm == null ? "—" : Number(row.original.best_score_lgbm).toFixed(3)}` },
+            { header: "Better", accessorKey: "better", cell: ({ row }) => row.original.better || "—" },
+          ]} />
         </div>
       ) : (
         <p className="analyticsEmpty">Best-threshold recommendations are not available; showing the reported threshold sweep.</p>
       )}
       {sampledCurve.length > 0 && (
-        <div className="analyticsTableWrap curveTableWrap" style={{ marginTop: 12 }}>
-          <table className="analyticsTable">
-            <thead><tr><th>Threshold</th><th>Precision</th><th>Recall</th><th>F1</th><th>Balanced accuracy</th></tr></thead>
-            <tbody>{sampledCurve.map((point) => (
-              <tr key={point.threshold}>
-                <td data-label="Threshold">{Number(point.threshold).toFixed(3)}</td>
-                <td data-label="Precision">{percent(point.precision)}</td>
-                <td data-label="Recall">{percent(point.recall)}</td>
-                <td data-label="F1">{percent(point.f1)}</td>
-                <td data-label="Balanced accuracy">{percent(point.balanced_accuracy)}</td>
-              </tr>
-            ))}</tbody>
-          </table>
+        <div className="dataTableWrap curveTableWrap" style={{ marginTop: 12 }}>
+          <DataTable data={sampledCurve} columns={[
+            { header: "Threshold", accessorKey: "threshold", cell: ({ row }) => Number(row.original.threshold).toFixed(3) },
+            { header: "Precision", accessorKey: "precision", cell: ({ row }) => percent(row.original.precision) },
+            { header: "Recall", accessorKey: "recall", cell: ({ row }) => percent(row.original.recall) },
+            { header: "F1", accessorKey: "f1", cell: ({ row }) => percent(row.original.f1) },
+            { header: "Balanced accuracy", accessorKey: "balanced_accuracy", cell: ({ row }) => percent(row.original.balanced_accuracy) },
+          ]} />
         </div>
       )}
     </>
@@ -152,20 +138,15 @@ function ImbalanceExperiments({ data }) {
   const strategies = data?.strategies || [];
   if (strategies.length === 0) return <p className="analyticsEmpty">Class-imbalance experiment data is not available.</p>;
   return (
-    <div className="analyticsTableWrap imbalanceTableWrap">
-      <table className="analyticsTable">
-        <thead><tr><th>Strategy</th><th>Threshold</th><th>Balanced acc.</th><th>Recall</th><th>Precision</th><th>PR AUC</th></tr></thead>
-        <tbody>{strategies.map((strategy) => (
-          <tr key={strategy.strategy}>
-            <td data-label="Strategy">{strategy.strategy}</td>
-            <td data-label="Threshold">{strategy.tuned_threshold == null ? "—" : Number(strategy.tuned_threshold).toFixed(3)}</td>
-            <td data-label="Balanced acc.">{percent(strategy.balanced_accuracy)}</td>
-            <td data-label="Recall">{strategy.churn_recall ?? "—"}</td>
-            <td data-label="Precision">{strategy.churn_precision == null ? "—" : percent(strategy.churn_precision)}</td>
-            <td data-label="PR AUC">{strategy.pr_auc == null ? "—" : Number(strategy.pr_auc).toFixed(4)}</td>
-          </tr>
-        ))}</tbody>
-      </table>
+    <div className="dataTableWrap imbalanceTableWrap">
+      <DataTable data={strategies} columns={[
+        { header: "Strategy", accessorKey: "strategy" },
+        { header: "Threshold", accessorKey: "tuned_threshold", cell: ({ row }) => row.original.tuned_threshold == null ? "—" : Number(row.original.tuned_threshold).toFixed(3) },
+        { header: "Balanced acc.", accessorKey: "balanced_accuracy", cell: ({ row }) => percent(row.original.balanced_accuracy) },
+        { header: "Recall", accessorKey: "churn_recall", cell: ({ row }) => row.original.churn_recall ?? "—" },
+        { header: "Precision", accessorKey: "churn_precision", cell: ({ row }) => row.original.churn_precision == null ? "—" : percent(row.original.churn_precision) },
+        { header: "PR AUC", accessorKey: "pr_auc", cell: ({ row }) => row.original.pr_auc == null ? "—" : Number(row.original.pr_auc).toFixed(4) },
+      ]} />
     </div>
   );
 }

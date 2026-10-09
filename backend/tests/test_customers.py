@@ -30,6 +30,39 @@ def test_filter_customers_by_segment(client, admin_headers):
         assert item.get("segment") == "High Risk"
 
 
+def test_customer_list_can_skip_churn_details(client, admin_headers):
+    response = client.get(
+        "/api/customers?page_size=1&include_churn=false",
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+    item = response.json()["items"][0]
+    assert "segment" in item
+    assert "churn_percentage" not in item
+    assert "churn_risk_score" not in item
+    assert "churn_risk_level" not in item
+
+
+def test_customer_list_keeps_churn_details_by_default(client, admin_headers):
+    response = client.get("/api/customers?page_size=1", headers=admin_headers)
+    assert response.status_code == 200
+    item = response.json()["items"][0]
+    assert "churn_percentage" in item
+    assert "churn_risk_score" in item
+    assert "churn_risk_level" in item
+
+
+def test_customer_churn_filter_keeps_details_when_excluded(client, admin_headers):
+    response = client.get(
+        "/api/customers?page_size=1&churn_risk=high&include_churn=false",
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+    items = response.json()["items"]
+    if items:
+        assert "churn_risk_level" in items[0]
+
+
 def test_get_customer_detail_and_not_found(client, admin_headers):
     """Verifies fetching an existing customer's details and 404 on invalid ID."""
     # 1. Fetch a real customer from the list

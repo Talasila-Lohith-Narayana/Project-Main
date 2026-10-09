@@ -6,6 +6,17 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 # ------------------------------------------------------------------------------
 # 1. User Login Form Blueprint
 # ------------------------------------------------------------------------------
+AccessPage = Literal[
+    "dashboard",
+    "customers",
+    "products",
+    "analytics",
+    "campaigns",
+    "model",
+    "audit_logs",
+]
+
+
 class Login(BaseModel):
     username: str = Field(min_length=3, max_length=80, description="Login username")
     password: str = Field(min_length=6, max_length=128, description="Login password")
@@ -18,6 +29,10 @@ class UserCreate(BaseModel):
         default="viewer",
         description="Account access role",
     )
+    access_pages: list[AccessPage] | None = Field(
+        default=None,
+        description="Application pages this viewer may access",
+    )
 
     @field_validator("username")
     @classmethod
@@ -27,8 +42,20 @@ class UserCreate(BaseModel):
             raise ValueError("Username must contain between 3 and 80 characters")
         return value
 
+    @model_validator(mode="after")
+    def require_viewer_access(self):
+        if self.role == "viewer" and self.access_pages is not None and not self.access_pages:
+            raise ValueError("Select at least one page for a viewer.")
+        return self
+
 
 class UserSummary(BaseModel):
+    username: str
+    role: Literal["admin", "viewer"]
+    access_pages: list[AccessPage]
+
+
+class ProfileSummary(BaseModel):
     username: str
     role: Literal["admin", "viewer"]
 
@@ -40,6 +67,10 @@ class UserUpdateResult(UserSummary):
 class UserUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=3, max_length=80)
     password: str | None = Field(default=None, min_length=8, max_length=128)
+    access_pages: list[AccessPage] | None = Field(
+        default=None,
+        description="Application pages this viewer may access",
+    )
 
     @field_validator("username")
     @classmethod
@@ -53,8 +84,14 @@ class UserUpdate(BaseModel):
 
     @model_validator(mode="after")
     def require_update(self):
-        if self.username is None and self.password is None:
-            raise ValueError("Provide a new username, password, or both")
+        if (
+            self.username is None
+            and self.password is None
+            and self.access_pages is None
+        ):
+            raise ValueError("Provide a username, password, or page-access update.")
+        if self.access_pages is not None and not self.access_pages:
+            raise ValueError("Select at least one page for a viewer.")
         return self
 
 

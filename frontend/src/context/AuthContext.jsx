@@ -1,7 +1,15 @@
 import React, { createContext, useContext, useState } from "react";
+import { ACCESS_PAGES, DEFAULT_VIEWER_ACCESS } from "../accessPages";
 
 // Create Context for holding auth state
 const AuthContext = createContext(null);
+
+function getSessionAccessPages(session) {
+  if (Array.isArray(session?.access_pages)) return session.access_pages;
+  return session?.role === "admin"
+    ? ACCESS_PAGES.map(({ key }) => key)
+    : DEFAULT_VIEWER_ACCESS;
+}
 
 export function AuthProvider({ children }) {
   // Map of username -> { access_token, username, role } for authenticated profiles
@@ -18,22 +26,35 @@ export function AuthProvider({ children }) {
   const [role, setRole] = useState(
     () => localStorage.getItem("ci_role") || "viewer",
   );
-const login = (session) => {
+  const [accessPages, setAccessPages] = useState(() => {
+    try {
+      const pages = JSON.parse(localStorage.getItem("ci_access_pages") || "null");
+      return Array.isArray(pages) ? pages : DEFAULT_VIEWER_ACCESS;
+    } catch {
+      return DEFAULT_VIEWER_ACCESS;
+    }
+  });
+
+  const login = (session) => {
+    const sessionAccessPages = getSessionAccessPages(session);
     const updatedAccounts = {
       ...accounts,
-      [session.username]: session,
+      [session.username]: { ...session, access_pages: sessionAccessPages },
     };
     localStorage.setItem("ci_accounts", JSON.stringify(updatedAccounts));
     localStorage.setItem("ci_token", session.access_token);
     localStorage.setItem("ci_user", session.username);
     localStorage.setItem("ci_role", session.role);
+    localStorage.setItem("ci_access_pages", JSON.stringify(sessionAccessPages));
     setAccounts(updatedAccounts);
     setToken(session.access_token);
     setUser(session.username);
     setRole(session.role);
+    setAccessPages(sessionAccessPages);
   };
 
   const updateCurrentSession = (session) => {
+    const sessionAccessPages = getSessionAccessPages(session);
     const updatedAccounts = { ...accounts };
     if (user && user !== session.username) {
       delete updatedAccounts[user];
@@ -43,6 +64,7 @@ const login = (session) => {
       access_token: session.access_token || token,
       username: session.username,
       role: session.role,
+      access_pages: sessionAccessPages,
     };
     updatedAccounts[session.username] = updatedSession;
     localStorage.setItem("ci_accounts", JSON.stringify(updatedAccounts));
@@ -52,18 +74,39 @@ const login = (session) => {
       setToken(session.access_token);
     }
     localStorage.setItem("ci_role", session.role);
+    localStorage.setItem("ci_access_pages", JSON.stringify(sessionAccessPages));
     setAccounts(updatedAccounts);
     setUser(session.username);
     setRole(session.role);
+    setAccessPages(sessionAccessPages);
+  };
+
+  const updateAccountAccess = (username, sessionAccessPages) => {
+    const updatedAccounts = {
+      ...accounts,
+      [username]: {
+        ...(accounts[username] || {}),
+        username,
+        access_pages: sessionAccessPages,
+      },
+    };
+    localStorage.setItem("ci_accounts", JSON.stringify(updatedAccounts));
+    setAccounts(updatedAccounts);
+    if (user === username) {
+      localStorage.setItem("ci_access_pages", JSON.stringify(sessionAccessPages));
+      setAccessPages(sessionAccessPages);
+    }
   };
 const logout = (usernameToLogout = null) => {
     if (!usernameToLogout || usernameToLogout === user) {
       localStorage.removeItem("ci_token");
       localStorage.removeItem("ci_user");
       localStorage.removeItem("ci_role");
+      localStorage.removeItem("ci_access_pages");
       setToken(null);
       setUser(null);
       setRole(null);
+      setAccessPages([]);
     }
   };
 const logoutAll = () => {
@@ -71,10 +114,12 @@ const logoutAll = () => {
     localStorage.removeItem("ci_token");
     localStorage.removeItem("ci_user");
     localStorage.removeItem("ci_role");
+    localStorage.removeItem("ci_access_pages");
     setAccounts({});
     setToken(null);
     setUser(null);
     setRole(null);
+    setAccessPages([]);
   };
 const switchToAccount = (targetUsername) => {
     const targetSession = accounts[targetUsername];
@@ -84,9 +129,12 @@ const switchToAccount = (targetUsername) => {
     localStorage.setItem("ci_token", targetSession.access_token);
     localStorage.setItem("ci_user", targetSession.username);
     localStorage.setItem("ci_role", targetSession.role);
+    const sessionAccessPages = getSessionAccessPages(targetSession);
+    localStorage.setItem("ci_access_pages", JSON.stringify(sessionAccessPages));
     setToken(targetSession.access_token);
     setUser(targetSession.username);
     setRole(targetSession.role);
+    setAccessPages(sessionAccessPages);
   };
 const loginAndSwitch = async (credentials) => {
     const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api"}/auth/login`, {
@@ -109,10 +157,13 @@ const loginAndSwitch = async (credentials) => {
         token,
         user,
         role,
+        accessPages,
         accounts,
         isAdmin: role === "admin",
+        hasAccess: (page) => role === "admin" || accessPages.includes(page),
         login,
         updateCurrentSession,
+        updateAccountAccess,
         logout,
         logoutAll,
         switchToAccount,
